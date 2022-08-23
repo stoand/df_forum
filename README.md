@@ -9,7 +9,7 @@ Differentiates between frontend and backend states and handles both.
 Ensure Rust and `cargo-watch` are installed, then:
 
 ```
-cargo watch -x 'run -- 10' 
+cargo watch -x 'test -- --nocapture' 
 ```
 
 ## To run in browser
