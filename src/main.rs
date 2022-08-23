@@ -35,7 +35,7 @@ fn run0() {
 
             manages
                 .filter(|&tup| match tup {
-                    ("session", "page", ("home", _attach_to)) => true,
+                    ("session", "page", ("home_page_root", _attach_to)) => true,
                     _ => false,
                 })
                 .inspect(|((_el, _at, (_val0, attach_to)), time, add_rm)| {
@@ -50,9 +50,23 @@ fn run0() {
         input.advance_to(0);
 
         // index load page event fires on first load
-        input.insert(("session", "page", ("home", "02312")));
-
+        input.insert(("session", "page", ("home_page_root", "02312")));
         input.advance_to(1);
+
+        // ON_HOME_SIGN_IN
+        // these events are triggered on a button press
+        // event inside the home page
+        input.remove(("session", "page", ("home_page_root", "02312")));
+        input.insert(("session", "sign_in", ("name", "user0123")));
+        input.insert(("session", "sign_in", ("date", "10-08-2022")));
+        input.insert(("session", "page", ("posts_page_root", "02312")));
+        input.advance_to(2);
+
+
+        // ON_POST_CREATED
+        input.insert(("rnd-post-id", "post", ("title", "hello im a new post")));
+        input.insert(("rnd-post-id", "post", ("body", "post body goes here")));
+        input.advance_to(3);
     })
     .expect("fail");
 }
