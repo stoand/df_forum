@@ -1,17 +1,12 @@
 extern crate differential_dataflow;
 extern crate timely;
 
+use wasm_bindgen::prelude::*;
+use timely::{CommunicationConfig, WorkerConfig};
+use timely::communication::allocator::thread::Thread;
+use timely::worker::Worker;
+
 use differential_dataflow::input::InputSession;
-
-// #[derive(Clone,Debug,PartialEq, Eq, PartialOrd, Ord)]
-// enum EventType {
-//     Stuff0,
-//     Stuff1,
-// }
-
-fn main() {
-    run0();
-}
 
 fn add_rm_str(val: &isize) -> String {
     if *val == 1 {
@@ -21,8 +16,9 @@ fn add_rm_str(val: &isize) -> String {
     }
 }
 
-fn run0() {
-    timely::execute_from_args(std::env::args(), move |worker| {
+#[wasm_bindgen]
+pub fn run0() {
+    let worker_fn = move |worker: &mut Worker<Thread>| {
         let mut input = InputSession::new();
 
         worker.dataflow(|scope| {
@@ -67,8 +63,12 @@ fn run0() {
         input.insert(("rnd-post-id", "post", ("title", "hello im a new post")));
         input.insert(("rnd-post-id", "post", ("body", "post body goes here")));
         input.advance_to(3);
-    })
-    .expect("fail");
+    };
+
+    let alloc = Thread::new();
+    let mut worker = Worker::new(WorkerConfig::default(), alloc);
+    let result = worker_fn(&mut worker);
+    while worker.step_or_park(None) { }
 }
 
 #[cfg(test)]
