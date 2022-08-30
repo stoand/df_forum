@@ -1,6 +1,7 @@
 extern crate differential_dataflow;
 extern crate timely;
 
+use std::cell::RefCell;
 use timely::communication::allocator::thread::Thread;
 use timely::worker::Worker;
 use timely::WorkerConfig;
@@ -36,54 +37,62 @@ pub fn run0() {
     let worker_fn = move |worker: &mut Worker<Thread>| {
         let mut input = InputSession::new();
 
-        worker.dataflow(|scope| {
+        worker.dataflow(move |scope| {
             let manages = input.to_collection(scope);
 
             manages
+                .inspect(|&tup| log(&format!("all -- {:?}", tup)))
                 .filter(|&tup| match tup {
                     ("session", "page", ("home_page_root", _attach_to)) => true,
                     _ => false,
                 })
-                .inspect(|((_el, _at, (_val0, attach_to)), time, add_rm)| {
+                .inspect(move |((_el, _at, (_val0, attach_to)), time, add_rm)| {
                     log(&format!(
                         "{} home page to element with id: {:?}; at time {:?}",
                         add_rm_str(add_rm),
                         attach_to,
                         time
                     ));
+
+                    input
+                        .insert(("session", "page", ("home_page_root2", "asdf")));
+                    input.advance_to(2);
                 });
         });
 
-        let mut time = 0;
+        // let mut time = 0;
 
-        time += 1;
+        // time += 1;
 
-        input.insert(("session", "page", ("home_page_root", time)));
-        input.advance_to(time);
-        
+        // input
+        //     .borrow_mut()
+        //     .insert(("session", "page", ("home_page_root", "g22")));
+        // input.borrow_mut().advance_to(time);
 
-        let window = web_sys::window().expect("could not get window");
-        let document = window.document().expect("could not get document");
-        let body = document
-            .query_selector("body")
-            .expect("could not get body")
-            .unwrap();
+        // let window = web_sys::window().expect("could not get window");
+        // let document = window.document().expect("could not get document");
+        // let body = document
+        //     .query_selector("body")
+        //     .expect("could not get body")
+        //     .unwrap();
 
-        let val = document.create_element("button").unwrap();
-        val.set_text_content(Some("rust says hi"));
-        body.append_child(&val).unwrap();
+        // let val = document.create_element("button").unwrap();
+        // val.set_text_content(Some("rust says hi"));
+        // body.append_child(&val).unwrap();
 
-        let clj = Closure::<dyn FnMut()>::new(move || {
-            input.insert(("session", "page", ("home_page_root", time)));
-            time += 1;
-            input.advance_to(time);
-            log("hello");
-        });
+        // let clj = Closure::<dyn FnMut()>::new(move || {
+        //     input.insert(("session", "page", ("home_page_root", time)));
+        //     time += 1;
+        //     input.advance_to(time);
+        //     log("hello");
+        // });
 
-        let val2 = val.dyn_ref::<HtmlElement>().unwrap();
-        val2.set_onclick(Some(clj.as_ref().unchecked_ref()));
+        // let val2 = val.dyn_ref::<HtmlElement>().unwrap();
+        // val2.set_onclick(Some(clj.as_ref().unchecked_ref()));
 
-        clj.forget();
+        // clj.forget();
+        //
+        //
 
         // index load page event fires on first load
         // input.insert(("session", "page", ("home_page_root", "body")));
