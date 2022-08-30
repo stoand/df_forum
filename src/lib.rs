@@ -1,10 +1,10 @@
 extern crate differential_dataflow;
 extern crate timely;
 
-use wasm_bindgen::prelude::*;
-use timely::{CommunicationConfig, WorkerConfig};
 use timely::communication::allocator::thread::Thread;
 use timely::worker::Worker;
+use timely::WorkerConfig;
+use wasm_bindgen::prelude::*;
 
 use differential_dataflow::input::InputSession;
 
@@ -18,7 +18,6 @@ fn add_rm_str(val: &isize) -> String {
 
 #[wasm_bindgen]
 extern "C" {
-    
     #[wasm_bindgen(js_namespace = console)]
     fn log(contents: &str);
 }
@@ -47,7 +46,15 @@ pub fn run0() {
                         add_rm_str(add_rm),
                         attach_to,
                         time
-                    ))
+                    ));
+
+                    let window = web_sys::window().expect("could not get window");
+                    let document = window.document().expect("could not get document");
+                    let body = document.body().expect("could not get body");
+
+                    let val = document.create_element("p").unwrap();
+                    val.set_text_content(Some("rust says hi"));
+                    body.append_child(&val).unwrap();
                 });
         });
         input.advance_to(0);
@@ -59,23 +66,22 @@ pub fn run0() {
         // ON_HOME_SIGN_IN
         // these events are triggered on a button press
         // event inside the home page
-        input.remove(("session", "page", ("home_page_root", "02312")));
-        input.insert(("session", "sign_in", ("name", "user0123")));
-        input.insert(("session", "sign_in", ("date", "10-08-2022")));
-        input.insert(("session", "page", ("posts_page_root", "02312")));
-        input.advance_to(2);
+        // input.remove(("session", "page", ("home_page_root", "02312")));
+        // input.insert(("session", "sign_in", ("name", "user0123")));
+        // input.insert(("session", "sign_in", ("date", "10-08-2022")));
+        // input.insert(("session", "page", ("posts_page_root", "02312")));
+        // input.advance_to(2);
 
-
-        // ON_POST_CREATED
-        input.insert(("rnd-post-id", "post", ("title", "hello im a new post")));
-        input.insert(("rnd-post-id", "post", ("body", "post body goes here")));
-        input.advance_to(3);
+        // // ON_POST_CREATED
+        // input.insert(("rnd-post-id", "post", ("title", "hello im a new post")));
+        // input.insert(("rnd-post-id", "post", ("body", "post body goes here")));
+        // input.advance_to(3);
     };
 
     let alloc = Thread::new();
     let mut worker = Worker::new(WorkerConfig::default(), alloc);
     let result = worker_fn(&mut worker);
-    while worker.step_or_park(None) { }
+    while worker.step_or_park(None) {}
 }
 
 #[cfg(test)]
