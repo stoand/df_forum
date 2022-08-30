@@ -17,6 +17,13 @@ fn add_rm_str(val: &isize) -> String {
 }
 
 #[wasm_bindgen]
+extern "C" {
+    
+    #[wasm_bindgen(js_namespace = console)]
+    fn log(contents: &str);
+}
+
+#[wasm_bindgen]
 pub fn run0() {
     let worker_fn = move |worker: &mut Worker<Thread>| {
         let mut input = InputSession::new();
@@ -35,12 +42,12 @@ pub fn run0() {
                     _ => false,
                 })
                 .inspect(|((_el, _at, (_val0, attach_to)), time, add_rm)| {
-                    println!(
+                    log(&format!(
                         "{} home page to element with id: {:?}; at time {:?}",
                         add_rm_str(add_rm),
                         attach_to,
                         time
-                    )
+                    ))
                 });
         });
         input.advance_to(0);
