@@ -9,12 +9,7 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-
-# IMPORTANT - add to ../differential-dataflow/Cargo.toml
-# timely = { path = "../timely-dataflow/timely/", default-features = false }
- 
-differential-dataflow = { path = "../differential-dataflow/" }
-# should be on "instant_wasm_compat" branch
-timely = { path = "../timely-dataflow/timely/", default-features = false }
+differential-dataflow = { git = "https://github.com/stoand/differential-dataflow", branch = "instant_wasm_compat", default-features = false }
+timely = { git = "https://github.com/stoand/timely-dataflow", branch = "instant_wasm_compat", default-features = false }
 wasm-bindgen = "0.2.82"
 web-sys = { version = "0.3.59", features = ["Document", "Element", "HtmlElement", "Node", "Window"] }
