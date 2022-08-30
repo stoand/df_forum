@@ -6,6 +6,9 @@ use timely::worker::Worker;
 use timely::WorkerConfig;
 use wasm_bindgen::prelude::*;
 
+use differential_dataflow::input::Input;
+use differential_dataflow::operators::Consolidate;
+use differential_dataflow::operators::Iterate;
 // use js_sys::{Array, Date};
 use wasm_bindgen::JsCast;
 use web_sys::{Document, Element, HtmlElement, Window};
@@ -26,37 +29,10 @@ extern "C" {
     fn log(contents: &str);
 }
 
-fn clickable_button() {
-    let window = web_sys::window().expect("could not get window");
-    let document = window.document().expect("could not get document");
-    let body = document
-        .query_selector("body")
-        .expect("could not get body")
-        .unwrap();
-
-    let val = document.create_element("button").unwrap();
-    val.set_text_content(Some("rust says hi"));
-    body.append_child(&val).unwrap();
-
-    let clj = Closure::<dyn FnMut()>::new(move || {
-        log("hello");
-    });
-
-    let val2 = val.dyn_ref::<HtmlElement>().unwrap();
-    val2.set_onclick(Some(clj.as_ref().unchecked_ref()));
-
-    window.set_timeout_with_callback_and_timeout_and_arguments_0(
-        clj.as_ref().unchecked_ref(),
-        3000,
-    ).unwrap();
-
-    clj.forget();
-}
+fn clickable_button() {}
 
 #[wasm_bindgen]
 pub fn run0() {
-    clickable_button();
-    
     let worker_fn = move |worker: &mut Worker<Thread>| {
         let mut input = InputSession::new();
 
@@ -77,11 +53,41 @@ pub fn run0() {
                     ));
                 });
         });
-        input.advance_to(0);
+
+        let mut time = 0;
+
+        time += 1;
+
+        input.insert(("session", "page", ("home_page_root", time)));
+        input.advance_to(time);
+        
+
+        let window = web_sys::window().expect("could not get window");
+        let document = window.document().expect("could not get document");
+        let body = document
+            .query_selector("body")
+            .expect("could not get body")
+            .unwrap();
+
+        let val = document.create_element("button").unwrap();
+        val.set_text_content(Some("rust says hi"));
+        body.append_child(&val).unwrap();
+
+        let clj = Closure::<dyn FnMut()>::new(move || {
+            input.insert(("session", "page", ("home_page_root", time)));
+            time += 1;
+            input.advance_to(time);
+            log("hello");
+        });
+
+        let val2 = val.dyn_ref::<HtmlElement>().unwrap();
+        val2.set_onclick(Some(clj.as_ref().unchecked_ref()));
+
+        clj.forget();
 
         // index load page event fires on first load
-        input.insert(("session", "page", ("home_page_root", "body")));
-        input.advance_to(1);
+        // input.insert(("session", "page", ("home_page_root", "body")));
+        // input.advance_to(1);
 
         // ON_HOME_SIGN_IN
         // these events are triggered on a button press
