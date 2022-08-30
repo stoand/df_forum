@@ -6,6 +6,10 @@ use timely::worker::Worker;
 use timely::WorkerConfig;
 use wasm_bindgen::prelude::*;
 
+// use js_sys::{Array, Date};
+use wasm_bindgen::JsCast;
+use web_sys::{Document, Element, HtmlElement, Window};
+
 use differential_dataflow::input::InputSession;
 
 fn add_rm_str(val: &isize) -> String {
@@ -22,18 +26,42 @@ extern "C" {
     fn log(contents: &str);
 }
 
+fn clickable_button() {
+    let window = web_sys::window().expect("could not get window");
+    let document = window.document().expect("could not get document");
+    let body = document
+        .query_selector("body")
+        .expect("could not get body")
+        .unwrap();
+
+    let val = document.create_element("button").unwrap();
+    val.set_text_content(Some("rust says hi"));
+    body.append_child(&val).unwrap();
+
+    let clj = Closure::<dyn FnMut()>::new(move || {
+        log("hello");
+    });
+
+    let val2 = val.dyn_ref::<HtmlElement>().unwrap();
+    val2.set_onclick(Some(clj.as_ref().unchecked_ref()));
+
+    window.set_timeout_with_callback_and_timeout_and_arguments_0(
+        clj.as_ref().unchecked_ref(),
+        3000,
+    ).unwrap();
+
+    clj.forget();
+}
+
 #[wasm_bindgen]
 pub fn run0() {
+    clickable_button();
+    
     let worker_fn = move |worker: &mut Worker<Thread>| {
         let mut input = InputSession::new();
 
         worker.dataflow(|scope| {
             let manages = input.to_collection(scope);
-
-            // manages
-            //     // .map(|(m2, m1)| (m1, m2))
-            //     // .join(&manages)
-            //     .inspect(|x| println!("  -- {:?}", x));
 
             manages
                 .filter(|&tup| match tup {
@@ -47,20 +75,12 @@ pub fn run0() {
                         attach_to,
                         time
                     ));
-
-                    let window = web_sys::window().expect("could not get window");
-                    let document = window.document().expect("could not get document");
-                    let body = document.body().expect("could not get body");
-
-                    let val = document.create_element("p").unwrap();
-                    val.set_text_content(Some("rust says hi"));
-                    body.append_child(&val).unwrap();
                 });
         });
         input.advance_to(0);
 
         // index load page event fires on first load
-        input.insert(("session", "page", ("home_page_root", "02312")));
+        input.insert(("session", "page", ("home_page_root", "body")));
         input.advance_to(1);
 
         // ON_HOME_SIGN_IN
