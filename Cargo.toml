@@ -9,6 +9,11 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-differential-dataflow = "0.12.0"
-timely = "0.12.0"
+
+# IMPORTANT - add to ../differential-dataflow/Cargo.toml
+# timely = { path = "../timely-dataflow/timely/", default-features = false }
+ 
+differential-dataflow = { path = "../differential-dataflow/" }
+# should be on "instant_wasm_compat" branch
+timely = { path = "../timely-dataflow/timely/", default-features = false }
 wasm-bindgen = "0.2.82"
