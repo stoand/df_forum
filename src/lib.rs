@@ -1,5 +1,8 @@
 extern crate differential_dataflow;
+extern crate serde;
 extern crate timely;
+#[macro_use]
+extern crate serde_derive;
 
 use std::cell::RefCell;
 use timely::communication::allocator::thread::Thread;
@@ -10,7 +13,7 @@ use wasm_bindgen::prelude::*;
 use differential_dataflow::input::Input;
 use differential_dataflow::operators::Consolidate;
 use differential_dataflow::operators::Iterate;
-// use js_sys::{Array, Date};
+use timely::dataflow::operators::capture::{Capture, Extract, EventCore};
 use wasm_bindgen::JsCast;
 use web_sys::{Document, Element, HtmlElement, Window};
 
@@ -27,38 +30,80 @@ fn add_rm_str(val: &isize) -> String {
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = console)]
-    fn log(contents: &str);
+    fn log1(contents: &str);
+}
+
+fn log(contents: &str) {
+    println!("{}", contents);
 }
 
 fn clickable_button() {}
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+struct AppState {
+    count: u32,
+}
+
+// #[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq, Ord)]
+// enum AppEvent {
+//     CountUp,
+//     CountDown,
+// }
+
 #[wasm_bindgen]
 pub fn run0() {
+
+    
+    
     let worker_fn = move |worker: &mut Worker<Thread>| {
-        let mut input = InputSession::new();
+        let (mut input, output) = worker.dataflow(|scope| {
+            let (input, manages) = scope.new_collection();
 
-        worker.dataflow(move |scope| {
-            let manages = input.to_collection(scope);
+            // let output = manages.filter(|&ev| ev == AppEvent::CountUp).capture();
+            let output = manages.filter(|&ev| ev == 0).inner.capture();
 
-            manages
-                .inspect(|&tup| log(&format!("all -- {:?}", tup)))
-                .filter(|&tup| match tup {
-                    ("session", "page", ("home_page_root", _attach_to)) => true,
-                    _ => false,
-                })
-                .inspect(move |((_el, _at, (_val0, attach_to)), time, add_rm)| {
-                    log(&format!(
-                        "{} home page to element with id: {:?}; at time {:?}",
-                        add_rm_str(add_rm),
-                        attach_to,
-                        time
-                    ));
-
-                    input
-                        .insert(("session", "page", ("home_page_root2", "asdf")));
-                    input.advance_to(2);
-                });
+            (input, output)
         });
+
+        input.insert(0u64);
+        input.advance_to(1u32);
+        
+        input.advance_to(2u32);
+        input.close();
+
+        // if let Ok(EventCore::Messages(v0, v1)) = output.try_recv() {
+        if let Ok(_something) = output.try_recv() {
+            println!("got something");
+            // println!("got! {:?}", v0);               
+        }
+
+        // println!("got: {:?}", output.extract());
+        // let mut input = InputSession::new();
+
+        // worker.dataflow(|scope| {
+        //     let manages = input.to_collection(scope);
+
+        //     manages
+        //         .inspect(|&tup| log(&format!("all -- {:?}", tup)))
+        //         .filter(|&tup| match tup {
+        //             ("session", "page", ("home_page_root", _attach_to)) => true,
+        //             _ => false,
+        //         })
+        //         .inspect(move |((_el, _at, (_val0, attach_to)), time, add_rm)| {
+        //             log(&format!(
+        //                 "{} home page to element with id: {:?}; at time {:?}",
+        //                 add_rm_str(add_rm),
+        //                 attach_to,
+        //                 time
+        //             ));
+        //         });
+        // });
+
+        // input.insert(("session", "page", ("home_page_root2", "asdf")));
+        // input.advance_to(2usize);
+
+        // TODO check:
+        // https://timelydataflow.github.io/timely-dataflow/chapter_4/chapter_4_4.html
 
         // let mut time = 0;
 
