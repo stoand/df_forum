@@ -40,17 +40,6 @@ fn log(contents: &str) {
 
 fn clickable_button() {}
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-struct AppState {
-    count: u32,
-}
-
-// #[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq, Ord)]
-// enum AppEvent {
-//     CountUp,
-//     CountDown,
-// }
-
 #[wasm_bindgen]
 pub fn run0() {
     let worker_fn = move |worker: &mut Worker<Thread>| {
