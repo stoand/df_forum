@@ -3,6 +3,7 @@ extern crate serde;
 extern crate timely;
 #[macro_use]
 extern crate serde_derive;
+extern crate console_error_panic_hook;
 
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -20,14 +21,6 @@ use web_sys::{Document, Element, HtmlElement, Window};
 
 use differential_dataflow::input::InputSession;
 
-fn add_rm_str(val: &isize) -> String {
-    if *val == 1 {
-        "add".into()
-    } else {
-        "rm".into()
-    }
-}
-
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = console)]
@@ -42,11 +35,14 @@ fn clickable_button() {}
 
 #[wasm_bindgen]
 pub fn run0() {
+
+    std::panic::set_hook(Box::new(console_error_panic_hook::hook));
+    
     let worker_fn = move |worker: &mut Worker<Thread>| {
         let shared1 = Rc::new(RefCell::new(Vec::new()));
         let shared2 = shared1.clone();
 
-        let (mut input, output) = worker.dataflow(|scope| {
+        let mut input = worker.dataflow(|scope| {
             let (input, manages) = scope.new_collection();
 
             // let output = manages.filter(|&ev| ev == AppEvent::CountUp).capture();
@@ -54,7 +50,7 @@ pub fn run0() {
                 .filter(|&ev| ev == 0)
                 .inspect(move |v| shared1.borrow_mut().push(format!("val: {:?}", v)));
 
-            (input, 0)
+            input
         });
 
         let mut time = 0;
@@ -85,8 +81,8 @@ pub fn run0() {
             log("hello");
             log(&format!("got: {:?}", *shared2.borrow()));
             // TODO fix error that these two lines cause
-            // input.insert(time);
-            // input.advance_to(time);
+            input.insert(time);
+            input.advance_to(time);
             time += 1;
             log(&format!("t = {:?}", time));
         });
