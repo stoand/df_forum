@@ -31,10 +31,10 @@ fn add_rm_str(val: &isize) -> String {
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = console)]
-    fn log1(contents: &str);
+    fn log(contents: &str);
 }
 
-fn log(contents: &str) {
+fn log1(contents: &str) {
     println!("{}", contents);
 }
 
@@ -50,79 +50,51 @@ pub fn run0() {
             let (input, manages) = scope.new_collection();
 
             // let output = manages.filter(|&ev| ev == AppEvent::CountUp).capture();
-            let output = manages.filter(|&ev| ev == 0).inspect(move |v| shared1.borrow_mut().push(format!("val: {:?}", v)));
+            let output = manages
+                .filter(|&ev| ev == 0)
+                .inspect(move |v| shared1.borrow_mut().push(format!("val: {:?}", v)));
 
             (input, 0)
         });
 
+        let mut time = 0;
+
         input.insert(0u64);
-        input.advance_to(1u32);
-        input.advance_to(2u32);
+        input.advance_to(time);
+        time += 1;
 
-        println!("got: {:?}", *shared2.borrow());
-
-
-        // println!("got: {:?}", output.extract());
-        // let mut input = InputSession::new();
-
-        // worker.dataflow(|scope| {
-        //     let manages = input.to_collection(scope);
-
-        //     manages
-        //         .inspect(|&tup| log(&format!("all -- {:?}", tup)))
-        //         .filter(|&tup| match tup {
-        //             ("session", "page", ("home_page_root", _attach_to)) => true,
-        //             _ => false,
-        //         })
-        //         .inspect(move |((_el, _at, (_val0, attach_to)), time, add_rm)| {
-        //             log(&format!(
-        //                 "{} home page to element with id: {:?}; at time {:?}",
-        //                 add_rm_str(add_rm),
-        //                 attach_to,
-        //                 time
-        //             ));
-        //         });
-        // });
-
-        // input.insert(("session", "page", ("home_page_root2", "asdf")));
-        // input.advance_to(2usize);
-
-        // TODO check:
-        // https://timelydataflow.github.io/timely-dataflow/chapter_4/chapter_4_4.html
-
-        // let mut time = 0;
-
-        // time += 1;
+        log(&format!("got: {:?}", *shared2.borrow()));
 
         // input
         //     .borrow_mut()
         //     .insert(("session", "page", ("home_page_root", "g22")));
         // input.borrow_mut().advance_to(time);
 
-        // let window = web_sys::window().expect("could not get window");
-        // let document = window.document().expect("could not get document");
-        // let body = document
-        //     .query_selector("body")
-        //     .expect("could not get body")
-        //     .unwrap();
+        let window = web_sys::window().expect("could not get window");
+        let document = window.document().expect("could not get document");
+        let body = document
+            .query_selector("body")
+            .expect("could not get body")
+            .unwrap();
 
-        // let val = document.create_element("button").unwrap();
-        // val.set_text_content(Some("rust says hi"));
-        // body.append_child(&val).unwrap();
+        let val = document.create_element("button").unwrap();
+        val.set_text_content(Some("rust says hi"));
+        body.append_child(&val).unwrap();
 
-        // let clj = Closure::<dyn FnMut()>::new(move || {
-        //     input.insert(("session", "page", ("home_page_root", time)));
-        //     time += 1;
-        //     input.advance_to(time);
-        //     log("hello");
-        // });
+        let clj = Closure::<dyn FnMut()>::new(move || {
+            log("hello");
+            log(&format!("got: {:?}", *shared2.borrow()));
+            // TODO fix error that these two lines cause
+            // input.insert(time);
+            // input.advance_to(time);
+            time += 1;
+            log(&format!("t = {:?}", time));
+        });
 
-        // let val2 = val.dyn_ref::<HtmlElement>().unwrap();
-        // val2.set_onclick(Some(clj.as_ref().unchecked_ref()));
+        let val2 = val.dyn_ref::<HtmlElement>().unwrap();
+        val2.set_onclick(Some(clj.as_ref().unchecked_ref()));
 
-        // clj.forget();
-        //
-        //
+        clj.forget();
 
         // index load page event fires on first load
         // input.insert(("session", "page", ("home_page_root", "body")));
