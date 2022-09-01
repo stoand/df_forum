@@ -5,6 +5,7 @@ extern crate timely;
 extern crate serde_derive;
 
 use std::cell::RefCell;
+use std::rc::Rc;
 use timely::communication::allocator::thread::Thread;
 use timely::worker::Worker;
 use timely::WorkerConfig;
@@ -13,7 +14,7 @@ use wasm_bindgen::prelude::*;
 use differential_dataflow::input::Input;
 use differential_dataflow::operators::Consolidate;
 use differential_dataflow::operators::Iterate;
-use timely::dataflow::operators::capture::{Capture, Extract, EventCore};
+use timely::dataflow::operators::capture::{Capture, EventCore, Extract};
 use wasm_bindgen::JsCast;
 use web_sys::{Document, Element, HtmlElement, Window};
 
@@ -52,30 +53,25 @@ struct AppState {
 
 #[wasm_bindgen]
 pub fn run0() {
-
-    
-    
     let worker_fn = move |worker: &mut Worker<Thread>| {
+        let shared1 = Rc::new(RefCell::new(Vec::new()));
+        let shared2 = shared1.clone();
+
         let (mut input, output) = worker.dataflow(|scope| {
             let (input, manages) = scope.new_collection();
 
             // let output = manages.filter(|&ev| ev == AppEvent::CountUp).capture();
-            let output = manages.filter(|&ev| ev == 0).inner.capture();
+            let output = manages.filter(|&ev| ev == 0).inspect(move |v| shared1.borrow_mut().push(format!("val: {:?}", v)));
 
-            (input, output)
+            (input, 0)
         });
 
         input.insert(0u64);
         input.advance_to(1u32);
-        
         input.advance_to(2u32);
-        input.close();
 
-        // if let Ok(EventCore::Messages(v0, v1)) = output.try_recv() {
-        if let Ok(_something) = output.try_recv() {
-            println!("got something");
-            // println!("got! {:?}", v0);               
-        }
+        println!("got: {:?}", *shared2.borrow());
+
 
         // println!("got: {:?}", output.extract());
         // let mut input = InputSession::new();
