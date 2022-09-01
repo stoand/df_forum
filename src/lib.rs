@@ -27,70 +27,23 @@ extern "C" {
     fn log(contents: &str);
 }
 
-fn log1(contents: &str) {
-    println!("{}", contents);
-}
-
-fn clickable_button() {}
-
 #[wasm_bindgen]
 pub fn run0() {
     std::panic::set_hook(Box::new(console_error_panic_hook::hook));
-    let worker_fn = move |worker: &mut Worker<Thread>| {
-        let shared1 = Rc::new(RefCell::new(Vec::new()));
-        let shared2 = shared1.clone();
 
-        let mut input = worker.dataflow(|scope| {
-            let (input, manages) = scope.new_collection();
+    let output0 = Rc::new(RefCell::new(Vec::new()));
+    let output1 = output0.clone();
+    let worker_fn = move |worker: &mut Worker<Thread>| {
+        worker.dataflow(|scope| {
+            let mut input = InputSession::new();
+            let manages = input.to_collection(scope);
 
             // let output = manages.filter(|&ev| ev == AppEvent::CountUp).capture();
             let _output = manages
                 // .filter(|&ev| ev == 0)
-                .inspect(|vals| log(&format!("actual == {:?}", vals)))
-                .inspect(move |v| shared1.borrow_mut().push(format!("shared == {:?}", v)));
-
+                .inspect(move |v| output1.borrow_mut().push(format!("output0 = {:?}", v)));
             input
-        });
-
-        let mut time = 0;
-
-        input.insert(0u64);
-        input.advance_to(time);
-        time += 1;
-
-        log(&format!("got: {:?}", *shared2.borrow()));
-
-        // input
-        //     .borrow_mut()
-        //     .insert(("session", "page", ("home_page_root", "g22")));
-        // input.borrow_mut().advance_to(time);
-
-        let window = web_sys::window().expect("could not get window");
-        let document = window.document().expect("could not get document");
-        let body = document
-            .query_selector("body")
-            .expect("could not get body")
-            .unwrap();
-
-        let val = document.create_element("button").unwrap();
-        val.set_text_content(Some("rust says hi"));
-        body.append_child(&val).unwrap();
-
-        let clj = Closure::<dyn FnMut()>::new(move || {
-            log("hello");
-            log(&format!("got: {:?}", *shared2.borrow()));
-            // TODO fix error that these two lines cause
-            input.insert(5);
-            input.advance_to(time);
-            input.flush();
-            time += 1;
-            log(&format!("t = {:?}", time));
-        });
-
-        let val2 = val.dyn_ref::<HtmlElement>().unwrap();
-        val2.set_onclick(Some(clj.as_ref().unchecked_ref()));
-
-        clj.forget();
+        })
 
         // index load page event fires on first load
         // input.insert(("session", "page", ("home_page_root", "body")));
@@ -113,17 +66,36 @@ pub fn run0() {
 
     let alloc = Thread::new();
     let mut worker = Worker::new(WorkerConfig::default(), alloc);
-    let result = worker_fn(&mut worker);
+    let mut input = worker_fn(&mut worker);
 
-    // Step on every JS Interval
-    let step = Closure::<dyn FnMut()>::new(move || {
+    let mut time = 0;
+    let window = web_sys::window().expect("could not get window");
+    let document = window.document().expect("could not get document");
+    let body = document
+        .query_selector("body")
+        .expect("could not get body")
+        .unwrap();
+
+    let val = document.create_element("button").unwrap();
+    val.set_text_content(Some("rust says hi"));
+    body.append_child(&val).unwrap();
+
+    let clj = Closure::<dyn FnMut()>::new(move || {
+        log("hello");
+        input.insert(time + 3000);
+        input.advance_to(time);
+        input.flush();
+        time += 1;
+        log(&format!("t = {:?}", time));
         worker.step();
+
+        log(&format!("output0 after step = {:?}", output0.borrow()));
     });
 
-    let window = web_sys::window().expect("could not get window");
-    let _ = window.set_interval_with_callback_and_timeout_and_arguments_0(step.as_ref().unchecked_ref(), 50);
+    let val2 = val.dyn_ref::<HtmlElement>().unwrap();
+    val2.set_onclick(Some(clj.as_ref().unchecked_ref()));
 
-    step.forget();
+    clj.forget();
 }
 
 #[cfg(test)]
