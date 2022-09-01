@@ -35,9 +35,7 @@ fn clickable_button() {}
 
 #[wasm_bindgen]
 pub fn run0() {
-
     std::panic::set_hook(Box::new(console_error_panic_hook::hook));
-    
     let worker_fn = move |worker: &mut Worker<Thread>| {
         let shared1 = Rc::new(RefCell::new(Vec::new()));
         let shared2 = shared1.clone();
@@ -46,7 +44,7 @@ pub fn run0() {
             let (input, manages) = scope.new_collection();
 
             // let output = manages.filter(|&ev| ev == AppEvent::CountUp).capture();
-            let output = manages
+            let _output = manages
                 .filter(|&ev| ev == 0)
                 .inspect(move |v| shared1.borrow_mut().push(format!("val: {:?}", v)));
 
@@ -114,7 +112,16 @@ pub fn run0() {
     let alloc = Thread::new();
     let mut worker = Worker::new(WorkerConfig::default(), alloc);
     let result = worker_fn(&mut worker);
-    while worker.step_or_park(None) {}
+
+    // Step on every JS Interval
+    let step = Closure::<dyn FnMut()>::new(move || {
+        worker.step();
+    });
+
+    let window = web_sys::window().expect("could not get window");
+    let _ = window.set_interval_with_callback(step.as_ref().unchecked_ref());
+
+    step.forget();
 }
 
 #[cfg(test)]
