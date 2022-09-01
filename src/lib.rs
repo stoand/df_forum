@@ -45,8 +45,9 @@ pub fn run0() {
 
             // let output = manages.filter(|&ev| ev == AppEvent::CountUp).capture();
             let _output = manages
-                .filter(|&ev| ev == 0)
-                .inspect(move |v| shared1.borrow_mut().push(format!("val: {:?}", v)));
+                // .filter(|&ev| ev == 0)
+                .inspect(|vals| log(&format!("actual == {:?}", vals)))
+                .inspect(move |v| shared1.borrow_mut().push(format!("shared == {:?}", v)));
 
             input
         });
@@ -79,8 +80,9 @@ pub fn run0() {
             log("hello");
             log(&format!("got: {:?}", *shared2.borrow()));
             // TODO fix error that these two lines cause
-            input.insert(time);
+            input.insert(5);
             input.advance_to(time);
+            input.flush();
             time += 1;
             log(&format!("t = {:?}", time));
         });
@@ -119,7 +121,7 @@ pub fn run0() {
     });
 
     let window = web_sys::window().expect("could not get window");
-    let _ = window.set_interval_with_callback(step.as_ref().unchecked_ref());
+    let _ = window.set_interval_with_callback_and_timeout_and_arguments_0(step.as_ref().unchecked_ref(), 50);
 
     step.forget();
 }
