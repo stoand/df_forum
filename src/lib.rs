@@ -17,7 +17,7 @@ use wasm_bindgen::prelude::*;
 
 // use differential_dataflow::input::Input;
 // use differential_dataflow::operators::Consolidate;
-use differential_dataflow::operators::Count;
+// use differential_dataflow::operators::Count;
 use differential_dataflow::operators::Reduce;
 // use timely::dataflow::operators::capture::{Capture, EventCore, Extract};
 use wasm_bindgen::JsCast;
@@ -64,15 +64,16 @@ pub fn run0() {
                 // .filter(|&ev| ev == 0)
                 .inspect(move |v| output1.borrow_mut().push(format!("{:?}", v)))
                 // .map(|v| (v, StateKey::Count))
-                // .reduce(|key, input, output| {
-                //     log(&format!("key = {:?}, input = {:?}", key, input));
+                .map(|v| (1, v))
+                .reduce(|key, input, output| {
+                    log(&format!("key = {:?}, input = {:?}", key, input));
 
-                //     let change = if *key == AppEvent::CountUp { 33 } else { -55 };
+                    // let change = if *key == AppEvent::CountUp { 33 } else { -55 };
 
-                //     // output.push((change, change));
-                //     output.push((change, change));
-                // })
-                .count()
+                    // output.push((change, change));
+                    output.push((AppEvent::CountUp, 1));
+                })
+                // .count()
                 .inspect(|res| log(&format!("count = {:?}", res)));
             input
         })
@@ -156,6 +157,7 @@ pub fn run0() {
     count_down_el.set_onclick(Some(count_down_clj.as_ref().unchecked_ref()));
 
     count_down_clj.forget();
+
 }
 
 #[cfg(test)]
