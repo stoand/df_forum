@@ -18,6 +18,7 @@ use wasm_bindgen::prelude::*;
 use differential_dataflow::input::Input;
 use differential_dataflow::operators::Consolidate;
 use differential_dataflow::operators::Iterate;
+use differential_dataflow::operators::Reduce;
 use timely::dataflow::operators::capture::{Capture, EventCore, Extract};
 use wasm_bindgen::JsCast;
 use web_sys::{Document, Element, HtmlElement, Window};
@@ -51,9 +52,18 @@ pub fn run0() {
             let manages = input.to_collection(scope);
 
             // let output = manages.filter(|&ev| ev == AppEvent::CountUp).capture();
-            let _output = manages
+            manages
                 // .filter(|&ev| ev == 0)
-                .inspect(move |v| output1.borrow_mut().push(format!("output0 = {:?}", v)));
+                .inspect(move |v| output1.borrow_mut().push(format!("output0 = {:?}", v)))
+                .map(|v| (v, 1))
+                .reduce(|key, input, output| {
+                    log(&format!(
+                        "key = {:?}, input = {:?}",
+                        key, input
+                    ));
+
+                    output.push((1,1));
+                });
             input
         })
 
@@ -80,7 +90,7 @@ pub fn run0() {
     let mut worker = Worker::new(WorkerConfig::default(), alloc);
     let mut input = worker_fn(&mut worker);
 
-    let mut time: i32 = 0;
+    let mut time: u32 = 0;
     let window = web_sys::window().expect("could not get window");
     let document = window.document().expect("could not get document");
     let body = document
