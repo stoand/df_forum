@@ -1,0 +1,13 @@
+body {
+}
+
+button {
+    font-size: 30px;
+    padding: 20px;
+    background: orange;
+    margin: 20px;
+}
+
+body {
+    text-align: center;
+}
