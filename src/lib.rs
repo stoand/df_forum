@@ -17,7 +17,7 @@ use wasm_bindgen::prelude::*;
 
 // use differential_dataflow::input::Input;
 // use differential_dataflow::operators::Consolidate;
-// use differential_dataflow::operators::Iterate;
+use differential_dataflow::operators::Count;
 use differential_dataflow::operators::Reduce;
 // use timely::dataflow::operators::capture::{Capture, EventCore, Extract};
 use wasm_bindgen::JsCast;
@@ -63,16 +63,17 @@ pub fn run0() {
             manages
                 // .filter(|&ev| ev == 0)
                 .inspect(move |v| output1.borrow_mut().push(format!("{:?}", v)))
-                .map(|v| (v, StateKey::Count))
-                .reduce(|key, input, output| {
-                    log(&format!("key = {:?}, input = {:?}", key, input));
+                // .map(|v| (v, StateKey::Count))
+                // .reduce(|key, input, output| {
+                //     log(&format!("key = {:?}, input = {:?}", key, input));
 
-                    let change = if *key == AppEvent::CountUp { 33 } else { -55 };
+                //     let change = if *key == AppEvent::CountUp { 33 } else { -55 };
 
-                    // output.push((change, change));
-                    output.push((change, change));
-                })
-                .inspect(|res| log(&format!("red res = {:?}", res)));
+                //     // output.push((change, change));
+                //     output.push((change, change));
+                // })
+                .count()
+                .inspect(|res| log(&format!("count = {:?}", res)));
             input
         })
 
