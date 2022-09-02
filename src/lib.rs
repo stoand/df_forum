@@ -63,15 +63,21 @@ pub fn run0() {
             manages
                 // .filter(|&ev| ev == 0)
                 .inspect(move |v| output1.borrow_mut().push(format!("{:?}", v)))
-                // .map(|v| (v, StateKey::Count))
+                .map(|v| (StateKey::Count, v))
                 // .map(|v| (1, v))
-                // .reduce(|key, input, output| {
-                //     log(&format!("key = {:?}, input = {:?}", key, input));
-                //     // let change = if *key == AppEvent::CountUp { 33 } else { -55 };
-                //     // output.push((change, change));
-                //     output.push((AppEvent::CountUp, 1));
-                // })
-                .count()
+                .reduce(|key, input, output| {
+                    log(&format!(
+                        "key = {:?}, input = {:?}, output = {:?}",
+                        key, input, output
+                    ));
+                    // let change = if *key == AppEvent::CountUp { 33 } else { -55 };
+                    // output.push((change, change));
+                    for item in input {
+                        let (&a, b) = item;
+                        output.push((a, *b));
+                    }
+                })
+                // .count()
                 .inspect(|res| log(&format!("count = {:?}", res)));
             input
         })
