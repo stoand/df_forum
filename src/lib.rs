@@ -17,7 +17,7 @@ use wasm_bindgen::prelude::*;
 
 // use differential_dataflow::input::Input;
 // use differential_dataflow::operators::Consolidate;
-// use differential_dataflow::operators::Count;
+use differential_dataflow::operators::Count;
 use differential_dataflow::operators::Reduce;
 // use timely::dataflow::operators::capture::{Capture, EventCore, Extract};
 use wasm_bindgen::JsCast;
@@ -64,16 +64,14 @@ pub fn run0() {
                 // .filter(|&ev| ev == 0)
                 .inspect(move |v| output1.borrow_mut().push(format!("{:?}", v)))
                 // .map(|v| (v, StateKey::Count))
-                .map(|v| (1, v))
-                .reduce(|key, input, output| {
-                    log(&format!("key = {:?}, input = {:?}", key, input));
-
-                    // let change = if *key == AppEvent::CountUp { 33 } else { -55 };
-
-                    // output.push((change, change));
-                    output.push((AppEvent::CountUp, 1));
-                })
-                // .count()
+                // .map(|v| (1, v))
+                // .reduce(|key, input, output| {
+                //     log(&format!("key = {:?}, input = {:?}", key, input));
+                //     // let change = if *key == AppEvent::CountUp { 33 } else { -55 };
+                //     // output.push((change, change));
+                //     output.push((AppEvent::CountUp, 1));
+                // })
+                .count()
                 .inspect(|res| log(&format!("count = {:?}", res)));
             input
         })
@@ -120,21 +118,17 @@ pub fn run0() {
     let worker0 = Rc::new(RefCell::new(worker));
 
     let input1 = input0.clone();
+    let input2 = input0.clone();
     let worker1 = worker0.clone();
     let time0 = Rc::new(RefCell::new(0));
     let time1 = time0.clone();
+    let time2 = time0.clone();
     input0.borrow_mut().advance_to(0);
 
     let count_up_clj = Closure::<dyn FnMut()>::new(move || {
-        log("hello");
+        log("inserting");
         log(&format!("t0 = {:?}", time0.borrow()));
         input0.borrow_mut().insert(AppEvent::CountUp);
-        input0.borrow_mut().advance_to(*time0.borrow());
-        input0.borrow_mut().flush();
-        *time0.borrow_mut() += 1;
-        worker0.borrow_mut().step();
-
-        log(&format!("output0 after step = {:?}", output0.borrow()));
     });
 
     let count_up_el = count_up.dyn_ref::<HtmlElement>().unwrap();
@@ -142,15 +136,9 @@ pub fn run0() {
 
     count_up_clj.forget();
     let count_down_clj = Closure::<dyn FnMut()>::new(move || {
-        log("hello");
+        log("inserting");
         log(&format!("t1 = {:?}", time1.borrow()));
         input1.borrow_mut().insert(AppEvent::CountDown);
-        input1.borrow_mut().advance_to(*time1.borrow());
-        input1.borrow_mut().flush();
-        *time1.borrow_mut() += 1;
-        worker1.borrow_mut().step();
-
-        log(&format!("output2 after step = {:?}", output2.borrow()));
     });
 
     let count_down_el = count_down.dyn_ref::<HtmlElement>().unwrap();
@@ -158,6 +146,26 @@ pub fn run0() {
 
     count_down_clj.forget();
 
+    let commit = document.create_element("button").unwrap();
+    commit.set_text_content(Some("commmit"));
+    body.append_child(&commit).unwrap();
+
+    let commit_clj = Closure::<dyn FnMut()>::new(move || {
+        log("committing");
+        *time2.borrow_mut() += 1;
+        input2.borrow_mut().advance_to(*time2.borrow());
+
+        log(&format!("t1 = {:?}", time2.borrow()));
+        for _ in 0..100 {
+            input2.borrow_mut().flush();
+            worker1.borrow_mut().step();
+        }
+    });
+
+    let commit_el = commit.dyn_ref::<HtmlElement>().unwrap();
+    commit_el.set_onclick(Some(commit_clj.as_ref().unchecked_ref()));
+
+    commit_clj.forget();
 }
 
 #[cfg(test)]
