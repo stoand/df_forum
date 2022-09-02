@@ -3,8 +3,8 @@ extern crate serde;
 extern crate timely;
 #[macro_use]
 extern crate serde_derive;
-extern crate console_error_panic_hook;
 extern crate abomonation;
+extern crate console_error_panic_hook;
 #[macro_use]
 extern crate abomonation_derive;
 
@@ -45,7 +45,6 @@ pub fn run0() {
     let output0 = Rc::new(RefCell::new(Vec::new()));
     let output1 = output0.clone();
     let output2 = output0.clone();
-    
     let worker_fn = move |worker: &mut Worker<Thread>| {
         worker.dataflow(|scope| {
             let mut input = InputSession::new();
@@ -81,7 +80,7 @@ pub fn run0() {
     let mut worker = Worker::new(WorkerConfig::default(), alloc);
     let mut input = worker_fn(&mut worker);
 
-    let mut time : u32 = 0;
+    let mut time: i32 = 0;
     let window = web_sys::window().expect("could not get window");
     let document = window.document().expect("could not get document");
     let body = document
@@ -102,14 +101,16 @@ pub fn run0() {
 
     let input1 = input0.clone();
     let worker1 = worker0.clone();
+    let time0 = Rc::new(RefCell::new(0));
+    let time1 = time0.clone();
 
     let count_up_clj = Closure::<dyn FnMut()>::new(move || {
         log("hello");
+        log(&format!("t0 = {:?}", time0.borrow()));
         input0.borrow_mut().insert(AppEvent::CountUp);
-        input0.borrow_mut().advance_to(time);
+        input0.borrow_mut().advance_to(*time0.borrow());
         input0.borrow_mut().flush();
-        time += 1;
-        log(&format!("t = {:?}", time));
+        *time0.borrow_mut() += 1;
         worker0.borrow_mut().step();
 
         log(&format!("output0 after step = {:?}", output0.borrow()));
@@ -119,24 +120,22 @@ pub fn run0() {
     count_up_el.set_onclick(Some(count_up_clj.as_ref().unchecked_ref()));
 
     count_up_clj.forget();
-    
     let count_down_clj = Closure::<dyn FnMut()>::new(move || {
         log("hello");
+        log(&format!("t1 = {:?}", time1.borrow()));
         input1.borrow_mut().insert(AppEvent::CountDown);
-        input1.borrow_mut().advance_to(time);
+        input1.borrow_mut().advance_to(*time1.borrow());
         input1.borrow_mut().flush();
-        time += 1;
-        log(&format!("t = {:?}", time));
+        *time1.borrow_mut() += 1;
         worker1.borrow_mut().step();
 
-        log(&format!("output0 after step = {:?}", output2.borrow()));
+        log(&format!("output2 after step = {:?}", output2.borrow()));
     });
 
     let count_down_el = count_down.dyn_ref::<HtmlElement>().unwrap();
     count_down_el.set_onclick(Some(count_down_clj.as_ref().unchecked_ref()));
 
     count_down_clj.forget();
-
 }
 
 #[cfg(test)]
