@@ -15,13 +15,14 @@ use timely::worker::Worker;
 use timely::WorkerConfig;
 use wasm_bindgen::prelude::*;
 
-use differential_dataflow::input::Input;
-use differential_dataflow::operators::Consolidate;
-use differential_dataflow::operators::Iterate;
+// use differential_dataflow::input::Input;
+// use differential_dataflow::operators::Consolidate;
+// use differential_dataflow::operators::Iterate;
 use differential_dataflow::operators::Reduce;
-use timely::dataflow::operators::capture::{Capture, EventCore, Extract};
+// use timely::dataflow::operators::capture::{Capture, EventCore, Extract};
 use wasm_bindgen::JsCast;
-use web_sys::{Document, Element, HtmlElement, Window};
+// use web_sys::{Document, Element, HtmlElement, Window};
+use web_sys::HtmlElement;
 
 use differential_dataflow::input::InputSession;
 
@@ -39,6 +40,13 @@ enum AppEvent {
     CountDown,
 }
 
+#[derive(
+    Abomonation, Hash, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Copy,
+)]
+enum StateKey {
+    Count,
+}
+
 #[wasm_bindgen]
 pub fn run0() {
     std::panic::set_hook(Box::new(console_error_panic_hook::hook));
@@ -54,16 +62,17 @@ pub fn run0() {
             // let output = manages.filter(|&ev| ev == AppEvent::CountUp).capture();
             manages
                 // .filter(|&ev| ev == 0)
-                .inspect(move |v| output1.borrow_mut().push(format!("output0 = {:?}", v)))
-                .map(|v| (v, 1))
+                .inspect(move |v| output1.borrow_mut().push(format!("{:?}", v)))
+                .map(|v| (v, StateKey::Count))
                 .reduce(|key, input, output| {
-                    log(&format!(
-                        "key = {:?}, input = {:?}",
-                        key, input
-                    ));
+                    log(&format!("key = {:?}, input = {:?}", key, input));
 
-                    output.push((1,1));
-                });
+                    let change = if *key == AppEvent::CountUp { 33 } else { -55 };
+
+                    // output.push((change, change));
+                    output.push((change, change));
+                })
+                .inspect(|res| log(&format!("red res = {:?}", res)));
             input
         })
 
@@ -88,9 +97,8 @@ pub fn run0() {
 
     let alloc = Thread::new();
     let mut worker = Worker::new(WorkerConfig::default(), alloc);
-    let mut input = worker_fn(&mut worker);
+    let input = worker_fn(&mut worker);
 
-    let mut time: u32 = 0;
     let window = web_sys::window().expect("could not get window");
     let document = window.document().expect("could not get document");
     let body = document
@@ -113,6 +121,7 @@ pub fn run0() {
     let worker1 = worker0.clone();
     let time0 = Rc::new(RefCell::new(0));
     let time1 = time0.clone();
+    input0.borrow_mut().advance_to(0);
 
     let count_up_clj = Closure::<dyn FnMut()>::new(move || {
         log("hello");
