@@ -9,6 +9,8 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
+abomonation = "0.7.3"
+abomonation_derive = "0.5.0"
 console_error_panic_hook = "0.1.7"
 differential-dataflow = { git = "https://github.com/stoand/differential-dataflow", branch = "instant_wasm_compat", default-features = false }
 serde = { version = "1.0.144", features = ["serde_derive"] }
