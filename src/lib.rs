@@ -19,6 +19,7 @@ use wasm_bindgen::prelude::*;
 // use differential_dataflow::operators::Consolidate;
 use differential_dataflow::operators::Count;
 use differential_dataflow::operators::Reduce;
+use differential_dataflow::operators::reduce::ReduceCore;
 // use timely::dataflow::operators::capture::{Capture, EventCore, Extract};
 use wasm_bindgen::JsCast;
 // use web_sys::{Document, Element, HtmlElement, Window};
@@ -63,21 +64,40 @@ pub fn run0() {
             manages
                 // .filter(|&ev| ev == 0)
                 .inspect(move |v| output1.borrow_mut().push(format!("{:?}", v)))
-                .map(|v| (StateKey::Count, v))
+                // .map(|v| (StateKey::Count, v))
                 // .map(|v| (1, v))
+                // .reduce(|key, input, output| {
+                //     log(&format!(
+                //         "key = {:?}, input = {:?}, output = {:?}",
+                //         key, input, output
+                //     ));
+                //     // let change = if *key == AppEvent::CountUp { 33 } else { -55 };
+                //     // output.push((change, change));
+                //     for item in input {
+                //         let (&a, b) = item;
+                //         output.push((a, *b));
+                //     }
+                // })
+                .count()
                 .reduce(|key, input, output| {
+
                     log(&format!(
                         "key = {:?}, input = {:?}, output = {:?}",
                         key, input, output
                     ));
-                    // let change = if *key == AppEvent::CountUp { 33 } else { -55 };
-                    // output.push((change, change));
-                    for item in input {
-                        let (&a, b) = item;
-                        output.push((a, *b));
+
+                    let mut min_index = 0;
+
+                    for index in 1..input.len() {
+                        if input[min_index].0 > input[index].0 {
+                            min_index = index;
+                        }
                     }
+                    output.push((*input[min_index].0, 1));
                 })
-                // .count()
+                // .reduce(move |_key, s, t| {
+                //     t.push((s[0].1.clone(), 1));
+                // })
                 .inspect(|res| log(&format!("count = {:?}", res)));
             input
         })
