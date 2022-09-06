@@ -207,7 +207,7 @@ pub fn run0() {
 mod tests {
     use super::*;
     #[wasm_bindgen_test]
-    fn reduce_working() {
+    fn count_working() {
         test_setup();
         let output0 = Rc::new(RefCell::new(Vec::new()));
         let output1 = output0.clone();
@@ -229,12 +229,14 @@ mod tests {
         let mut worker = Worker::new(WorkerConfig::default(), alloc);
         let mut input = worker_fn(&mut worker);
 
-        input.insert(80u32);
-        input.advance_to(1u32);
+        let input0 = Rc::new(RefCell::new(input));
+        let input1 = input0.clone();
+        input0.borrow_mut().insert(80u32);
+        input0.borrow_mut().advance_to(1u32);
 
-        let mut go = || {
+        let mut go = move || {
             for _ in 0..10 {
-                input.flush();
+                input0.borrow_mut().flush();
                 worker.step();
             }
         };
@@ -242,12 +244,19 @@ mod tests {
         go();
 
         assert_eq!(*output1.borrow(), vec![((80, 1), 0, 1)]);
-        
-        log(&format!("{:?}", output1.borrow()));
-        
-        // input.insert(80u32);
-        // input.insert(70u32);
+        input1.borrow_mut().insert(80u32);
+        input1.borrow_mut().insert(70u32);
+        input1.borrow_mut().advance_to(2u32);
 
-        // log(&format!("{:?}", output1.borrow()));
+        go();
+        assert_eq!(
+            *output1.borrow(),
+            vec![
+                ((80, 1), 0, 1),
+                ((70, 1), 1, 1),
+                ((80, 1), 1, -1),
+                ((80, 2), 1, 1),
+            ]
+        );
     }
 }
