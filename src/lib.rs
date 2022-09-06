@@ -207,8 +207,47 @@ pub fn run0() {
 mod tests {
     use super::*;
     #[wasm_bindgen_test]
-    fn it_works_not() {
+    fn reduce_working() {
         test_setup();
-        assert_eq!(1 + 2, 3);
+        let output0 = Rc::new(RefCell::new(Vec::new()));
+        let output1 = output0.clone();
+
+        let worker_fn = move |worker: &mut Worker<Thread>| {
+            worker.dataflow(|scope| {
+                let mut input = InputSession::new();
+                let manages = input.to_collection(scope);
+
+                manages
+                    .count()
+                    .inspect(move |v| output0.borrow_mut().push(*v));
+
+                input
+            })
+        };
+
+        let alloc = Thread::new();
+        let mut worker = Worker::new(WorkerConfig::default(), alloc);
+        let mut input = worker_fn(&mut worker);
+
+        input.insert(80u32);
+        input.advance_to(1u32);
+
+        let mut go = || {
+            for _ in 0..10 {
+                input.flush();
+                worker.step();
+            }
+        };
+
+        go();
+
+        assert_eq!(*output1.borrow(), vec![((80, 1), 0, 1)]);
+        
+        log(&format!("{:?}", output1.borrow()));
+        
+        // input.insert(80u32);
+        // input.insert(70u32);
+
+        // log(&format!("{:?}", output1.borrow()));
     }
 }
