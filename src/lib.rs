@@ -37,6 +37,12 @@ extern "C" {
     fn log(contents: &str);
 }
 
+// only works for V8 based javascript engines (chrome, node - not firefox)
+#[wasm_bindgen(inline_js = "export function test_setup() { Error.stackTraceLimit = 2; }")]
+extern "C" {
+    fn test_setup();
+}
+
 #[derive(
     Abomonation, Hash, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Copy,
 )]
@@ -55,9 +61,6 @@ enum StateKey {
 #[wasm_bindgen]
 pub fn run0() {
     std::panic::set_hook(Box::new(console_error_panic_hook::hook));
-
-    // TODO
-    // reduce Error.stackTraceLimit
 
     let output0 = Rc::new(RefCell::new(Vec::new()));
     let output1 = output0.clone();
@@ -200,18 +203,12 @@ pub fn run0() {
     commit_clj.forget();
 }
 
-#[wasm_bindgen_test]
-fn pass() {
-    assert_eq!(1 + 1, 2);
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
     #[wasm_bindgen_test]
     fn it_works_not() {
-        // run0();
+        test_setup();
         assert_eq!(1 + 2, 3);
     }
 }

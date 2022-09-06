@@ -21,4 +21,4 @@ cargo watch -x 'test -- --nocapture'
 
 ## To run headless tests
 
-`nodemon -e rs -x 'wasm-pack test --firefox --headless'`
+`nodemon -e rs -x 'wasm-pack test --chrome --headless'`
