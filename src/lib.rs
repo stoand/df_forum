@@ -7,6 +7,10 @@ extern crate abomonation;
 extern crate console_error_panic_hook;
 #[macro_use]
 extern crate abomonation_derive;
+extern crate wasm_bindgen_test;
+use wasm_bindgen_test::*;
+
+wasm_bindgen_test_configure!(run_in_browser);
 
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -17,9 +21,9 @@ use wasm_bindgen::prelude::*;
 
 // use differential_dataflow::input::Input;
 // use differential_dataflow::operators::Consolidate;
+use differential_dataflow::operators::reduce::ReduceCore;
 use differential_dataflow::operators::Count;
 use differential_dataflow::operators::Reduce;
-use differential_dataflow::operators::reduce::ReduceCore;
 // use timely::dataflow::operators::capture::{Capture, EventCore, Extract};
 use wasm_bindgen::JsCast;
 // use web_sys::{Document, Element, HtmlElement, Window};
@@ -52,6 +56,9 @@ enum StateKey {
 pub fn run0() {
     std::panic::set_hook(Box::new(console_error_panic_hook::hook));
 
+    // TODO
+    // reduce Error.stackTraceLimit
+
     let output0 = Rc::new(RefCell::new(Vec::new()));
     let output1 = output0.clone();
     let output2 = output0.clone();
@@ -80,7 +87,6 @@ pub fn run0() {
                 // })
                 .count()
                 .reduce(|key, input, output| {
-
                     log(&format!(
                         "key = {:?}, input = {:?}, output = {:?}",
                         key, input, output
@@ -194,12 +200,18 @@ pub fn run0() {
     commit_clj.forget();
 }
 
+#[wasm_bindgen_test]
+fn pass() {
+    assert_eq!(1 + 1, 2);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    #[test]
-    fn it_works() {
-        run0();
+    #[wasm_bindgen_test]
+    fn it_works_not() {
+        // run0();
+        assert_eq!(1 + 2, 3);
     }
 }

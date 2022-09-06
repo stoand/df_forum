@@ -18,3 +18,7 @@ cargo watch -x 'test -- --nocapture'
 * `wasm-pack build --target web`
 * `python3 -m http.server`
 * Open [http://localhost:8000](http://localhost:8000)
+
+## To run headless tests
+
+`nodemon -e rs -x 'wasm-pack test --firefox --headless'`
