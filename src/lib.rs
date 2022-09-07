@@ -21,7 +21,6 @@ use wasm_bindgen::prelude::*;
 
 // use differential_dataflow::input::Input;
 // use differential_dataflow::operators::Consolidate;
-use differential_dataflow::operators::reduce::ReduceCore;
 use differential_dataflow::operators::Count;
 use differential_dataflow::operators::Reduce;
 // use timely::dataflow::operators::capture::{Capture, EventCore, Extract};
@@ -64,7 +63,6 @@ pub fn run0() {
 
     let output0 = Rc::new(RefCell::new(Vec::new()));
     let output1 = output0.clone();
-    let output2 = output0.clone();
     let worker_fn = move |worker: &mut Worker<Thread>| {
         worker.dataflow(|scope| {
             let mut input = InputSession::new();
@@ -227,7 +225,7 @@ mod tests {
 
         let alloc = Thread::new();
         let mut worker = Worker::new(WorkerConfig::default(), alloc);
-        let mut input = worker_fn(&mut worker);
+        let input = worker_fn(&mut worker);
 
         let input0 = Rc::new(RefCell::new(input));
         let input1 = input0.clone();
@@ -272,7 +270,9 @@ mod tests {
 
                 manages
                     // return least element
-                    .reduce(|_key, input, output| { output.push((*input[0].0, 1)); })
+                    .reduce(|_key, input, output| {
+                        output.push((*input[0].0, 1));
+                    })
                     .inspect(move |v| output0.borrow_mut().push(*v));
 
                 input
@@ -281,13 +281,14 @@ mod tests {
 
         let alloc = Thread::new();
         let mut worker = Worker::new(WorkerConfig::default(), alloc);
-        let mut input = worker_fn(&mut worker);
+        let input = worker_fn(&mut worker);
 
         let input0 = Rc::new(RefCell::new(input));
         let input1 = input0.clone();
         input0.borrow_mut().insert((80, 5));
         input0.borrow_mut().insert((80, 3));
         input0.borrow_mut().insert((80, 8));
+        input0.borrow_mut().insert((70, 90));
         input0.borrow_mut().advance_to(1u32);
 
         let mut go = move || {
@@ -299,16 +300,16 @@ mod tests {
 
         go();
 
-        assert_eq!(*output1.borrow(), vec![((80, 3), 0, 1)]);
-        
+        assert_eq!(*output1.borrow(), vec![((70, 90), 0, 1), ((80, 3), 0, 1)]);
         input1.borrow_mut().insert((80, 2));
-        // input1.borrow_mut().insert(70u32);
+        input1.borrow_mut().insert((70, 100));
         input1.borrow_mut().advance_to(2u32);
 
         go();
         assert_eq!(
             *output1.borrow(),
             vec![
+                ((70, 90), 0, 1),
                 ((80, 3), 0, 1),
                 ((80, 2), 1, 1),
                 ((80, 3), 1, -1),
