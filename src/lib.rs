@@ -391,7 +391,7 @@ mod tests {
     )]
     enum StateValue {
         Post { id: u64, likes: u64 },
-        Session { active: bool },
+        Session { id: u64, active: bool },
         TotalPostLikes { total_likes: u64 },
         TotalActiveSessions { total_active_sessions: u64 },
     }
@@ -465,10 +465,10 @@ mod tests {
 
                 manages
                     .reduce(|key, input, output| {
-                        log(&format!(
-                            "key = {:?}, input = {:?}, output = {:?}",
-                            key, input, output
-                        ));
+                        // log(&format!(
+                        //     "key = {:?}, input = {:?}, output = {:?}",
+                        //     key, input, output
+                        // ));
 
                         if *key == StateKey::Post {
                             let mut total_likes = 0;
@@ -483,7 +483,7 @@ mod tests {
                         if *key == StateKey::Session {
                             let mut total_active_sessions = 0;
                             for item in input {
-                                if let StateValue::Session { active } = &item.0 {
+                                if let StateValue::Session { id: _id, active } = &item.0 {
                                     if *active {
                                         total_active_sessions += 1;
                                     }
@@ -512,26 +512,26 @@ mod tests {
         input0.borrow_mut().insert((
             StateKey::Post,
             StateValue::Post {
-                id: 33032,
+                id: 100,
                 likes: 5,
             },
         ));
         input0.borrow_mut().insert((
             StateKey::Post,
             StateValue::Post {
-                id: 33032,
+                id: 101,
                 likes: 2,
             },
         ));
         input0
             .borrow_mut()
-            .insert((StateKey::Session, StateValue::Session { active: false }));
+            .insert((StateKey::Session, StateValue::Session { id: 400, active: false }));
         input0
             .borrow_mut()
-            .insert((StateKey::Session, StateValue::Session { active: true }));
+            .insert((StateKey::Session, StateValue::Session { id: 401, active: true }));
         input0
             .borrow_mut()
-            .insert((StateKey::Session, StateValue::Session { active: true }));
+            .insert((StateKey::Session, StateValue::Session { id: 402, active: true }));
         input0.borrow_mut().advance_to(1u32);
 
         let mut go = move || {
