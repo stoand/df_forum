@@ -270,11 +270,11 @@ mod tests {
 
                 manages
                     // return least element
-                    .reduce(|key, input, output| {
-                        log(&format!(
-                            "key = {:?}, input = {:?}, output = {:?}",
-                            key, input, output
-                        ));
+                    .reduce(|_key, input, output| {
+                        // log(&format!(
+                        //     "key = {:?}, input = {:?}, output = {:?}",
+                        //     key, input, output
+                        // ));
                         output.push((*input[0].0, 1));
                     })
                     .inspect(move |v| output0.borrow_mut().push(*v));
@@ -333,5 +333,89 @@ mod tests {
                 ((70, 100), 2, 1),
             ]
         );
+    }
+
+    #[derive(
+        Abomonation,
+        Hash,
+        Clone,
+        Debug,
+        Serialize,
+        Deserialize,
+        PartialEq,
+        Eq,
+        PartialOrd,
+        Ord,
+        Copy,
+    )]
+    enum AppEvent {
+        CountUp,
+        CountDown,
+        UpdateUsername,
+    }
+
+    #[derive(
+        Abomonation,
+        Hash,
+        Clone,
+        Debug,
+        Serialize,
+        Deserialize,
+        PartialEq,
+        Eq,
+        PartialOrd,
+        Ord,
+        Copy,
+    )]
+    enum StateKey {
+        Count,
+        Username,
+    }
+
+    #[wasm_bindgen_test]
+    fn reduce_app_state() {
+        test_setup();
+        let output0 = Rc::new(RefCell::new(Vec::new()));
+        let output1 = output0.clone();
+
+        let worker_fn = move |worker: &mut Worker<Thread>| {
+            worker.dataflow(|scope| {
+                let mut input = InputSession::new();
+                let manages = input.to_collection(scope);
+
+                manages
+                    // return least element
+                    .reduce(|key, input, output| {
+                        log(&format!(
+                            "key = {:?}, input = {:?}, output = {:?}",
+                            key, input, output
+                        ));
+                        output.push((*input[0].0, 1));
+                    })
+                    .inspect(move |v| output0.borrow_mut().push(*v));
+
+                input
+            })
+        };
+
+        let alloc = Thread::new();
+        let mut worker = Worker::new(WorkerConfig::default(), alloc);
+        let input = worker_fn(&mut worker);
+
+        let input0 = Rc::new(RefCell::new(input));
+        let input1 = input0.clone();
+        input0.borrow_mut().insert((StateKey::Count, 5));
+        input0.borrow_mut().advance_to(1u32);
+
+        let mut go = move || {
+            for _ in 0..10 {
+                input0.borrow_mut().flush();
+                worker.step();
+            }
+        };
+
+        go();
+
+        assert_eq!(*output1.borrow(), vec![((StateKey::Count, 5), 0, 1)]);
     }
 }
