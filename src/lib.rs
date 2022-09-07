@@ -270,7 +270,11 @@ mod tests {
 
                 manages
                     // return least element
-                    .reduce(|_key, input, output| {
+                    .reduce(|key, input, output| {
+                        log(&format!(
+                            "key = {:?}, input = {:?}, output = {:?}",
+                            key, input, output
+                        ));
                         output.push((*input[0].0, 1));
                     })
                     .inspect(move |v| output0.borrow_mut().push(*v));
@@ -313,6 +317,20 @@ mod tests {
                 ((80, 3), 0, 1),
                 ((80, 2), 1, 1),
                 ((80, 3), 1, -1),
+            ]
+        );
+        input1.borrow_mut().remove((70, 90));
+        input1.borrow_mut().advance_to(3u32);
+        go();
+        assert_eq!(
+            *output1.borrow(),
+            vec![
+                ((70, 90), 0, 1),
+                ((80, 3), 0, 1),
+                ((80, 2), 1, 1),
+                ((80, 3), 1, -1),
+                ((70, 90), 2, -1),
+                ((70, 100), 2, 1),
             ]
         );
     }
