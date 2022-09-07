@@ -23,6 +23,7 @@ use wasm_bindgen::prelude::*;
 // use differential_dataflow::operators::Consolidate;
 use differential_dataflow::operators::Count;
 use differential_dataflow::operators::Reduce;
+use differential_dataflow::operators::Join;
 // use timely::dataflow::operators::capture::{Capture, EventCore, Extract};
 use wasm_bindgen::JsCast;
 // use web_sys::{Document, Element, HtmlElement, Window};
@@ -390,8 +391,8 @@ mod tests {
         Copy,
     )]
     enum StateValue {
-        Post { id: u64, likes: u64 },
-        Session { id: u64, active: bool },
+        Post { likes: u64 },
+        Session { active: bool },
         TotalPostLikes { total_likes: u64 },
         TotalActiveSessions { total_active_sessions: u64 },
     }
@@ -410,37 +411,39 @@ mod tests {
 
                 manages
                     .reduce(|key, input, output| {
-                        // log(&format!(
-                        //     "key = {:?}, input = {:?}, output = {:?}",
-                        //     key, input, output
-                        // ));
+                        log(&format!(
+                            "key = {:?}, input = {:?}, output = {:?}",
+                            key, input, output
+                        ));
 
-                        if *key == StateKey::Post {
-                            let mut total_likes = 0;
-                            for item in input {
-                                if let StateValue::Post { id: _id, likes } = &item.0 {
-                                    total_likes += likes;
-                                }
-                            }
-                            output.push((StateValue::TotalPostLikes { total_likes }, 1));
-                        }
+                        output.push((1, 1));
 
-                        if *key == StateKey::Session {
-                            let mut total_active_sessions = 0;
-                            for item in input {
-                                if let StateValue::Session { id: _id, active } = &item.0 {
-                                    if *active {
-                                        total_active_sessions += 1;
-                                    }
-                                }
-                            }
-                            output.push((
-                                StateValue::TotalActiveSessions {
-                                    total_active_sessions,
-                                },
-                                1,
-                            ));
-                        }
+                        // if *key == StateKey::Post {
+                        //     let mut total_likes = 0;
+                        //     for item in input {
+                        //         if let StateValue::Post { id: _id, likes } = &item.0 {
+                        //             total_likes += likes;
+                        //         }
+                        //     }
+                        //     output.push((StateValue::TotalPostLikes { total_likes }, 1));
+                        // }
+
+                        // if *key == StateKey::Session {
+                        //     let mut total_active_sessions = 0;
+                        //     for item in input {
+                        //         if let StateValue::Session { id: _id, active } = &item.0 {
+                        //             if *active {
+                        //                 total_active_sessions += 1;
+                        //             }
+                        //         }
+                        //     }
+                        //     output.push((
+                        //         StateValue::TotalActiveSessions {
+                        //             total_active_sessions,
+                        //         },
+                        //         1,
+                        //     ));
+                        // }
                     })
                     .inspect(move |v| output0.borrow_mut().push(*v));
 
@@ -456,28 +459,25 @@ mod tests {
         let input1 = input0.clone();
         input0
             .borrow_mut()
-            .insert((StateKey::Post, StateValue::Post { id: 100, likes: 5 }));
+            .insert(((StateKey::Post, 300), StateValue::Post { likes: 5 }));
         input0
             .borrow_mut()
-            .insert((StateKey::Post, StateValue::Post { id: 101, likes: 2 }));
+            .insert(((StateKey::Post, 301), StateValue::Post { likes: 2 }));
         input0.borrow_mut().insert((
-            StateKey::Session,
+            (StateKey::Session, 500),
             StateValue::Session {
-                id: 400,
                 active: false,
             },
         ));
         input0.borrow_mut().insert((
-            StateKey::Session,
+            (StateKey::Session, 501),
             StateValue::Session {
-                id: 401,
                 active: true,
             },
         ));
         input0.borrow_mut().insert((
-            StateKey::Session,
+            (StateKey::Session, 502),
             StateValue::Session {
-                id: 402,
                 active: true,
             },
         ));
@@ -496,58 +496,43 @@ mod tests {
         let total_active_sessions2 = StateValue::TotalActiveSessions {
             total_active_sessions: 2,
         };
-        assert_eq!(
-            *output1.borrow(),
-            vec![
-                ((StateKey::Post, total_post_likes), 0, 1),
-                ((StateKey::Session, total_active_sessions2), 0, 1),
-            ]
-        );
-
-        // // we're restating that this old session is not active, nothing should change
-        // input1
-        //     .borrow_mut()
-        //     .insert((StateKey::Session, StateValue::Session { id: 400, active: false }));
-        // input1.borrow_mut().advance_to(2u32);
-
-        // go();
         // assert_eq!(
         //     *output1.borrow(),
         //     vec![
         //         ((StateKey::Post, total_post_likes), 0, 1),
-        //         ((StateKey::Session, total_active_sessions), 0, 1),
+        //         ((StateKey::Session, total_active_sessions2), 0, 1),
         //     ]
         // );
 
-        // we're setting an old active session to not active
-        input1.borrow_mut().insert((
-            StateKey::Session,
-            StateValue::Session {
-                id: 401,
-                active: false,
-            },
-        ));
-        input1.borrow_mut().remove((
-            StateKey::Session,
-            StateValue::Session {
-                id: 401,
-                active: true,
-            },
-        ));
-        input1.borrow_mut().advance_to(2u32);
+        // // we're setting an old active session to not active
+        // input1.borrow_mut().insert((
+        //     StateKey::Session,
+        //     StateValue::Session {
+        //         id: 401,
+        //         active: false,
+        //     },
+        // ));
+        // input1.borrow_mut().remove((
+        //     StateKey::Session,
+        //     StateValue::Session {
+        //         id: 401,
+        //         active: true,
+        //     },
+        // ));
+        // input1.borrow_mut().advance_to(2u32);
 
-        go();
-        let total_active_sessions1 = StateValue::TotalActiveSessions {
-            total_active_sessions: 1,
-        };
-        assert_eq!(
-            *output1.borrow(),
-            vec![
-                ((StateKey::Post, total_post_likes), 0, 1),
-                ((StateKey::Session, total_active_sessions2), 0, 1),
-                ((StateKey::Session, total_active_sessions1), 1, 1),
-                ((StateKey::Session, total_active_sessions2), 1, -1),
-            ]
-        );
+        // go();
+        // let total_active_sessions1 = StateValue::TotalActiveSessions {
+        //     total_active_sessions: 1,
+        // };
+        // assert_eq!(
+        //     *output1.borrow(),
+        //     vec![
+        //         ((StateKey::Post, total_post_likes), 0, 1),
+        //         ((StateKey::Session, total_active_sessions2), 0, 1),
+        //         ((StateKey::Session, total_active_sessions1), 1, 1),
+        //         ((StateKey::Session, total_active_sessions2), 1, -1),
+        //     ]
+        // );
     }
 }
