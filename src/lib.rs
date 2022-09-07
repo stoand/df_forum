@@ -373,7 +373,7 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
-    fn reduce_app_state() {
+    fn app_state() {
         test_setup();
         let output0 = Rc::new(RefCell::new(Vec::new()));
         let output1 = output0.clone();
@@ -385,13 +385,13 @@ mod tests {
 
                 manages
                     // return least element
-                    .reduce(|key, input, output| {
-                        log(&format!(
-                            "key = {:?}, input = {:?}, output = {:?}",
-                            key, input, output
-                        ));
-                        output.push((*input[0].0, 1));
-                    })
+                    // .reduce(|key, input, output| {
+                    //     log(&format!(
+                    //         "key = {:?}, input = {:?}, output = {:?}",
+                    //         key, input, output
+                    //     ));
+                    //     output.push((*input[0].0, 1));
+                    // })
                     .inspect(move |v| output0.borrow_mut().push(*v));
 
                 input
@@ -417,5 +417,12 @@ mod tests {
         go();
 
         assert_eq!(*output1.borrow(), vec![((StateKey::Count, 5), 0, 1)]);
+        
+        input1.borrow_mut().insert((StateKey::Count, 9));
+        input1.borrow_mut().advance_to(2u32);
+
+        go();
+
+        assert_eq!(*output1.borrow(), vec![((StateKey::Count, 5), 0, 1), ((StateKey::Count, 9), 1, 1)]);
     }
 }
