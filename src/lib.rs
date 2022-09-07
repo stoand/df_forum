@@ -373,6 +373,7 @@ mod tests {
         Count,
         Username,
         Post,
+        Session,
     }
 
     #[derive(
@@ -388,9 +389,11 @@ mod tests {
         Ord,
         Copy,
     )]
-    struct Post {
-        id: u64,
-        likes: u64,
+    enum StateValue {
+        Post { id: u64, likes: u64 },
+        Session { active: bool },
+        TotalPostLikes { total_likes: u64 },
+        TotalActiveSessions { total_active_sessions: u64 },
     }
 
     #[wasm_bindgen_test]
@@ -467,14 +470,32 @@ mod tests {
                             key, input, output
                         ));
 
-                        let mut total_likes = 0;
-                        
-                        for item in input {
-                            if let Post { id, likes } = &item.0 {
-                                total_likes += likes;
+                        if *key == StateKey::Post {
+                            let mut total_likes = 0;
+                            for item in input {
+                                if let StateValue::Post { id: _id, likes } = &item.0 {
+                                    total_likes += likes;
+                                }
                             }
+                            output.push((StateValue::TotalPostLikes { total_likes }, 1));
                         }
-                        output.push((total_likes, 1));
+
+                        if *key == StateKey::Session {
+                            let mut total_active_sessions = 0;
+                            for item in input {
+                                if let StateValue::Session { active } = &item.0 {
+                                    if *active {
+                                        total_active_sessions += 1;
+                                    }
+                                }
+                            }
+                            output.push((
+                                StateValue::TotalActiveSessions {
+                                    total_active_sessions,
+                                },
+                                1,
+                            ));
+                        }
                     })
                     .inspect(move |v| output0.borrow_mut().push(*v));
 
@@ -490,18 +511,27 @@ mod tests {
         let input1 = input0.clone();
         input0.borrow_mut().insert((
             StateKey::Post,
-            Post {
+            StateValue::Post {
                 id: 33032,
                 likes: 5,
             },
         ));
         input0.borrow_mut().insert((
             StateKey::Post,
-            Post {
+            StateValue::Post {
                 id: 33032,
                 likes: 2,
             },
         ));
+        input0
+            .borrow_mut()
+            .insert((StateKey::Session, StateValue::Session { active: false }));
+        input0
+            .borrow_mut()
+            .insert((StateKey::Session, StateValue::Session { active: true }));
+        input0
+            .borrow_mut()
+            .insert((StateKey::Session, StateValue::Session { active: true }));
         input0.borrow_mut().advance_to(1u32);
 
         let mut go = move || {
@@ -512,7 +542,17 @@ mod tests {
         };
 
         go();
-        
-        assert_eq!(*output1.borrow(), vec![((StateKey::Post, 7), 0, 1)]);
+
+        let total_post_likes = StateValue::TotalPostLikes { total_likes: 7 };
+        let total_active_sessions = StateValue::TotalActiveSessions {
+            total_active_sessions: 2,
+        };
+        assert_eq!(
+            *output1.borrow(),
+            vec![
+                ((StateKey::Post, total_post_likes), 0, 1),
+                ((StateKey::Session, total_active_sessions), 0, 1),
+            ]
+        );
     }
 }
