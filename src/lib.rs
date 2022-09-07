@@ -37,9 +37,11 @@ extern "C" {
 }
 
 // only works for V8 based javascript engines (chrome, node - not firefox)
-#[wasm_bindgen(inline_js = "export function test_setup() { Error.stackTraceLimit = 2; }")]
+#[wasm_bindgen(
+    inline_js = "export function lower_stack_trace_size() { Error.stackTraceLimit = 2; }"
+)]
 extern "C" {
-    fn test_setup();
+    fn lower_stack_trace_size();
 }
 
 #[derive(
@@ -206,7 +208,7 @@ mod tests {
     use super::*;
     #[wasm_bindgen_test]
     fn count_basic() {
-        test_setup();
+        lower_stack_trace_size();
         let output0 = Rc::new(RefCell::new(Vec::new()));
         let output1 = output0.clone();
 
@@ -259,7 +261,7 @@ mod tests {
     }
     #[wasm_bindgen_test]
     fn reduce_least() {
-        test_setup();
+        lower_stack_trace_size();
         let output0 = Rc::new(RefCell::new(Vec::new()));
         let output1 = output0.clone();
 
@@ -370,11 +372,30 @@ mod tests {
     enum StateKey {
         Count,
         Username,
+        Post,
+    }
+
+    #[derive(
+        Abomonation,
+        Hash,
+        Clone,
+        Debug,
+        Serialize,
+        Deserialize,
+        PartialEq,
+        Eq,
+        PartialOrd,
+        Ord,
+        Copy,
+    )]
+    struct Post {
+        id: u64,
+        likes: u64,
     }
 
     #[wasm_bindgen_test]
-    fn app_state() {
-        test_setup();
+    fn app_state_basic() {
+        lower_stack_trace_size();
         let output0 = Rc::new(RefCell::new(Vec::new()));
         let output1 = output0.clone();
 
@@ -417,12 +438,81 @@ mod tests {
         go();
 
         assert_eq!(*output1.borrow(), vec![((StateKey::Count, 5), 0, 1)]);
-        
         input1.borrow_mut().insert((StateKey::Count, 9));
         input1.borrow_mut().advance_to(2u32);
 
         go();
 
-        assert_eq!(*output1.borrow(), vec![((StateKey::Count, 5), 0, 1), ((StateKey::Count, 9), 1, 1)]);
+        assert_eq!(
+            *output1.borrow(),
+            vec![((StateKey::Count, 5), 0, 1), ((StateKey::Count, 9), 1, 1)]
+        );
+    }
+    // compute total post likes
+    #[wasm_bindgen_test]
+    fn app_state_reduce_aggregation() {
+        lower_stack_trace_size();
+        let output0 = Rc::new(RefCell::new(Vec::new()));
+        let output1 = output0.clone();
+
+        let worker_fn = move |worker: &mut Worker<Thread>| {
+            worker.dataflow(|scope| {
+                let mut input = InputSession::new();
+                let manages = input.to_collection(scope);
+
+                manages
+                    .reduce(|key, input, output| {
+                        log(&format!(
+                            "key = {:?}, input = {:?}, output = {:?}",
+                            key, input, output
+                        ));
+
+                        let mut total_likes = 0;
+                        
+                        for item in input {
+                            if let Post { id, likes } = &item.0 {
+                                total_likes += likes;
+                            }
+                        }
+                        output.push((total_likes, 1));
+                    })
+                    .inspect(move |v| output0.borrow_mut().push(*v));
+
+                input
+            })
+        };
+
+        let alloc = Thread::new();
+        let mut worker = Worker::new(WorkerConfig::default(), alloc);
+        let input = worker_fn(&mut worker);
+
+        let input0 = Rc::new(RefCell::new(input));
+        let input1 = input0.clone();
+        input0.borrow_mut().insert((
+            StateKey::Post,
+            Post {
+                id: 33032,
+                likes: 5,
+            },
+        ));
+        input0.borrow_mut().insert((
+            StateKey::Post,
+            Post {
+                id: 33032,
+                likes: 2,
+            },
+        ));
+        input0.borrow_mut().advance_to(1u32);
+
+        let mut go = move || {
+            for _ in 0..10 {
+                input0.borrow_mut().flush();
+                worker.step();
+            }
+        };
+
+        go();
+        
+        assert_eq!(*output1.borrow(), vec![((StateKey::Post, 7), 0, 1)]);
     }
 }
