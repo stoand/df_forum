@@ -207,7 +207,7 @@ pub fn run0() {
 mod tests {
     use super::*;
     #[wasm_bindgen_test]
-    fn count_working() {
+    fn count_basic() {
         test_setup();
         let output0 = Rc::new(RefCell::new(Vec::new()));
         let output1 = output0.clone();
@@ -256,6 +256,62 @@ mod tests {
                 ((70, 1), 1, 1),
                 ((80, 1), 1, -1),
                 ((80, 2), 1, 1),
+            ]
+        );
+    }
+    #[wasm_bindgen_test]
+    fn reduce_least() {
+        test_setup();
+        let output0 = Rc::new(RefCell::new(Vec::new()));
+        let output1 = output0.clone();
+
+        let worker_fn = move |worker: &mut Worker<Thread>| {
+            worker.dataflow(|scope| {
+                let mut input = InputSession::new();
+                let manages = input.to_collection(scope);
+
+                manages
+                    // return least element
+                    .reduce(|_key, input, output| { output.push((*input[0].0, 1)); })
+                    .inspect(move |v| output0.borrow_mut().push(*v));
+
+                input
+            })
+        };
+
+        let alloc = Thread::new();
+        let mut worker = Worker::new(WorkerConfig::default(), alloc);
+        let mut input = worker_fn(&mut worker);
+
+        let input0 = Rc::new(RefCell::new(input));
+        let input1 = input0.clone();
+        input0.borrow_mut().insert((80, 5));
+        input0.borrow_mut().insert((80, 3));
+        input0.borrow_mut().insert((80, 8));
+        input0.borrow_mut().advance_to(1u32);
+
+        let mut go = move || {
+            for _ in 0..10 {
+                input0.borrow_mut().flush();
+                worker.step();
+            }
+        };
+
+        go();
+
+        assert_eq!(*output1.borrow(), vec![((80, 3), 0, 1)]);
+        
+        input1.borrow_mut().insert((80, 2));
+        // input1.borrow_mut().insert(70u32);
+        input1.borrow_mut().advance_to(2u32);
+
+        go();
+        assert_eq!(
+            *output1.borrow(),
+            vec![
+                ((80, 3), 0, 1),
+                ((80, 2), 1, 1),
+                ((80, 3), 1, -1),
             ]
         );
     }
