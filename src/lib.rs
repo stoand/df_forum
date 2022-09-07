@@ -396,61 +396,6 @@ mod tests {
         TotalActiveSessions { total_active_sessions: u64 },
     }
 
-    #[wasm_bindgen_test]
-    fn app_state_basic() {
-        lower_stack_trace_size();
-        let output0 = Rc::new(RefCell::new(Vec::new()));
-        let output1 = output0.clone();
-
-        let worker_fn = move |worker: &mut Worker<Thread>| {
-            worker.dataflow(|scope| {
-                let mut input = InputSession::new();
-                let manages = input.to_collection(scope);
-
-                manages
-                    // return least element
-                    // .reduce(|key, input, output| {
-                    //     log(&format!(
-                    //         "key = {:?}, input = {:?}, output = {:?}",
-                    //         key, input, output
-                    //     ));
-                    //     output.push((*input[0].0, 1));
-                    // })
-                    .inspect(move |v| output0.borrow_mut().push(*v));
-
-                input
-            })
-        };
-
-        let alloc = Thread::new();
-        let mut worker = Worker::new(WorkerConfig::default(), alloc);
-        let input = worker_fn(&mut worker);
-
-        let input0 = Rc::new(RefCell::new(input));
-        let input1 = input0.clone();
-        input0.borrow_mut().insert((StateKey::Count, 5));
-        input0.borrow_mut().advance_to(1u32);
-
-        let mut go = move || {
-            for _ in 0..10 {
-                input0.borrow_mut().flush();
-                worker.step();
-            }
-        };
-
-        go();
-
-        assert_eq!(*output1.borrow(), vec![((StateKey::Count, 5), 0, 1)]);
-        input1.borrow_mut().insert((StateKey::Count, 9));
-        input1.borrow_mut().advance_to(2u32);
-
-        go();
-
-        assert_eq!(
-            *output1.borrow(),
-            vec![((StateKey::Count, 5), 0, 1), ((StateKey::Count, 9), 1, 1)]
-        );
-    }
     // compute total post likes
     #[wasm_bindgen_test]
     fn app_state_reduce_aggregation() {
@@ -509,29 +454,33 @@ mod tests {
 
         let input0 = Rc::new(RefCell::new(input));
         let input1 = input0.clone();
+        input0
+            .borrow_mut()
+            .insert((StateKey::Post, StateValue::Post { id: 100, likes: 5 }));
+        input0
+            .borrow_mut()
+            .insert((StateKey::Post, StateValue::Post { id: 101, likes: 2 }));
         input0.borrow_mut().insert((
-            StateKey::Post,
-            StateValue::Post {
-                id: 100,
-                likes: 5,
+            StateKey::Session,
+            StateValue::Session {
+                id: 400,
+                active: false,
             },
         ));
         input0.borrow_mut().insert((
-            StateKey::Post,
-            StateValue::Post {
-                id: 101,
-                likes: 2,
+            StateKey::Session,
+            StateValue::Session {
+                id: 401,
+                active: true,
             },
         ));
-        input0
-            .borrow_mut()
-            .insert((StateKey::Session, StateValue::Session { id: 400, active: false }));
-        input0
-            .borrow_mut()
-            .insert((StateKey::Session, StateValue::Session { id: 401, active: true }));
-        input0
-            .borrow_mut()
-            .insert((StateKey::Session, StateValue::Session { id: 402, active: true }));
+        input0.borrow_mut().insert((
+            StateKey::Session,
+            StateValue::Session {
+                id: 402,
+                active: true,
+            },
+        ));
         input0.borrow_mut().advance_to(1u32);
 
         let mut go = move || {
@@ -544,14 +493,60 @@ mod tests {
         go();
 
         let total_post_likes = StateValue::TotalPostLikes { total_likes: 7 };
-        let total_active_sessions = StateValue::TotalActiveSessions {
+        let total_active_sessions2 = StateValue::TotalActiveSessions {
             total_active_sessions: 2,
         };
         assert_eq!(
             *output1.borrow(),
             vec![
                 ((StateKey::Post, total_post_likes), 0, 1),
-                ((StateKey::Session, total_active_sessions), 0, 1),
+                ((StateKey::Session, total_active_sessions2), 0, 1),
+            ]
+        );
+
+        // // we're restating that this old session is not active, nothing should change
+        // input1
+        //     .borrow_mut()
+        //     .insert((StateKey::Session, StateValue::Session { id: 400, active: false }));
+        // input1.borrow_mut().advance_to(2u32);
+
+        // go();
+        // assert_eq!(
+        //     *output1.borrow(),
+        //     vec![
+        //         ((StateKey::Post, total_post_likes), 0, 1),
+        //         ((StateKey::Session, total_active_sessions), 0, 1),
+        //     ]
+        // );
+
+        // we're setting an old active session to not active
+        input1.borrow_mut().insert((
+            StateKey::Session,
+            StateValue::Session {
+                id: 401,
+                active: false,
+            },
+        ));
+        input1.borrow_mut().remove((
+            StateKey::Session,
+            StateValue::Session {
+                id: 401,
+                active: true,
+            },
+        ));
+        input1.borrow_mut().advance_to(2u32);
+
+        go();
+        let total_active_sessions1 = StateValue::TotalActiveSessions {
+            total_active_sessions: 1,
+        };
+        assert_eq!(
+            *output1.borrow(),
+            vec![
+                ((StateKey::Post, total_post_likes), 0, 1),
+                ((StateKey::Session, total_active_sessions2), 0, 1),
+                ((StateKey::Session, total_active_sessions1), 1, 1),
+                ((StateKey::Session, total_active_sessions2), 1, -1),
             ]
         );
     }
