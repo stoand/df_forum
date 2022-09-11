@@ -418,16 +418,16 @@ mod tests {
 
                 // todo add join
 
-                let current_user = users.map(|(id, persisted)| {
-                    if let Persisted::User { .. } = persisted {
-                        (id, ())
+                let belonging_posts = posts.map(|(id, persisted)| {
+                    if let Persisted::Post { user_id, .. } = persisted {
+                        (user_id, id)
                     } else {
                         // ignore this
-                        (0, ())
+                        (0, 0)
                     }
                 });
 
-                let joined_user_session = current_session_user_id.join(&current_user);
+                let joined_user_session = current_session_user_id.join(&belonging_posts);
 
                 joined_user_session.inspect(move |v| output0.borrow_mut().push(*v));
 
@@ -461,6 +461,22 @@ mod tests {
                 likes: 5,
             },
         ));
+        input0.borrow_mut().insert((
+            11,
+            Persisted::Post {
+                title: "other",
+                user_id: 3,
+                likes: 3,
+            },
+        ));
+        input0.borrow_mut().insert((
+            12,
+            Persisted::Post {
+                title: "ignore_this",
+                user_id: 2,
+                likes: 32,
+            },
+        ));
         input0.borrow_mut().advance_to(1u32);
 
         let mut go = move || {
@@ -471,6 +487,6 @@ mod tests {
         };
 
         go();
-        assert_eq!(*output1.borrow(), vec![((3, ((), ())), 0, 1)]);
+        assert_eq!(*output1.borrow(), vec![]);
     }
 }
