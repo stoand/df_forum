@@ -400,25 +400,36 @@ mod tests {
 
                 // extract our current session from our session token
 
-                let current_session = sessions.filter(move |(_id, persisted)| {
-                    if let Persisted::Session { token, .. } = persisted {
-                        *token == session_token
-                    } else {
-                        false
-                    }
-                });
+                let current_session_user_id = sessions
+                    .filter(move |(_id, persisted)| {
+                        if let Persisted::Session { token, .. } = persisted {
+                            *token == session_token
+                        } else {
+                            false
+                        }
+                    })
+                    .map(|(_id, persisted)| {
+                        if let Persisted::Session { user_id, .. } = persisted {
+                            (user_id, ())
+                        } else {
+                            (0, ())
+                        }
+                    });
 
                 // todo add join
 
-                let current_user = current_session.map(|(_id, persisted)| {
-                    if let Persisted::Session { user_id, .. } = persisted {
-                        user_id
+                let current_user = users.map(|(id, persisted)| {
+                    if let Persisted::User { .. } = persisted {
+                        (id, ())
                     } else {
-                        0
+                        // ignore this
+                        (0, ())
                     }
                 });
 
-                current_session.inspect(move |v| output0.borrow_mut().push(*v));
+                let joined_user_session = current_session_user_id.join(&current_user);
+
+                joined_user_session.inspect(move |v| output0.borrow_mut().push(*v));
 
                 input
             })
@@ -450,7 +461,6 @@ mod tests {
                 likes: 5,
             },
         ));
-        
         input0.borrow_mut().advance_to(1u32);
 
         let mut go = move || {
@@ -461,6 +471,6 @@ mod tests {
         };
 
         go();
-        assert_eq!(*output1.borrow(), vec![]);
+        assert_eq!(*output1.borrow(), vec![((3, ((), ())), 0, 1)]);
     }
 }
