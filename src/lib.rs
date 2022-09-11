@@ -22,8 +22,8 @@ use wasm_bindgen::prelude::*;
 // use differential_dataflow::input::Input;
 // use differential_dataflow::operators::Consolidate;
 use differential_dataflow::operators::Count;
-use differential_dataflow::operators::Reduce;
 use differential_dataflow::operators::Join;
+use differential_dataflow::operators::Reduce;
 // use timely::dataflow::operators::capture::{Capture, EventCore, Extract};
 use wasm_bindgen::JsCast;
 // use web_sys::{Document, Element, HtmlElement, Window};
@@ -338,22 +338,20 @@ mod tests {
         );
     }
 
-    #[derive(
-        Hash,
-        Clone,
-        Debug,
-        Serialize,
-        Deserialize,
-        PartialEq,
-        Eq,
-        PartialOrd,
-        Ord,
-        Copy,
-    )]
+    #[derive(Hash, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Copy)]
     enum Persisted<'a> {
-        Session { token: &'a str, user_id: u64 },
-        User { name: &'a str },
-        Post { title: &'a str },
+        Session {
+            token: &'a str,
+            user_id: u64,
+        },
+        User {
+            name: &'a str,
+        },
+        Post {
+            title: &'a str,
+            user_id: u64,
+            likes: u64,
+        },
     }
 
     // compute total post likes
@@ -376,34 +374,51 @@ mod tests {
 
                 // filter by type
 
-                let sessions = manages.filter(|(id, persisted)| {
+                let sessions = manages.filter(|(_id, persisted)| {
                     if let Persisted::Session { .. } = persisted {
                         true
                     } else {
                         false
-                    } 
+                    }
                 });
 
-                let users = manages.filter(|(id, persisted)| {
+                let users = manages.filter(|(_id, persisted)| {
                     if let Persisted::User { .. } = persisted {
                         true
                     } else {
                         false
-                    } 
+                    }
                 });
 
-                let posts = manages.filter(|(id, persisted)| {
+                let posts = manages.filter(|(_id, persisted)| {
                     if let Persisted::Post { .. } = persisted {
                         true
                     } else {
                         false
-                    } 
+                    }
                 });
 
-                
+                // extract our current session from our session token
 
-                manages
-                    .inspect(move |v| output0.borrow_mut().push(*v));
+                let current_session = sessions.filter(move |(_id, persisted)| {
+                    if let Persisted::Session { token, .. } = persisted {
+                        *token == session_token
+                    } else {
+                        false
+                    }
+                });
+
+                // todo add join
+
+                let current_user = current_session.map(|(_id, persisted)| {
+                    if let Persisted::Session { user_id, .. } = persisted {
+                        user_id
+                    } else {
+                        0
+                    }
+                });
+
+                current_session.inspect(move |v| output0.borrow_mut().push(*v));
 
                 input
             })
@@ -415,30 +430,27 @@ mod tests {
 
         let input0 = Rc::new(RefCell::new(input));
         let input1 = input0.clone();
+
+        input0.borrow_mut().insert((
+            55,
+            Persisted::Session {
+                token: "3k21f0",
+                user_id: 3,
+            },
+        ));
         input0
             .borrow_mut()
-            .insert((10, Persisted::Post { title: "asdf" }));
-        // input0
-        //     .borrow_mut()
-        //     .insert(((StateKey::Post, 301), StateValue::Post { likes: 2 }));
-        // input0.borrow_mut().insert((
-        //     (StateKey::Session, 500),
-        //     StateValue::Session {
-        //         active: false,
-        //     },
-        // ));
-        // input0.borrow_mut().insert((
-        //     (StateKey::Session, 501),
-        //     StateValue::Session {
-        //         active: true,
-        //     },
-        // ));
-        // input0.borrow_mut().insert((
-        //     (StateKey::Session, 502),
-        //     StateValue::Session {
-        //         active: true,
-        //     },
-        // ));
+            .insert((3, Persisted::User { name: "Joe" }));
+
+        input0.borrow_mut().insert((
+            10,
+            Persisted::Post {
+                title: "asdf",
+                user_id: 3,
+                likes: 5,
+            },
+        ));
+        
         input0.borrow_mut().advance_to(1u32);
 
         let mut go = move || {
@@ -449,5 +461,6 @@ mod tests {
         };
 
         go();
+        assert_eq!(*output1.borrow(), vec![]);
     }
 }
