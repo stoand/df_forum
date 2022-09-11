@@ -361,7 +361,7 @@ mod tests {
         let output0 = Rc::new(RefCell::new(Vec::new()));
         let output1 = output0.clone();
 
-        let session_token : String = "3k21f0".into();
+        let session_token: String = "3k21f0".into();
 
         let worker_fn = move |worker: &mut Worker<Thread>| {
             worker.dataflow(|scope| {
@@ -376,14 +376,6 @@ mod tests {
 
                 let sessions = manages.filter(|(_id, persisted)| {
                     if let Persisted::Session { .. } = persisted {
-                        true
-                    } else {
-                        false
-                    }
-                });
-
-                let users = manages.filter(|(_id, persisted)| {
-                    if let Persisted::User { .. } = persisted {
                         true
                     } else {
                         false
@@ -418,7 +410,7 @@ mod tests {
 
                 // todo add join
 
-                let belonging_posts = posts.map(|(id, persisted)| {
+                let belonging_posts = posts.map(|(_id, persisted)| {
                     if let Persisted::Post { user_id, .. } = persisted {
                         (user_id, persisted)
                     } else {
@@ -429,17 +421,29 @@ mod tests {
 
                 let joined_user_session = current_session_user_id.join(&belonging_posts);
 
-                // let users_total_post_likes = 
-
-                let safe = joined_user_session.map(|(id, (_, persisted))| {
+                let safe = joined_user_session.map(|(user_id, (_, persisted))| {
                     if let Persisted::Post { likes, .. } = persisted {
-                        likes
+                        (user_id, likes)
                     } else {
-                        0
+                        (user_id, 0)
                     }
                 });
 
-                safe.inspect(move |v| output0.borrow_mut().push(*v));
+                let users_total_post_likes = safe.reduce(|_key, inputs, outputs| {
+                    // log(&format!(
+                    //     "key = {:?}, input = {:?}, output = {:?}",
+                    //     _key, inputs, outputs
+                    // ));
+                    let mut total_likes = 0;
+
+                    for (item, _) in inputs {
+                        total_likes += *item;
+                    }
+
+                    outputs.push((total_likes, 1));
+                });
+
+                users_total_post_likes.inspect(move |v| output0.borrow_mut().push(*v));
 
                 input
             })
@@ -450,7 +454,7 @@ mod tests {
         let input = worker_fn(&mut worker);
 
         let input0 = Rc::new(RefCell::new(input));
-        let input1 = input0.clone();
+        // let input1 = input0.clone();
 
         input0.borrow_mut().insert((
             55,
@@ -497,6 +501,9 @@ mod tests {
         };
 
         go();
-        assert_eq!(*output1.borrow(), vec![]);
+
+        let user_id = 3;
+        let total_likes = 8;
+        assert_eq!(*output1.borrow(), vec![((user_id, total_likes), 0, 1)]);
     }
 }
