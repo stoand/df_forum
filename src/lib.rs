@@ -338,17 +338,17 @@ mod tests {
         );
     }
 
-    #[derive(Hash, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Copy)]
-    enum Persisted<'a> {
+    #[derive(Hash, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+    enum Persisted {
         Session {
-            token: &'a str,
+            token: String,
             user_id: u64,
         },
         User {
-            name: &'a str,
+            name: String,
         },
         Post {
-            title: &'a str,
+            title: String,
             user_id: u64,
             likes: u64,
         },
@@ -361,7 +361,7 @@ mod tests {
         let output0 = Rc::new(RefCell::new(Vec::new()));
         let output1 = output0.clone();
 
-        let session_token = "3k21f0";
+        let session_token : String = "3k21f0".into();
 
         let worker_fn = move |worker: &mut Worker<Thread>| {
             worker.dataflow(|scope| {
@@ -420,16 +420,26 @@ mod tests {
 
                 let belonging_posts = posts.map(|(id, persisted)| {
                     if let Persisted::Post { user_id, .. } = persisted {
-                        (user_id, id)
+                        (user_id, persisted)
                     } else {
                         // ignore this
-                        (0, 0)
+                        (0, persisted)
                     }
                 });
 
                 let joined_user_session = current_session_user_id.join(&belonging_posts);
 
-                joined_user_session.inspect(move |v| output0.borrow_mut().push(*v));
+                // let users_total_post_likes = 
+
+                let safe = joined_user_session.map(|(id, (_, persisted))| {
+                    if let Persisted::Post { likes, .. } = persisted {
+                        likes
+                    } else {
+                        0
+                    }
+                });
+
+                safe.inspect(move |v| output0.borrow_mut().push(*v));
 
                 input
             })
@@ -445,18 +455,18 @@ mod tests {
         input0.borrow_mut().insert((
             55,
             Persisted::Session {
-                token: "3k21f0",
+                token: "3k21f0".into(),
                 user_id: 3,
             },
         ));
         input0
             .borrow_mut()
-            .insert((3, Persisted::User { name: "Joe" }));
+            .insert((3, Persisted::User { name: "Joe".into() }));
 
         input0.borrow_mut().insert((
             10,
             Persisted::Post {
-                title: "asdf",
+                title: "asdf".into(),
                 user_id: 3,
                 likes: 5,
             },
@@ -464,7 +474,7 @@ mod tests {
         input0.borrow_mut().insert((
             11,
             Persisted::Post {
-                title: "other",
+                title: "other".into(),
                 user_id: 3,
                 likes: 3,
             },
@@ -472,7 +482,7 @@ mod tests {
         input0.borrow_mut().insert((
             12,
             Persisted::Post {
-                title: "ignore_this",
+                title: "ignore_this".into(),
                 user_id: 2,
                 likes: 32,
             },
