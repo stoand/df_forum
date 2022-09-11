@@ -408,8 +408,6 @@ mod tests {
                         }
                     });
 
-                // todo add join
-
                 let belonging_posts = posts.map(|(_id, persisted)| {
                     if let Persisted::Post { user_id, .. } = persisted {
                         (user_id, persisted)
@@ -463,10 +461,28 @@ mod tests {
                 user_id: 3,
             },
         ));
+        input0.borrow_mut().insert((
+            56,
+            Persisted::Session {
+                token: "3k21f0".into(),
+                user_id: 77,
+            },
+        ));
         input0
             .borrow_mut()
             .insert((3, Persisted::User { name: "Joe".into() }));
+        input0
+            .borrow_mut()
+            .insert((77, Persisted::User { name: "Joe".into() }));
 
+        input0.borrow_mut().insert((
+            29,
+            Persisted::Post {
+                title: "other_user".into(),
+                user_id: 77,
+                likes: 81,
+            },
+        ));
         input0.borrow_mut().insert((
             10,
             Persisted::Post {
@@ -502,8 +518,18 @@ mod tests {
 
         go();
 
-        let user_id = 3;
-        let total_likes = 8;
-        assert_eq!(*output1.borrow(), vec![((user_id, total_likes), 0, 1)]);
+        let user_id0 = 3;
+        let total_likes0 = 8;
+
+        let user_id1 = 77;
+        let total_likes1 = 81;
+
+        assert_eq!(
+            *output1.borrow(),
+            vec![
+                ((user_id0, total_likes0), 0, 1),
+                ((user_id1, total_likes1), 0, 1)
+            ]
+        );
     }
 }
