@@ -351,9 +351,9 @@ mod tests {
         Copy,
     )]
     enum Persisted<'a> {
+        Session { token: &'a str, user_id: u64 },
         User { name: &'a str },
         Post { title: &'a str },
-        Session,
     }
 
     // compute total post likes
@@ -363,19 +363,44 @@ mod tests {
         let output0 = Rc::new(RefCell::new(Vec::new()));
         let output1 = output0.clone();
 
+        let session_token = "3k21f0";
+
         let worker_fn = move |worker: &mut Worker<Thread>| {
             worker.dataflow(|scope| {
                 let mut input = InputSession::new();
                 let manages = input.to_collection(scope);
-
-
-                // todo
-                // posts that have same number of likes
-                // as sessions are active
                 //
                 // todo
                 // take a session, get the user from that session, get posts from that user
                 // get total likes from those posts
+
+                // filter by type
+
+                let sessions = manages.filter(|(id, persisted)| {
+                    if let Persisted::Session { .. } = persisted {
+                        true
+                    } else {
+                        false
+                    } 
+                });
+
+                let users = manages.filter(|(id, persisted)| {
+                    if let Persisted::User { .. } = persisted {
+                        true
+                    } else {
+                        false
+                    } 
+                });
+
+                let posts = manages.filter(|(id, persisted)| {
+                    if let Persisted::Post { .. } = persisted {
+                        true
+                    } else {
+                        false
+                    } 
+                });
+
+                
 
                 manages
                     .inspect(move |v| output0.borrow_mut().push(*v));
@@ -392,7 +417,7 @@ mod tests {
         let input1 = input0.clone();
         input0
             .borrow_mut()
-            .insert((Persisted::Post { title: "asdf" }));
+            .insert((10, Persisted::Post { title: "asdf" }));
         // input0
         //     .borrow_mut()
         //     .insert(((StateKey::Post, 301), StateValue::Post { likes: 2 }));
