@@ -377,31 +377,24 @@ mod tests {
 
                 // extract our current session from our session token
 
-                let current_session_user_id = manages
-                    .map(move |(_id, persisted)| {
-                        if let Persisted::Session { user_id, token } = persisted {
-                            if *token == session_token {
-                                (user_id, ())
-                            } else {
-                                (0, ())
-                            }
+                let current_session_user_id = manages.flat_map(move |(_id, persisted)| {
+                    if let Persisted::Session { user_id, token } = persisted {
+                        if *token == session_token {
+                            vec![(user_id, ())]
                         } else {
-                            (0, ())
+                            vec![]
                         }
-                    })
-                    // needed because we have no filter_map
-                    .filter(|(a, _)| *a != 0);
-
-                let belonging_posts = manages
-                    .map(|(_id, persisted)| {
-                        if let Persisted::Post { user_id, .. } = persisted {
-                            (user_id, persisted)
-                        } else {
-                            // ignore this
-                            (0, persisted)
-                        }
-                    })
-                    .filter(|(a, _)| *a != 0);
+                    } else {
+                        vec![]
+                    }
+                });
+                let belonging_posts = manages.flat_map(|(_id, persisted)| {
+                    if let Persisted::Post { user_id, .. } = persisted {
+                        vec![(user_id, persisted)]
+                    } else {
+                        vec![]
+                    }
+                });
 
                 let joined_user_session = current_session_user_id.join(&belonging_posts);
 
