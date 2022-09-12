@@ -45,21 +45,6 @@ extern "C" {
     fn lower_stack_trace_size();
 }
 
-#[derive(
-    Abomonation, Hash, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Copy,
-)]
-enum AppEvent {
-    CountUp,
-    CountDown,
-}
-
-#[derive(
-    Abomonation, Hash, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Copy,
-)]
-enum StateKey {
-    Count,
-}
-
 #[wasm_bindgen]
 pub fn run0() {
     std::panic::set_hook(Box::new(console_error_panic_hook::hook));
@@ -164,7 +149,7 @@ pub fn run0() {
     let count_up_clj = Closure::<dyn FnMut()>::new(move || {
         log("inserting");
         log(&format!("t0 = {:?}", time0.borrow()));
-        input0.borrow_mut().insert(AppEvent::CountUp);
+        input0.borrow_mut().insert(32);
     });
 
     let count_up_el = count_up.dyn_ref::<HtmlElement>().unwrap();
@@ -174,7 +159,7 @@ pub fn run0() {
     let count_down_clj = Closure::<dyn FnMut()>::new(move || {
         log("inserting");
         log(&format!("t1 = {:?}", time1.borrow()));
-        input1.borrow_mut().insert(AppEvent::CountDown);
+        input1.borrow_mut().insert(34u64);
     });
 
     let count_down_el = count_down.dyn_ref::<HtmlElement>().unwrap();
@@ -425,7 +410,7 @@ mod tests {
         let input = worker_fn(&mut worker);
 
         let input0 = Rc::new(RefCell::new(input));
-        // let input1 = input0.clone();
+        let input1 = input0.clone();
 
         input0.borrow_mut().insert((
             55,
@@ -502,6 +487,39 @@ mod tests {
             vec![
                 ((user_id0, total_likes0), 0, 1),
                 ((user_id1, total_likes1), 0, 1)
+            ]
+        );
+        
+        input1.borrow_mut().remove((
+            11,
+            Persisted::Post {
+                title: "other".into(),
+                user_id: 3,
+                likes: 3,
+            },
+        ));
+
+        // todo update post likes
+        input1.borrow_mut().insert((
+            11,
+            Persisted::Post {
+                title: "other".into(),
+                user_id: 3,
+                likes: 9,
+            },
+        ));
+        
+        input1.borrow_mut().advance_to(2u32);
+
+        go();
+        
+        assert_eq!(
+            *output1.borrow(),
+            vec![
+                ((3, 8), 0, 1),
+                ((77, 81), 0, 1),
+                ((3, 8), 1, -1),
+                ((3, 14), 1, 1),
             ]
         );
     }
