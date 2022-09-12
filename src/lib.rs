@@ -368,19 +368,12 @@ mod tests {
                 let mut input = InputSession::new();
                 let manages = input.to_collection(scope);
                 //
-                // todo
+                //
                 // take a session, get the user from that session, get posts from that user
                 // get total likes from those posts
-
-                // filter by type
-
-                let sessions = manages.filter(|(_id, persisted)| {
-                    if let Persisted::Session { .. } = persisted {
-                        true
-                    } else {
-                        false
-                    }
-                });
+                //
+                // todo
+                // slim down operators
 
                 let posts = manages.filter(|(_id, persisted)| {
                     if let Persisted::Post { .. } = persisted {
@@ -392,7 +385,7 @@ mod tests {
 
                 // extract our current session from our session token
 
-                let current_session_user_id = sessions
+                let current_session_user_id = manages
                     .filter(move |(_id, persisted)| {
                         if let Persisted::Session { token, .. } = persisted {
                             *token == session_token
@@ -419,23 +412,17 @@ mod tests {
 
                 let joined_user_session = current_session_user_id.join(&belonging_posts);
 
-                let safe = joined_user_session.map(|(user_id, (_, persisted))| {
-                    if let Persisted::Post { likes, .. } = persisted {
-                        (user_id, likes)
-                    } else {
-                        (user_id, 0)
-                    }
-                });
-
-                let users_total_post_likes = safe.reduce(|_key, inputs, outputs| {
+                let users_total_post_likes = joined_user_session.reduce(|_key, inputs, outputs| {
                     // log(&format!(
                     //     "key = {:?}, input = {:?}, output = {:?}",
                     //     _key, inputs, outputs
                     // ));
                     let mut total_likes = 0;
 
-                    for (item, _) in inputs {
-                        total_likes += *item;
+                    for (persisted, _) in inputs {
+                        if let Persisted::Post { likes, .. } = persisted.1 {
+                            total_likes += likes;
+                        }
                     }
 
                     outputs.push((total_likes, 1));
