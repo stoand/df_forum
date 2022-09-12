@@ -337,6 +337,7 @@ mod tests {
             user_id: u64,
             likes: u64,
         },
+        Deleted,
     }
 
     // compute total post likes
@@ -352,15 +353,24 @@ mod tests {
             worker.dataflow(|scope| {
                 let mut input = InputSession::new();
                 let manages = input.to_collection(scope);
-                //
-                //
+                // .filter(|(_, persisted)| persisted != Persisted::Deleted);
                 // take a session, get the user from that session, get posts from that user
                 // get total likes from those posts
-                //
-                // todo
-                // slim down operators
 
-                // extract our current session from our session token
+                let filter_newest = manages
+                    // todo seperate out newest for every id
+                    .reduce(move |key, input, outputs| {
+                        log(&format!(
+                            "key = {:?}, input = {:?}, output = {:?}",
+                            key, input, outputs
+                        ));
+
+                        outputs.push((input.len(), 1));
+                        // outputs.push((*input[0].0, 1));
+                    })
+                    .inspect(|v| {
+                        log(&format!("v = {:?}", v));
+                    });
 
                 let current_session_user_id = manages.flat_map(move |(_id, persisted)| {
                     if let Persisted::Session { user_id, token } = persisted {
@@ -489,7 +499,10 @@ mod tests {
                 ((user_id1, total_likes1), 0, 1)
             ]
         );
-        
+        input1.borrow_mut().insert((3, Persisted::Deleted));
+        input1
+            .borrow_mut()
+            .insert((3, Persisted::User { name: "Doe".into() }));
         input1.borrow_mut().remove((
             11,
             Persisted::Post {
@@ -498,7 +511,6 @@ mod tests {
                 likes: 3,
             },
         ));
-
         // todo update post likes
         input1.borrow_mut().insert((
             11,
@@ -508,11 +520,9 @@ mod tests {
                 likes: 9,
             },
         ));
-        
         input1.borrow_mut().advance_to(2u32);
 
         go();
-        
         assert_eq!(
             *output1.borrow(),
             vec![
