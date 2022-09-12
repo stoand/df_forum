@@ -21,6 +21,7 @@ use wasm_bindgen::prelude::*;
 
 // use differential_dataflow::input::Input;
 // use differential_dataflow::operators::Consolidate;
+use differential_dataflow::operators::reduce::ReduceCore;
 use differential_dataflow::operators::Count;
 use differential_dataflow::operators::Join;
 use differential_dataflow::operators::Reduce;
@@ -357,17 +358,26 @@ mod tests {
                 // take a session, get the user from that session, get posts from that user
                 // get total likes from those posts
 
-                let filter_newest = manages
-                    // todo seperate out newest for every id
-                    .reduce(move |key, input, outputs| {
-                        log(&format!(
-                            "key = {:?}, input = {:?}, output = {:?}",
-                            key, input, outputs
-                        ));
+                // possibly order items by time
+                // we want:
+                // key = 3, User { Joe } , User { Doe } , Deleted
+                use differential_dataflow::trace::implementations::ord::*;
 
-                        outputs.push((input.len(), 1));
-                        // outputs.push((*input[0].0, 1));
-                    })
+                let filter_newest = manages
+                    // todo separate out newest for every id
+                    .reduce_abelian::<_, OrdValSpine<_, _, _, _>>(
+                        "asdf",
+                        move |key, input, outputs| {
+                            log(&format!(
+                                "key = {:?}, input = {:?}, output = {:?}",
+                                key, input, outputs
+                            ));
+
+                            outputs.push((input.len(), 1));
+                            // outputs.push((*input[0].0, 1));
+                        },
+                    )
+                    .as_collection(|&a, &b| (a, b))
                     .inspect(|v| {
                         log(&format!("v = {:?}", v));
                     });
