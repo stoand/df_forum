@@ -375,40 +375,33 @@ mod tests {
                 // todo
                 // slim down operators
 
-                let posts = manages.filter(|(_id, persisted)| {
-                    if let Persisted::Post { .. } = persisted {
-                        true
-                    } else {
-                        false
-                    }
-                });
-
                 // extract our current session from our session token
 
                 let current_session_user_id = manages
-                    .filter(move |(_id, persisted)| {
-                        if let Persisted::Session { token, .. } = persisted {
-                            *token == session_token
-                        } else {
-                            false
-                        }
-                    })
-                    .map(|(_id, persisted)| {
-                        if let Persisted::Session { user_id, .. } = persisted {
-                            (user_id, ())
+                    .map(move |(_id, persisted)| {
+                        if let Persisted::Session { user_id, token } = persisted {
+                            if *token == session_token {
+                                (user_id, ())
+                            } else {
+                                (0, ())
+                            }
                         } else {
                             (0, ())
                         }
-                    });
+                    })
+                    // needed because we have no filter_map
+                    .filter(|(a, _)| *a != 0);
 
-                let belonging_posts = posts.map(|(_id, persisted)| {
-                    if let Persisted::Post { user_id, .. } = persisted {
-                        (user_id, persisted)
-                    } else {
-                        // ignore this
-                        (0, persisted)
-                    }
-                });
+                let belonging_posts = manages
+                    .map(|(_id, persisted)| {
+                        if let Persisted::Post { user_id, .. } = persisted {
+                            (user_id, persisted)
+                        } else {
+                            // ignore this
+                            (0, persisted)
+                        }
+                    })
+                    .filter(|(a, _)| *a != 0);
 
                 let joined_user_session = current_session_user_id.join(&belonging_posts);
 
