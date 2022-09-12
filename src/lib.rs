@@ -193,7 +193,7 @@ pub fn run0() {
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[wasm_bindgen_test]
+    // #[wasm_bindgen_test]
     fn count_basic() {
         lower_stack_trace_size();
         let output0 = Rc::new(RefCell::new(Vec::new()));
@@ -246,7 +246,7 @@ mod tests {
             ]
         );
     }
-    #[wasm_bindgen_test]
+    // #[wasm_bindgen_test]
     fn reduce_least() {
         lower_stack_trace_size();
         let output0 = Rc::new(RefCell::new(Vec::new()));
@@ -361,23 +361,29 @@ mod tests {
                 // possibly order items by time
                 // we want:
                 // key = 3, User { Joe } , User { Doe } , Deleted
+                use differential_dataflow::operators::Consolidate;
                 use differential_dataflow::trace::implementations::ord::*;
 
                 let filter_newest = manages
-                    // todo separate out newest for every id
-                    .reduce_abelian::<_, OrdValSpine<_, _, _, _>>(
-                        "asdf",
-                        move |key, input, outputs| {
-                            log(&format!(
-                                "key = {:?}, input = {:?}, output = {:?}",
-                                key, input, outputs
-                            ));
+                    // TODO: separate out newest for every id
+                    // .consolidate()
+                    //
+                    // See differential-dataflow/src/operators/reduce.rs:918
+                    // the problem is that we want the natually unsorted data
+                    // to get the latest value for every id
+                    // the call to consolidate also sorts the "input" value to reduce
+                    .reduce(|key, input, outputs| {
+                        log(&format!(
+                            "key = {:?}, input = {:?}, output = {:?}",
+                            key, input, outputs
+                        ));
 
-                            outputs.push((input.len(), 1));
-                            // outputs.push((*input[0].0, 1));
-                        },
-                    )
-                    .as_collection(|&a, &b| (a, b))
+                        // let persisted : Persisted = *input[0].0;
+
+                        // outputs.push((input.len(), 1));
+                        outputs.push((Persisted::Deleted, -1));
+                    })
+                    // .as_collection(|&a, &b| (a, b))
                     .inspect(|v| {
                         log(&format!("v = {:?}", v));
                     });
@@ -509,10 +515,10 @@ mod tests {
                 ((user_id1, total_likes1), 0, 1)
             ]
         );
-        input1.borrow_mut().insert((3, Persisted::Deleted));
         input1
             .borrow_mut()
             .insert((3, Persisted::User { name: "Doe".into() }));
+        input1.borrow_mut().insert((3, Persisted::Deleted));
         input1.borrow_mut().remove((
             11,
             Persisted::Post {
