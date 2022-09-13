@@ -193,7 +193,7 @@ pub fn run0() {
 #[cfg(test)]
 mod tests {
     use super::*;
-    // #[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn count_basic() {
         lower_stack_trace_size();
         let output0 = Rc::new(RefCell::new(Vec::new()));
@@ -246,7 +246,7 @@ mod tests {
             ]
         );
     }
-    // #[wasm_bindgen_test]
+    #[wasm_bindgen_test]
     fn reduce_least() {
         lower_stack_trace_size();
         let output0 = Rc::new(RefCell::new(Vec::new()));
@@ -368,7 +368,7 @@ mod tests {
                     // TODO: separate out newest for every id
                     // .consolidate()
                     //
-                    // See differential-dataflow/src/operators/reduce.rs:918
+                    // See differential-dataflow/src/consolidation.rs:42
                     // the problem is that we want the natually unsorted data
                     // to get the latest value for every id
                     // the call to consolidate also sorts the "input" value to reduce
