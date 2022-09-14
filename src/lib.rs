@@ -552,44 +552,25 @@ mod tests {
                 use timely::dataflow::channels::pact::Pipeline;
                 use timely::dataflow::operators::generic::operator::Operator;
                 use timely::dataflow::operators::Inspect;
-                use timely::dataflow::operators::{FrontierNotificator, ToStream};
+                use timely::dataflow::operators::{FrontierNotificator, Map, ToStream};
                 use timely::dataflow::Scope;
 
                 let filter_newest = manages
                     .inner
-                    // (064..10).to_stream(scope)
-                    .unary(Pipeline, "AttachTimestamps", |default_cap, _info| {
-                        let mut cap = Some(default_cap);
-                        let mut vector = Vec::new();
+                    .map(|v| {
+                        let ((id, persisted), time, diff) = v;
 
-                        move |input, output| {
-                            if let Some(ref c) = cap.take() {
-                                log(&format!("c = {:?}", c));
-                            }
-
-                            while let Some((time, data)) = input.next() {
-                                data.swap(&mut vector);
-                                let mut augumented_vec = vector
-                                    .iter()
-                                    .map(|&v| {
-                                        let ((id, persisted), time, diff) = v;
-
-                                        // a trick to let reduce sort by time
-                                        ((id, (time, persisted)), time, diff)
-                                    })
-                                    .collect::<Vec<((i32, (u64, Persisted)), u64, isize)>>();
-                                output.session(&time).give_vec(&mut augumented_vec);
-                            }
-                        }
+                        // let reduce sort by time
+                        ((id, (time, persisted)), time, diff)
                     })
-                    // .reduce(|key, inputs, outputs| {
-                    //     log(&format!(
-                    //         "key = {:?}, input = {:?}, output = {:?}",
-                    //         key, inputs, outputs
-                    //     ));
-                    //     outputs.push((inputs[0].1, -1));
-                    // })
                     .as_collection()
+                    .reduce(|key, inputs, outputs| {
+                        log(&format!(
+                            "key = {:?}, input = {:?}, output = {:?}",
+                            key, inputs, outputs
+                        ));
+                        outputs.push((inputs[0].1, 1));
+                    })
                     .inspect(|v| {
                         log(&format!("v = {:?}", v));
                     });
