@@ -2,7 +2,8 @@
 
 A forum/chat app proof of concept.
 
-State management case study using `timely/differential dataflow`.
+State management case study using [timely](https://github.com/TimelyDataflow/timely-dataflow)
+    \/ [differential dataflow](https://github.com/TimelyDataflow/differential-dataflow).
 
 Differentiates between frontend and backend states and handles both.
 
@@ -15,7 +16,7 @@ cargo watch -x 'test -- --nocapture'
 ## To run in browser
 
 * `cargo install wasm-pack`
-* `wasm-pack build --target web`
+* `nodemon -e rs -x 'wasm-pack build --target web'`
 * `python3 -m http.server`
 * Open [http://localhost:8000](http://localhost:8000)
 
