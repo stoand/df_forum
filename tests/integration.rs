@@ -408,6 +408,7 @@ fn aggregation_replacement() {
             let manages = input.to_collection(scope);
 
             let filter_newest = manages
+                // TODO: seperate these steps into their own operator "newest_by_id"
                 .inner
                 .map(|((id, persisted), time, diff)| {
                     // let reduce sort by time
