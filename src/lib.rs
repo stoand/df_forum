@@ -25,6 +25,9 @@ use differential_dataflow::operators::reduce::ReduceCore;
 use differential_dataflow::operators::Count;
 use differential_dataflow::operators::Join;
 use differential_dataflow::operators::Reduce;
+
+use differential_dataflow::AsCollection;
+use timely::dataflow::operators::Map;
 // use timely::dataflow::operators::capture::{Capture, EventCore, Extract};
 use wasm_bindgen::JsCast;
 // use web_sys::{Document, Element, HtmlElement, Window};
@@ -329,17 +332,19 @@ mod tests {
     fn aggregation() {
         lower_stack_trace_size();
 
-        #[derive(Hash, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+        #[derive(
+            Hash, Copy, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord,
+        )]
         enum Persisted {
             Session {
-                token: String,
+                token: u64,
                 user_id: u64,
             },
             User {
-                name: String,
+                name: u64,
             },
             Post {
-                title: String,
+                title: u64,
                 user_id: u64,
                 likes: u64,
             },
@@ -349,7 +354,7 @@ mod tests {
         let output0 = Rc::new(RefCell::new(Vec::new()));
         let output1 = output0.clone();
 
-        let session_token: String = "3k21f0".into();
+        let session_token = 88888u64;
 
         let worker_fn = move |worker: &mut Worker<Thread>| {
             worker.dataflow(|scope| {
@@ -360,7 +365,7 @@ mod tests {
 
                 let current_session_user_id = manages.flat_map(move |(_id, persisted)| {
                     if let Persisted::Session { user_id, token } = persisted {
-                        if *token == session_token {
+                        if token == session_token {
                             vec![(user_id, ())]
                         } else {
                             vec![]
@@ -369,13 +374,32 @@ mod tests {
                         vec![]
                     }
                 });
-                let belonging_posts = manages.flat_map(|(_id, persisted)| {
-                    if let Persisted::Post { user_id, .. } = persisted {
-                        vec![(user_id, persisted)]
-                    } else {
-                        vec![]
-                    }
-                });
+                let belonging_posts = manages
+                    .inner
+                    .map(|((id, persisted), time, diff)| {
+                        // let reduce sort by time
+                        ((id, (time, persisted)), time, diff)
+                    })
+                    .as_collection()
+                    .reduce(|_key, inputs, outputs| {
+                        // log(&format!(
+                        //     "key = {:?}, input = {:?}, output = {:?}",
+                        //     _key, inputs, outputs
+                        // ));
+
+                        for i in 0..inputs.len() {
+                            let diff = if i == inputs.len() - 1 { 1 } else { -1 };
+                            outputs.push((*inputs[i].0, diff));
+                        }
+                    })
+                    .map(|(id, (_time, persisted))| (id, persisted))
+                    .flat_map(|(_id, persisted)| {
+                        if let Persisted::Post { user_id, .. } = persisted {
+                            vec![(user_id, persisted)]
+                        } else {
+                            vec![]
+                        }
+                    });
 
                 let joined_user_session = current_session_user_id.join(&belonging_posts);
 
@@ -386,9 +410,11 @@ mod tests {
                     // ));
                     let mut total_likes = 0;
 
-                    for (persisted, _) in inputs {
-                        if let Persisted::Post { likes, .. } = persisted.1 {
-                            total_likes += likes;
+                    for (persisted, diff) in inputs {
+                        if *diff > 0 {
+                            if let Persisted::Post { likes, .. } = persisted.1 {
+                                total_likes += likes;
+                            }
                         }
                     }
 
@@ -411,28 +437,28 @@ mod tests {
         input0.borrow_mut().insert((
             55,
             Persisted::Session {
-                token: "3k21f0".into(),
+                token: session_token,
                 user_id: 3,
             },
         ));
         input0.borrow_mut().insert((
             56,
             Persisted::Session {
-                token: "3k21f0".into(),
+                token: session_token,
                 user_id: 77,
             },
         ));
         input0
             .borrow_mut()
-            .insert((3, Persisted::User { name: "Joe".into() }));
+            .insert((3, Persisted::User { name: 77 }));
         input0
             .borrow_mut()
-            .insert((77, Persisted::User { name: "Joe".into() }));
+            .insert((77, Persisted::User { name: 88 }));
 
         input0.borrow_mut().insert((
             29,
             Persisted::Post {
-                title: "other_user".into(),
+                title: 99,
                 user_id: 77,
                 likes: 81,
             },
@@ -440,7 +466,7 @@ mod tests {
         input0.borrow_mut().insert((
             10,
             Persisted::Post {
-                title: "asdf".into(),
+                title: 111,
                 user_id: 3,
                 likes: 5,
             },
@@ -448,7 +474,7 @@ mod tests {
         input0.borrow_mut().insert((
             11,
             Persisted::Post {
-                title: "other".into(),
+                title: 112,
                 user_id: 3,
                 likes: 3,
             },
@@ -456,7 +482,7 @@ mod tests {
         input0.borrow_mut().insert((
             12,
             Persisted::Post {
-                title: "ignore_this".into(),
+                title: 113,
                 user_id: 2,
                 likes: 32,
             },
@@ -487,21 +513,20 @@ mod tests {
         );
         input1
             .borrow_mut()
-            .insert((3, Persisted::User { name: "Doe".into() }));
-        input1.borrow_mut().insert((3, Persisted::Deleted));
-        input1.borrow_mut().remove((
-            11,
-            Persisted::Post {
-                title: "other".into(),
-                user_id: 3,
-                likes: 3,
-            },
-        ));
+            .insert((3, Persisted::User { name: 998 }));
+        // input1.borrow_mut().remove((
+        //     11,
+        //     Persisted::Post {
+        //         title: "other".into(),
+        //         user_id: 3,
+        //         likes: 3,
+        //     },
+        // ));
         // todo update post likes
         input1.borrow_mut().insert((
             11,
             Persisted::Post {
-                title: "other".into(),
+                title: 993,
                 user_id: 3,
                 likes: 9,
             },
@@ -551,10 +576,6 @@ mod tests {
                 let mut input = InputSession::new();
                 let manages = input.to_collection(scope);
 
-                use differential_dataflow::AsCollection;
-
-                use timely::dataflow::operators::Map;
-
                 let filter_newest = manages
                     .inner
                     .map(|((id, persisted), time, diff)| {
@@ -582,7 +603,7 @@ mod tests {
                     // });
                     .inspect(move |v| output0_posts.borrow_mut().push(*v));
 
-                let total_likes = filter_newest
+                let _total_likes = filter_newest
                     .flat_map(|(_id, persisted)| {
                         if let Persisted::Post { user_id, likes } = persisted {
                             vec![(user_id, likes)]
@@ -591,10 +612,10 @@ mod tests {
                         }
                     })
                     .reduce(|_key, inputs, outputs| {
-                        log(&format!(
-                            "key = {:?}, input = {:?}, output = {:?}",
-                            _key, inputs, outputs
-                        ));
+                        // log(&format!(
+                        //     "key = {:?}, input = {:?}, output = {:?}",
+                        //     _key, inputs, outputs
+                        // ));
                         let mut total_likes = 0;
 
                         for item in inputs {
