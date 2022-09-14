@@ -1,5 +1,4 @@
-extern crate differential_dataflow;
-extern crate serde;
+extern crate differential_dataflow; extern crate serde;
 extern crate timely;
 #[macro_use]
 extern crate serde_derive;
@@ -33,6 +32,8 @@ use wasm_bindgen::JsCast;
 use web_sys::HtmlElement;
 
 use differential_dataflow::input::InputSession;
+
+pub mod operators;
 
 #[wasm_bindgen]
 extern "C" {
