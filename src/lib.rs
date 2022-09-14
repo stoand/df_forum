@@ -700,4 +700,101 @@ mod tests {
             ]
         );
     }
+    #[wasm_bindgen_test]
+    fn reduce_custom_datatypes_with_strings() {
+        lower_stack_trace_size();
+        #[derive(
+            Hash,
+            Clone,
+            Debug,
+            Serialize,
+            Deserialize,
+            PartialEq,
+            Eq,
+            PartialOrd,
+            Ord,
+            Abomonation,
+        )]
+        enum Persisted {
+            Post { user_name: String, likes: u64 },
+            Deleted,
+        }
+        let output0 = Rc::new(RefCell::new(Vec::new()));
+        let output1 = output0.clone();
+
+        let worker_fn = move |worker: &mut Worker<Thread>| {
+            worker.dataflow(|scope| {
+                let mut input = InputSession::new();
+                let manages = input.to_collection(scope);
+
+                manages
+                    // return least element
+                    .reduce(|_key, input, output| {
+                        // log(&format!(
+                        //     "key = {:?}, input = {:?}, output = {:?}",
+                        //     key, input, output
+                        // ));
+                        let persisted_ref: &Persisted = input[0].clone().0;
+                        let persisted: Persisted = persisted_ref.clone();
+                        output.push((persisted, 1));
+                    })
+                    .inspect(move |v| output0.borrow_mut().push(v.clone()));
+
+                input
+            })
+        };
+
+        let alloc = Thread::new();
+        let mut worker = Worker::new(WorkerConfig::default(), alloc);
+        let input = worker_fn(&mut worker);
+
+        let input0 = Rc::new(RefCell::new(input));
+        let input1 = input0.clone();
+        input0.borrow_mut().insert((
+            80,
+            Persisted::Post {
+                user_name: "Mac".into(),
+                likes: 11,
+            },
+        ));
+        input0.borrow_mut().insert((
+            80,
+            Persisted::Post {
+                user_name: "Joe".into(),
+                likes: 10,
+            },
+        ));
+        input0.borrow_mut().insert((
+            80,
+            Persisted::Post {
+                user_name: "Tom".into(),
+                likes: 9,
+            },
+        ));
+        input0.borrow_mut().advance_to(1u32);
+
+        let mut go = move || {
+            for _ in 0..10 {
+                input0.borrow_mut().flush();
+                worker.step();
+            }
+        };
+
+        go();
+
+        assert_eq!(
+            *output1.borrow(),
+            vec![(
+                (
+                    80,
+                    Persisted::Post {
+                        user_name: "Joe".into(),
+                        likes: 10
+                    }
+                ),
+                0,
+                1
+            )]
+        );
+    }
 }
