@@ -21,7 +21,6 @@ use wasm_bindgen::prelude::*;
 
 // use differential_dataflow::input::Input;
 // use differential_dataflow::operators::Consolidate;
-use differential_dataflow::operators::reduce::ReduceCore;
 use differential_dataflow::operators::Count;
 use differential_dataflow::operators::Join;
 use differential_dataflow::operators::Reduce;
@@ -332,19 +331,17 @@ mod tests {
     fn aggregation() {
         lower_stack_trace_size();
 
-        #[derive(
-            Hash, Copy, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord,
-        )]
+        #[derive(Hash, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
         enum Persisted {
             Session {
-                token: u64,
+                token: String,
                 user_id: u64,
             },
             User {
-                name: u64,
+                name: String,
             },
             Post {
-                title: u64,
+                title: String,
                 user_id: u64,
                 likes: u64,
             },
@@ -354,14 +351,12 @@ mod tests {
         let output0 = Rc::new(RefCell::new(Vec::new()));
         let output1 = output0.clone();
 
-        let session_token = 88888u64;
+        let session_token = "9al132kff";
 
         let worker_fn = move |worker: &mut Worker<Thread>| {
             worker.dataflow(|scope| {
                 let mut input = InputSession::new();
                 let manages = input.to_collection(scope);
-                use differential_dataflow::operators::Consolidate;
-                use differential_dataflow::trace::implementations::ord::*;
 
                 let current_session_user_id = manages.flat_map(move |(_id, persisted)| {
                     if let Persisted::Session { user_id, token } = persisted {
@@ -389,7 +384,9 @@ mod tests {
 
                         for i in 0..inputs.len() {
                             let diff = if i == inputs.len() - 1 { 1 } else { -1 };
-                            outputs.push((*inputs[i].0, diff));
+                            let tuple_ref: &(u32, Persisted) = inputs[i].0;
+                            let tuple: (u32, Persisted) = tuple_ref.clone();
+                            outputs.push((tuple, diff));
                         }
                     })
                     .map(|(id, (_time, persisted))| (id, persisted))
@@ -437,28 +434,31 @@ mod tests {
         input0.borrow_mut().insert((
             55,
             Persisted::Session {
-                token: session_token,
+                token: session_token.into(),
                 user_id: 3,
             },
         ));
         input0.borrow_mut().insert((
             56,
             Persisted::Session {
-                token: session_token,
+                token: session_token.into(),
                 user_id: 77,
             },
         ));
         input0
             .borrow_mut()
-            .insert((3, Persisted::User { name: 77 }));
-        input0
-            .borrow_mut()
-            .insert((77, Persisted::User { name: 88 }));
+            .insert((3, Persisted::User { name: "Joe".into() }));
+        input0.borrow_mut().insert((
+            77,
+            Persisted::User {
+                name: "Frank".into(),
+            },
+        ));
 
         input0.borrow_mut().insert((
             29,
             Persisted::Post {
-                title: 99,
+                title: "Protoss".into(),
                 user_id: 77,
                 likes: 81,
             },
@@ -466,7 +466,7 @@ mod tests {
         input0.borrow_mut().insert((
             10,
             Persisted::Post {
-                title: 111,
+                title: "Terran".into(),
                 user_id: 3,
                 likes: 5,
             },
@@ -474,7 +474,7 @@ mod tests {
         input0.borrow_mut().insert((
             11,
             Persisted::Post {
-                title: 112,
+                title: "Zerg".into(),
                 user_id: 3,
                 likes: 3,
             },
@@ -482,7 +482,7 @@ mod tests {
         input0.borrow_mut().insert((
             12,
             Persisted::Post {
-                title: 113,
+                title: "Aliens".into(),
                 user_id: 2,
                 likes: 32,
             },
@@ -511,22 +511,10 @@ mod tests {
                 ((user_id1, total_likes1), 0, 1)
             ]
         );
-        input1
-            .borrow_mut()
-            .insert((3, Persisted::User { name: 998 }));
-        // input1.borrow_mut().remove((
-        //     11,
-        //     Persisted::Post {
-        //         title: "other".into(),
-        //         user_id: 3,
-        //         likes: 3,
-        //     },
-        // ));
-        // todo update post likes
         input1.borrow_mut().insert((
             11,
             Persisted::Post {
-                title: 993,
+                title: "Zerg".into(),
                 user_id: 3,
                 likes: 9,
             },
@@ -704,16 +692,7 @@ mod tests {
     fn reduce_custom_datatypes_with_strings() {
         lower_stack_trace_size();
         #[derive(
-            Hash,
-            Clone,
-            Debug,
-            Serialize,
-            Deserialize,
-            PartialEq,
-            Eq,
-            PartialOrd,
-            Ord,
-            Abomonation,
+            Hash, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Abomonation,
         )]
         enum Persisted {
             Post { user_name: String, likes: u64 },
@@ -749,7 +728,7 @@ mod tests {
         let input = worker_fn(&mut worker);
 
         let input0 = Rc::new(RefCell::new(input));
-        let input1 = input0.clone();
+        // let input1 = input0.clone();
         input0.borrow_mut().insert((
             80,
             Persisted::Post {
