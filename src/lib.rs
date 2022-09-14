@@ -524,7 +524,19 @@ mod tests {
     fn aggregation_replacement() {
         lower_stack_trace_size();
 
-        #[derive(Hash, Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Abomonation)]
+        #[derive(
+            Hash,
+            Clone,
+            Copy,
+            Debug,
+            Serialize,
+            Deserialize,
+            PartialEq,
+            Eq,
+            PartialOrd,
+            Ord,
+            Abomonation,
+        )]
         enum Persisted {
             Post { user_id: u64, likes: u64 },
             Deleted,
@@ -535,19 +547,24 @@ mod tests {
                 let mut input = InputSession::new();
                 let manages = input.to_collection(scope);
 
+                use differential_dataflow::AsCollection;
+
                 use timely::dataflow::channels::pact::Pipeline;
+                use timely::dataflow::operators::generic::operator::Operator;
+                use timely::dataflow::operators::{FrontierNotificator, ToStream};
+                use timely::dataflow::Scope;
 
                 let filter_newest = manages
-                    // .inner
+                    .inner
                     // .unary(Pipeline)
-                    .reduce(|key, inputs, outputs| {
-                        log(&format!(
-                            "key = {:?}, input = {:?}, output = {:?}",
-                            key, inputs, outputs
-                        ));
-                        outputs.push((inputs[0].1, -1));
-                    })
-                    // .as_collection(|&a, &b| (a, b))
+                    // .reduce(|key, inputs, outputs| {
+                    //     log(&format!(
+                    //         "key = {:?}, input = {:?}, output = {:?}",
+                    //         key, inputs, outputs
+                    //     ));
+                    //     outputs.push((inputs[0].1, -1));
+                    // })
+                    .as_collection()
                     .inspect(|v| {
                         log(&format!("v = {:?}", v));
                     });
@@ -563,8 +580,20 @@ mod tests {
         let input0 = Rc::new(RefCell::new(input));
         let input1 = input0.clone();
 
-        input0.borrow_mut().insert((10, Persisted::Post { user_id: 20, likes: 8 }));
-        input0.borrow_mut().insert((11, Persisted::Post { user_id: 21, likes: 1 }));
+        input0.borrow_mut().insert((
+            10,
+            Persisted::Post {
+                user_id: 20,
+                likes: 8,
+            },
+        ));
+        input0.borrow_mut().insert((
+            11,
+            Persisted::Post {
+                user_id: 21,
+                likes: 1,
+            },
+        ));
         input0.borrow_mut().advance_to(1u64);
 
         let mut go = move || {
@@ -575,8 +604,14 @@ mod tests {
         };
 
         go();
-        
-        input1.borrow_mut().insert((10, Persisted::Post { user_id: 20, likes: 3 }));
+
+        input1.borrow_mut().insert((
+            10,
+            Persisted::Post {
+                user_id: 20,
+                likes: 3,
+            },
+        ));
         input1.borrow_mut().advance_to(2u64);
 
         go();
