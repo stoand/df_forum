@@ -541,6 +541,9 @@ mod tests {
             Post { user_id: u64, likes: u64 },
             Deleted,
         }
+        let output0 = Rc::new(RefCell::new(Vec::new()));
+        let output1_posts = output0.clone();
+        let output1_like_totals = output0.clone();
 
         let worker_fn = move |worker: &mut Worker<Thread>| {
             worker.dataflow(|scope| {
@@ -549,31 +552,34 @@ mod tests {
 
                 use differential_dataflow::AsCollection;
 
-                use timely::dataflow::channels::pact::Pipeline;
-                use timely::dataflow::operators::generic::operator::Operator;
-                use timely::dataflow::operators::Inspect;
-                use timely::dataflow::operators::{FrontierNotificator, Map, ToStream};
-                use timely::dataflow::Scope;
+                use timely::dataflow::operators::Map;
 
                 let filter_newest = manages
                     .inner
-                    .map(|v| {
-                        let ((id, persisted), time, diff) = v;
-
+                    .map(|((id, persisted), time, diff)| {
                         // let reduce sort by time
                         ((id, (time, persisted)), time, diff)
                     })
                     .as_collection()
-                    .reduce(|key, inputs, outputs| {
-                        log(&format!(
-                            "key = {:?}, input = {:?}, output = {:?}",
-                            key, inputs, outputs
-                        ));
-                        outputs.push((inputs[0].1, 1));
+                    .reduce(|_key, inputs, outputs| {
+                        // log(&format!(
+                        //     "key = {:?}, input = {:?}, output = {:?}",
+                        //     _key, inputs, outputs
+                        // ));
+
+                        for i in 0..inputs.len() {
+                            if i == inputs.len() - 1 {
+                                outputs.push((*inputs[i].0, 1));
+                            } else {
+                                outputs.push((*inputs[i].0, -1));
+                            }
+                        }
                     })
-                    .inspect(|v| {
-                        log(&format!("v = {:?}", v));
-                    });
+                    .map(|(id, (_time, persisted))| (id, persisted))
+                    // .inspect(|v| {
+                    //     log(&format!("v = {:?}", v));
+                    // });
+                    .inspect(move |v| output0.borrow_mut().push(*v));
 
                 input
             })
@@ -586,20 +592,18 @@ mod tests {
         let input0 = Rc::new(RefCell::new(input));
         let input1 = input0.clone();
 
-        input0.borrow_mut().insert((
-            10,
-            Persisted::Post {
-                user_id: 20,
-                likes: 8,
-            },
-        ));
-        input0.borrow_mut().insert((
-            11,
-            Persisted::Post {
-                user_id: 21,
-                likes: 1,
-            },
-        ));
+        let post10 = Persisted::Post {
+            user_id: 20,
+            likes: 8,
+        };
+
+        let post11 = Persisted::Post {
+            user_id: 21,
+            likes: 1,
+        };
+
+        input0.borrow_mut().insert((10, post10));
+        input0.borrow_mut().insert((11, post11));
         input0.borrow_mut().advance_to(1u64);
 
         let mut go = move || {
@@ -611,15 +615,28 @@ mod tests {
 
         go();
 
-        input1.borrow_mut().insert((
-            10,
-            Persisted::Post {
-                user_id: 20,
-                likes: 3,
-            },
-        ));
+        assert_eq!(
+            *output1_posts.borrow(),
+            vec![((10, post10), 0, 1), ((11, post11), 0, 1)]
+        );
+
+        let post10_updated = Persisted::Post {
+            user_id: 20,
+            likes: 3,
+        };
+
+        input1.borrow_mut().insert((10, post10_updated));
         input1.borrow_mut().advance_to(2u64);
 
         go();
+        assert_eq!(
+            *output1_posts.borrow(),
+            vec![
+                ((10, post10), 0, 1),
+                ((11, post11), 0, 1),
+                ((10, post10), 1, -2),
+                ((10, post10_updated), 1, 1),
+            ]
+        );
     }
 }
