@@ -26,6 +26,8 @@ where
     V: ExchangeData,
     R: Abelian + ExchangeData,
 {
+
+    /// will remove older values with the same keys (not key,value - just keys) as a newer value
     fn only_latest(&self) -> Collection<G, (K, V), R> {
         self.inner
             .map(|((id, persisted), time, diff)| {
