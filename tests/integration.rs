@@ -11,6 +11,7 @@ extern crate abomonation_derive;
 extern crate wasm_bindgen_test;
 extern crate df_forum;
 use df_forum::log;
+use df_forum::operators::only_latest::OnlyLatest;
 
 wasm_bindgen_test_configure!(run_in_browser);
 
@@ -213,26 +214,7 @@ fn aggregation() {
                 }
             });
             let belonging_posts = manages
-                .inner
-                .map(|((id, persisted), time, diff)| {
-                    // let reduce sort by time
-                    ((id, (time, persisted)), time, diff)
-                })
-                .as_collection()
-                .reduce(|_key, inputs, outputs| {
-                    // log(&format!(
-                    //     "key = {:?}, input = {:?}, output = {:?}",
-                    //     _key, inputs, outputs
-                    // ));
-
-                    for i in 0..inputs.len() {
-                        let diff = if i == inputs.len() - 1 { 1 } else { -1 };
-                        let tuple_ref: &(u32, Persisted) = inputs[i].0;
-                        let tuple: (u32, Persisted) = tuple_ref.clone();
-                        outputs.push((tuple, diff));
-                    }
-                })
-                .map(|(id, (_time, persisted))| (id, persisted))
+                .only_latest()
                 .flat_map(|(_id, persisted)| {
                     if let Persisted::Post { user_id, .. } = persisted {
                         vec![(user_id, persisted)]
@@ -408,28 +390,7 @@ fn aggregation_replacement() {
             let manages = input.to_collection(scope);
 
             let filter_newest = manages
-                // TODO: seperate these steps into their own operator "only_latest"
-                .inner
-                .map(|((id, persisted), time, diff)| {
-                    // let reduce sort by time
-                    ((id, (time, persisted)), time, diff)
-                })
-                .as_collection()
-                .reduce(|_key, inputs, outputs| {
-                    // log(&format!(
-                    //     "key = {:?}, input = {:?}, output = {:?}",
-                    //     _key, inputs, outputs
-                    // ));
-
-                    for i in 0..inputs.len() {
-                        if i == inputs.len() - 1 {
-                            outputs.push((*inputs[i].0, 1));
-                        } else {
-                            outputs.push((*inputs[i].0, -1));
-                        }
-                    }
-                })
-                .map(|(id, (_time, persisted))| (id, persisted))
+                .only_latest()
                 // .inspect(|v| {
                 //     log(&format!("v = {:?}", v));
                 // });
