@@ -581,6 +581,31 @@ mod tests {
                     // });
                     .inspect(move |v| output0.borrow_mut().push(*v));
 
+                let total_likes = filter_newest
+                    .flat_map(|(_id, persisted)| {
+                        if let Persisted::Post { user_id, likes } = persisted {
+                            vec![(user_id, likes)]
+                        } else {
+                            vec![]
+                        }
+                    })
+                    .reduce(|_key, inputs, outputs| {
+                        log(&format!(
+                            "key = {:?}, input = {:?}, output = {:?}",
+                            _key, inputs, outputs
+                        ));
+                        
+                        let mut total_likes = 0;
+
+                        for item in inputs {
+                            total_likes += item.0;
+                        }
+                        outputs.push((total_likes, 1));
+                    })
+                    .inspect(|v| {
+                        log(&format!("v = {:?}", v));
+                    });
+
                 input
             })
         };
@@ -599,7 +624,7 @@ mod tests {
 
         let post11 = Persisted::Post {
             user_id: 21,
-            likes: 1,
+            likes: 17,
         };
 
         input0.borrow_mut().insert((10, post10));
