@@ -541,9 +541,10 @@ mod tests {
             Post { user_id: u64, likes: u64 },
             Deleted,
         }
-        let output0 = Rc::new(RefCell::new(Vec::new()));
-        let output1_posts = output0.clone();
-        let output1_like_totals = output0.clone();
+        let output0_posts = Rc::new(RefCell::new(Vec::new()));
+        let output1_posts = output0_posts.clone();
+        let output0_like_totals = Rc::new(RefCell::new(Vec::new()));
+        let output1_like_totals = output0_like_totals.clone();
 
         let worker_fn = move |worker: &mut Worker<Thread>| {
             worker.dataflow(|scope| {
@@ -579,7 +580,7 @@ mod tests {
                     // .inspect(|v| {
                     //     log(&format!("v = {:?}", v));
                     // });
-                    .inspect(move |v| output0.borrow_mut().push(*v));
+                    .inspect(move |v| output0_posts.borrow_mut().push(*v));
 
                 let total_likes = filter_newest
                     .flat_map(|(_id, persisted)| {
@@ -594,7 +595,6 @@ mod tests {
                             "key = {:?}, input = {:?}, output = {:?}",
                             _key, inputs, outputs
                         ));
-                        
                         let mut total_likes = 0;
 
                         for item in inputs {
@@ -602,9 +602,10 @@ mod tests {
                         }
                         outputs.push((total_likes, 1));
                     })
-                    .inspect(|v| {
-                        log(&format!("v = {:?}", v));
-                    });
+                    // .inspect(|v| {
+                    //     log(&format!("v = {:?}", v));
+                    // });
+                    .inspect(move |v| output0_like_totals.borrow_mut().push(*v));
 
                 input
             })
@@ -644,6 +645,10 @@ mod tests {
             *output1_posts.borrow(),
             vec![((10, post10), 0, 1), ((11, post11), 0, 1)]
         );
+        assert_eq!(
+            *output1_like_totals.borrow(),
+            vec![((20, 8), 0, 1), ((21, 17), 0, 1)]
+        );
 
         let post10_updated = Persisted::Post {
             user_id: 20,
@@ -661,6 +666,16 @@ mod tests {
                 ((11, post11), 0, 1),
                 ((10, post10), 1, -2),
                 ((10, post10_updated), 1, 1),
+            ]
+        );
+
+        assert_eq!(
+            *output1_like_totals.borrow(),
+            vec![
+                ((20, 8), 0, 1),
+                ((21, 17), 0, 1),
+                ((20, 8), 1, -1),
+                ((20, 11), 1, 1),
             ]
         );
     }
