@@ -540,13 +540,13 @@ mod tests {
                 let filter_newest = manages
                     // .inner
                     // .unary(Pipeline)
-                    // .reduce(|key, input, outputs| {
-                    //     log(&format!(
-                    //         "key = {:?}, input = {:?}, output = {:?}",
-                    //         key, input, outputs
-                    //     ));
-                    //     outputs.push((Persisted::Deleted, -1));
-                    // })
+                    .reduce(|key, inputs, outputs| {
+                        log(&format!(
+                            "key = {:?}, input = {:?}, output = {:?}",
+                            key, inputs, outputs
+                        ));
+                        outputs.push((inputs[0].1, -1));
+                    })
                     // .as_collection(|&a, &b| (a, b))
                     .inspect(|v| {
                         log(&format!("v = {:?}", v));
@@ -561,9 +561,10 @@ mod tests {
         let input = worker_fn(&mut worker);
 
         let input0 = Rc::new(RefCell::new(input));
-        // let input1 = input0.clone();
+        let input1 = input0.clone();
 
-        input0.borrow_mut().insert((8721u64, Persisted::Post { user_id: 3922, likes: 8 }));
+        input0.borrow_mut().insert((10, Persisted::Post { user_id: 20, likes: 8 }));
+        input0.borrow_mut().insert((11, Persisted::Post { user_id: 21, likes: 1 }));
         input0.borrow_mut().advance_to(1u64);
 
         let mut go = move || {
@@ -572,6 +573,11 @@ mod tests {
                 worker.step();
             }
         };
+
+        go();
+        
+        input1.borrow_mut().insert((10, Persisted::Post { user_id: 20, likes: 3 }));
+        input1.borrow_mut().advance_to(2u64);
 
         go();
     }
