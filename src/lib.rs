@@ -1,10 +1,8 @@
 extern crate differential_dataflow; extern crate serde;
 extern crate timely;
-#[macro_use]
 extern crate serde_derive;
 extern crate abomonation;
 extern crate console_error_panic_hook;
-#[macro_use]
 extern crate abomonation_derive;
 extern crate wasm_bindgen_test;
 use wasm_bindgen_test::*;
@@ -18,15 +16,9 @@ use timely::worker::Worker;
 use timely::WorkerConfig;
 use wasm_bindgen::prelude::*;
 
-// use differential_dataflow::input::Input;
-// use differential_dataflow::operators::Consolidate;
 use differential_dataflow::operators::Count;
-use differential_dataflow::operators::Join;
 use differential_dataflow::operators::Reduce;
 
-use differential_dataflow::AsCollection;
-use timely::dataflow::operators::Map;
-// use timely::dataflow::operators::capture::{Capture, EventCore, Extract};
 use wasm_bindgen::JsCast;
 // use web_sys::{Document, Element, HtmlElement, Window};
 use web_sys::HtmlElement;

@@ -10,7 +10,6 @@ extern crate abomonation_derive;
 #[macro_use]
 extern crate wasm_bindgen_test;
 extern crate df_forum;
-use df_forum::log;
 use df_forum::operators::only_latest::OnlyLatest;
 
 wasm_bindgen_test_configure!(run_in_browser);
@@ -22,13 +21,10 @@ use timely::worker::Worker;
 use timely::WorkerConfig;
 use wasm_bindgen::prelude::*;
 
+use differential_dataflow::input::InputSession;
 use differential_dataflow::operators::Count;
 use differential_dataflow::operators::Join;
 use differential_dataflow::operators::Reduce;
-use differential_dataflow::input::InputSession;
-
-use differential_dataflow::AsCollection;
-use timely::dataflow::operators::Map;
 
 // only works for V8 based javascript engines (chrome, node - not firefox)
 #[wasm_bindgen(
@@ -41,7 +37,6 @@ extern "C" {
 #[wasm_bindgen_test]
 fn count_basic() {
     lower_stack_trace_size();
-    
     let output0 = Rc::new(RefCell::new(Vec::new()));
     let output1 = output0.clone();
 
@@ -213,15 +208,13 @@ fn aggregation() {
                     vec![]
                 }
             });
-            let belonging_posts = manages
-                .only_latest()
-                .flat_map(|(_id, persisted)| {
-                    if let Persisted::Post { user_id, .. } = persisted {
-                        vec![(user_id, persisted)]
-                    } else {
-                        vec![]
-                    }
-                });
+            let belonging_posts = manages.only_latest().flat_map(|(_id, persisted)| {
+                if let Persisted::Post { user_id, .. } = persisted {
+                    vec![(user_id, persisted)]
+                } else {
+                    vec![]
+                }
+            });
 
             let joined_user_session = current_session_user_id.join(&belonging_posts);
 
