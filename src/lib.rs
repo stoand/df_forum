@@ -324,27 +324,28 @@ mod tests {
         );
     }
 
-    #[derive(Hash, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
-    enum Persisted {
-        Session {
-            token: String,
-            user_id: u64,
-        },
-        User {
-            name: String,
-        },
-        Post {
-            title: String,
-            user_id: u64,
-            likes: u64,
-        },
-        Deleted,
-    }
-
     // compute total post likes
     #[wasm_bindgen_test]
-    fn app_state_reduce_aggregation() {
+    fn aggregation() {
         lower_stack_trace_size();
+
+        #[derive(Hash, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+        enum Persisted {
+            Session {
+                token: String,
+                user_id: u64,
+            },
+            User {
+                name: String,
+            },
+            Post {
+                title: String,
+                user_id: u64,
+                likes: u64,
+            },
+            Deleted,
+        }
+
         let output0 = Rc::new(RefCell::new(Vec::new()));
         let output1 = output0.clone();
 
@@ -354,39 +355,8 @@ mod tests {
             worker.dataflow(|scope| {
                 let mut input = InputSession::new();
                 let manages = input.to_collection(scope);
-                // .filter(|(_, persisted)| persisted != Persisted::Deleted);
-                // take a session, get the user from that session, get posts from that user
-                // get total likes from those posts
-
-                // possibly order items by time
-                // we want:
-                // key = 3, User { Joe } , User { Doe } , Deleted
                 use differential_dataflow::operators::Consolidate;
                 use differential_dataflow::trace::implementations::ord::*;
-
-                let filter_newest = manages
-                    // TODO: separate out newest for every id
-                    // .consolidate()
-                    //
-                    // See differential-dataflow/src/consolidation.rs:42
-                    // the problem is that we want the natually unsorted data
-                    // to get the latest value for every id
-                    // the call to consolidate also sorts the "input" value to reduce
-                    .reduce(|key, input, outputs| {
-                        log(&format!(
-                            "key = {:?}, input = {:?}, output = {:?}",
-                            key, input, outputs
-                        ));
-
-                        // let persisted : Persisted = *input[0].0;
-
-                        // outputs.push((input.len(), 1));
-                        outputs.push((Persisted::Deleted, -1));
-                    })
-                    // .as_collection(|&a, &b| (a, b))
-                    .inspect(|v| {
-                        log(&format!("v = {:?}", v));
-                    });
 
                 let current_session_user_id = manages.flat_map(move |(_id, persisted)| {
                     if let Persisted::Session { user_id, token } = persisted {
@@ -548,5 +518,61 @@ mod tests {
                 ((3, 14), 1, 1),
             ]
         );
+    }
+
+    #[wasm_bindgen_test]
+    fn aggregation_replacement() {
+        lower_stack_trace_size();
+
+        #[derive(Hash, Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Abomonation)]
+        enum Persisted {
+            Post { user_id: u64, likes: u64 },
+            Deleted,
+        }
+
+        let worker_fn = move |worker: &mut Worker<Thread>| {
+            worker.dataflow(|scope| {
+                let mut input = InputSession::new();
+                let manages = input.to_collection(scope);
+
+                use timely::dataflow::channels::pact::Pipeline;
+
+                let filter_newest = manages
+                    // .inner
+                    // .unary(Pipeline)
+                    // .reduce(|key, input, outputs| {
+                    //     log(&format!(
+                    //         "key = {:?}, input = {:?}, output = {:?}",
+                    //         key, input, outputs
+                    //     ));
+                    //     outputs.push((Persisted::Deleted, -1));
+                    // })
+                    // .as_collection(|&a, &b| (a, b))
+                    .inspect(|v| {
+                        log(&format!("v = {:?}", v));
+                    });
+
+                input
+            })
+        };
+
+        let alloc = Thread::new();
+        let mut worker = Worker::new(WorkerConfig::default(), alloc);
+        let input = worker_fn(&mut worker);
+
+        let input0 = Rc::new(RefCell::new(input));
+        // let input1 = input0.clone();
+
+        input0.borrow_mut().insert((8721u64, Persisted::Post { user_id: 3922, likes: 8 }));
+        input0.borrow_mut().advance_to(1u64);
+
+        let mut go = move || {
+            for _ in 0..10 {
+                input0.borrow_mut().flush();
+                worker.step();
+            }
+        };
+
+        go();
     }
 }
