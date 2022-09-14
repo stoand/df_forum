@@ -1,4 +1,4 @@
-# SPC-forum
+# SPC-events
 partof: REQ-purpose
 ###
 
