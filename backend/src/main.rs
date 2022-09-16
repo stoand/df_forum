@@ -47,36 +47,42 @@ async fn handle_connection(
 
     let (outgoing, incoming) = ws_stream.split();
 
-    let broadcast_incoming = incoming.try_for_each(|msg| {
-        println!("Received a message from {}: {}", addr, msg.to_text().unwrap());
-        let _ = peer_map
-            .lock()
-            .map(|peers| {
-                let broadcast_recipients = peers
-                    .iter()
-                    .filter(|(peer_addr, _)| peer_addr != &&addr)
-                    .map(|(_, ws_sink)| ws_sink);
+    // We should not forward messages other than text or binary.
+    incoming //.try_filter(|msg| future::ready(msg.is_text() || msg.is_binary()))
+        .forward(outgoing)
+        .await
+        .expect("Failed to forward messages");
 
-                for recp in broadcast_recipients {
-                    let _ = recp
-                        .unbounded_send(msg.clone())
-                        .map_err(|_err| println!("unbounded send failed: {:?}", msg.clone()));
-                }
-            })
-            .map_err(|_err| println!("incoming broadcast error"));
-        future::ok(())
-    });
+    // let broadcast_incoming = incoming.try_for_each(|msg| {
+    //     println!("Received a message from {}: {}", addr, msg.to_text().unwrap());
+    //     let _ = peer_map
+    //         .lock()
+    //         .map(|peers| {
+    //             let broadcast_recipients = peers
+    //                 .iter()
+    //                 .filter(|(peer_addr, _)| peer_addr != &&addr)
+    //                 .map(|(_, ws_sink)| ws_sink);
 
-    let recieve_from_others = rx.map(Ok).forward(outgoing);
+    //             for recp in broadcast_recipients {
+    //                 let _ = recp
+    //                     .unbounded_send(msg.clone())
+    //                     .map_err(|_err| println!("unbounded send failed: {:?}", msg.clone()));
+    //             }
+    //         })
+    //         .map_err(|_err| println!("incoming broadcast error"));
+    //     future::ok(())
+    // });
 
-    pin_mut!(broadcast_incoming, recieve_from_others);
-    future::select(broadcast_incoming, recieve_from_others).await;
+    // let recieve_from_others = rx.map(Ok).forward(outgoing);
 
-    println!("{} disconnected", &addr);
-    peer_map
-        .lock()
-        .map_err(|_err| HandlerError::PeerMapLock)?
-        .remove(&addr);
+    // pin_mut!(broadcast_incoming, recieve_from_others);
+    // future::select(broadcast_incoming, recieve_from_others).await;
+
+    // println!("{} disconnected", &addr);
+    // peer_map
+    //     .lock()
+    //     .map_err(|_err| HandlerError::PeerMapLock)?
+    //     .remove(&addr);
 
     Ok(())
 }
