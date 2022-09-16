@@ -4,10 +4,10 @@ extern crate futures_util;
 extern crate tokio;
 extern crate tokio_tungstenite;
 
+static PORT: u32 = 5050;
+
 use std::{
     collections::HashMap,
-    env,
-    io::Error as IoError,
     net::SocketAddr,
     sync::{Arc, Mutex},
 };
@@ -25,6 +25,7 @@ type PeerMap = Arc<Mutex<HashMap<SocketAddr, Tx>>>;
 enum HandlerError {
     Handshake,
     PeerMapLock,
+    FailedSocketBind,
 }
 
 async fn handle_connection(
@@ -47,6 +48,7 @@ async fn handle_connection(
     let (outgoing, incoming) = ws_stream.split();
 
     let broadcast_incoming = incoming.try_for_each(|msg| {
+        println!("Received a message from {}: {}", addr, msg.to_text().unwrap());
         let _ = peer_map
             .lock()
             .map(|peers| {
@@ -71,11 +73,27 @@ async fn handle_connection(
     future::select(broadcast_incoming, recieve_from_others).await;
 
     println!("{} disconnected", &addr);
-    peer_map.lock().map_err(|_err| HandlerError::PeerMapLock)?.remove(&addr);
+    peer_map
+        .lock()
+        .map_err(|_err| HandlerError::PeerMapLock)?
+        .remove(&addr);
 
-    Result::Ok(())
+    Ok(())
 }
 
-fn main() {
-    println!("Hello, world!");
+#[tokio::main]
+async fn main() -> Result<(), HandlerError> {
+    let addr = "127.0.0.1:".to_owned() + &PORT.to_string();
+
+    let state = PeerMap::new(Mutex::new(HashMap::new()));
+
+    let try_socket = TcpListener::bind(&addr).await;
+    let listener = try_socket.map_err(|_err| HandlerError::FailedSocketBind)?;
+    println!("listening on: {}", addr);
+
+    loop {
+        if let Ok((stream, addr)) = listener.accept().await {
+            tokio::spawn(handle_connection(state.clone(), stream, addr));
+        }
+    }
 }
