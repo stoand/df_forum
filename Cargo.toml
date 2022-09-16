@@ -1,22 +1,2 @@
-[package]
-name = "df_forum"
-version = "0.1.0"
-edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[lib]
-crate-type = ["cdylib", "lib"]
-
-[dependencies]
-abomonation = "0.7.3"
-abomonation_derive = "0.5.0"
-console_error_panic_hook = "0.1.7"
-differential-dataflow = { git = "https://github.com/stoand/differential-dataflow", branch = "instant_wasm_compat", default-features = false }
-# differential-dataflow = { path = "../differential-dataflow", default-features = false }
-serde = { version = "1.0.144", features = ["serde_derive"] }
-serde_derive = "1.0.144"
-timely = { git = "https://github.com/stoand/timely-dataflow", branch = "instant_wasm_compat", default-features = false, features = ["bincode"] }
-wasm-bindgen = "0.2.82"
-wasm-bindgen-test = "0.3.32"
-web-sys = { version = "0.3.59", features = ["Document", "Element", "HtmlElement", "Node", "Window"] }
+[workspace]
+members = ["frontend"]
