@@ -1,9 +1,10 @@
-extern crate differential_dataflow; extern crate serde;
-extern crate timely;
-extern crate serde_derive;
 extern crate abomonation;
-extern crate console_error_panic_hook;
 extern crate abomonation_derive;
+extern crate console_error_panic_hook;
+extern crate differential_dataflow;
+extern crate serde;
+extern crate serde_derive;
+extern crate timely;
 extern crate wasm_bindgen_test;
 use wasm_bindgen_test::*;
 
@@ -20,8 +21,7 @@ use differential_dataflow::operators::Count;
 use differential_dataflow::operators::Reduce;
 
 use wasm_bindgen::JsCast;
-// use web_sys::{Document, Element, HtmlElement, Window};
-use web_sys::HtmlElement;
+use web_sys::{Document, Element, HtmlElement, HtmlInputElement};
 
 use differential_dataflow::input::InputSession;
 
@@ -32,6 +32,43 @@ extern "C" {
 }
 
 #[wasm_bindgen]
+pub fn bootstrap() {
+    // TODO: check localstorage for username
+
+    render_page_enter_username();
+}
+
+pub fn document_and_root() -> (Document, Element) {
+    let window = web_sys::window().unwrap();
+    let document = window.document().unwrap();
+    let root = document.query_selector("#df_forum_root").unwrap().unwrap();
+
+    (document, root)
+}
+
+pub fn render_page_enter_username() {
+    let (document, root) = document_and_root();
+
+    let enter_chat_name = document.create_element("input").unwrap();
+    root.append_child(&enter_chat_name).unwrap();
+
+    let use_chat_name = document.create_element("button").unwrap();
+    use_chat_name.set_text_content(Some("Chat with this name"));
+    root.append_child(&use_chat_name).unwrap();
+
+    let user_chat_name_click = Closure::<dyn FnMut()>::new(move || {
+        log(&enter_chat_name
+            .dyn_ref::<HtmlInputElement>()
+            .unwrap()
+            .value());
+    });
+
+    let count_up_el = use_chat_name.dyn_ref::<HtmlElement>().unwrap();
+    count_up_el.set_onclick(Some(user_chat_name_click.as_ref().unchecked_ref()));
+
+    user_chat_name_click.forget();
+}
+
 pub fn run0() {
     std::panic::set_hook(Box::new(console_error_panic_hook::hook));
 

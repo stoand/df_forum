@@ -40,7 +40,11 @@ async fn handle_connection(
     let (outgoing, incoming) = ws_stream.split();
 
     let broadcast_incoming = incoming.try_for_each(|msg| {
-        println!("Received a message from {}: {}", addr, msg.to_text().unwrap());
+        println!(
+            "Received a message from {}: {}",
+            addr,
+            msg.to_text().unwrap()
+        );
         let current = addr.clone();
         let _ = peer_map
             .lock()
@@ -51,7 +55,11 @@ async fn handle_connection(
                     .map(|(_, ws_sink)| ws_sink);
 
                 for recp in broadcast_recipients {
-                    let m = if let Message::Text(recieved) = msg.clone() { recieved } else { "__".into() };
+                    let m = if let Message::Text(recieved) = msg.clone() {
+                        recieved
+                    } else {
+                        "__".into()
+                    };
                     let _ = recp
                         .unbounded_send(Message::Text(m + "_asdf".into()))
                         .map_err(|_err| println!("unbounded send failed: {:?}", msg.clone()));
@@ -76,7 +84,6 @@ async fn handle_connection(
 }
 
 pub async fn establish(addr: String) -> Result<(), HandlerError> {
-
     let state = PeerMap::new(Mutex::new(HashMap::new()));
 
     let try_socket = TcpListener::bind(&addr).await;
