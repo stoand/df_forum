@@ -21,9 +21,11 @@ use differential_dataflow::operators::Count;
 use differential_dataflow::operators::Reduce;
 
 use wasm_bindgen::JsCast;
-use web_sys::{Document, Element, HtmlElement, HtmlInputElement};
+use web_sys::{Document, Element, HtmlElement, HtmlInputElement, Storage};
 
 use differential_dataflow::input::InputSession;
+
+pub const USERNAME_LOCAL_STORAGE_KEY: &'static str = "df_forum_username";
 
 #[wasm_bindgen]
 extern "C" {
@@ -31,11 +33,18 @@ extern "C" {
     pub fn log(contents: &str);
 }
 
+pub fn get_local_storage() -> Storage {
+    web_sys::window().unwrap().local_storage().unwrap().unwrap()
+}
+
 #[wasm_bindgen]
 pub fn bootstrap() {
-    // TODO: check localstorage for username
-
-    render_page_enter_username();
+    let local_storage = get_local_storage();
+    if let Ok(Some(user_name)) = local_storage.get_item(USERNAME_LOCAL_STORAGE_KEY) {
+        render_page_forum(user_name);
+    } else {
+        render_page_enter_username();
+    }
 }
 
 pub fn document_and_root() -> (Document, Element) {
@@ -48,6 +57,7 @@ pub fn document_and_root() -> (Document, Element) {
 
 pub fn render_page_enter_username() {
     let (document, root) = document_and_root();
+    root.set_inner_html("");
 
     let enter_chat_name = document.create_element("input").unwrap();
     root.append_child(&enter_chat_name).unwrap();
@@ -57,16 +67,29 @@ pub fn render_page_enter_username() {
     root.append_child(&use_chat_name).unwrap();
 
     let user_chat_name_click = Closure::<dyn FnMut()>::new(move || {
-        log(&enter_chat_name
+        let name = enter_chat_name
             .dyn_ref::<HtmlInputElement>()
             .unwrap()
-            .value());
+            .value();
+
+        get_local_storage()
+            .set_item(USERNAME_LOCAL_STORAGE_KEY, &name)
+            .unwrap();
+
+        render_page_forum(name);
     });
 
     let count_up_el = use_chat_name.dyn_ref::<HtmlElement>().unwrap();
     count_up_el.set_onclick(Some(user_chat_name_click.as_ref().unchecked_ref()));
 
     user_chat_name_click.forget();
+}
+
+pub fn render_page_forum(username: String) {
+    let (_document, root) = document_and_root();
+    root.set_inner_html(&("TODO: forum page for username: ".to_owned() + &username));
+
+    // TODO: add button to delete username and go back
 }
 
 pub fn run0() {
