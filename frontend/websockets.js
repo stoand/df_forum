@@ -5,6 +5,8 @@ socket.onopen = (error) => {
     console.log("found server");
 
     socket.send("js says hi");
+    
+    socket.send("another");
 }
 
 socket.onmessage = (msg) => {

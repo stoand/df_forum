@@ -46,12 +46,13 @@ async fn handle_connection(
             .map(|peers| {
                 let broadcast_recipients = peers
                     .iter()
-                    .filter(|(peer_addr, _)| peer_addr != &&addr)
+                    // .filter(|(peer_addr, _)| peer_addr != &&addr)
                     .map(|(_, ws_sink)| ws_sink);
 
                 for recp in broadcast_recipients {
+                    let m = if let Message::Text(recieved) = msg.clone() { recieved } else { "__".into() };
                     let _ = recp
-                        .unbounded_send(msg.clone())
+                        .unbounded_send(Message::Text(m + "_asdf".into()))
                         .map_err(|_err| println!("unbounded send failed: {:?}", msg.clone()));
                 }
             })
