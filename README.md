@@ -13,8 +13,11 @@ Ensure Rust and `cargo-watch` are installed, then:
 cargo watch -x 'test -- --nocapture' 
 ```
 
+# Frontend
+
 ## To run in browser
 
+* `cd frontend/`
 * `cargo install wasm-pack`
 * `nodemon -e rs -x 'wasm-pack build --target web'`
 * `python3 -m http.server`
@@ -22,4 +25,5 @@ cargo watch -x 'test -- --nocapture'
 
 ## To run headless tests
 
-`nodemon -e rs -x 'wasm-pack test --chrome --headless'`
+* `cd frontend/`
+* `nodemon -e rs -x 'wasm-pack test --chrome --headless'`

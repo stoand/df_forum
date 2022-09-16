@@ -4,39 +4,25 @@ extern crate timely;
 #[macro_use]
 extern crate serde_derive;
 extern crate abomonation;
-extern crate console_error_panic_hook;
 #[macro_use]
 extern crate abomonation_derive;
-#[macro_use]
-extern crate wasm_bindgen_test;
-extern crate df_forum;
-use df_forum::operators::only_latest::OnlyLatest;
+extern crate df_forum_backend;
 
-wasm_bindgen_test_configure!(run_in_browser);
+use df_forum_backend::operators::only_latest::OnlyLatest;
 
 use std::cell::RefCell;
 use std::rc::Rc;
 use timely::communication::allocator::thread::Thread;
 use timely::worker::Worker;
 use timely::WorkerConfig;
-use wasm_bindgen::prelude::*;
 
 use differential_dataflow::input::InputSession;
 use differential_dataflow::operators::Count;
 use differential_dataflow::operators::Join;
 use differential_dataflow::operators::Reduce;
 
-// only works for V8 based javascript engines (chrome, node - not firefox)
-#[wasm_bindgen(
-    inline_js = "export function lower_stack_trace_size() { Error.stackTraceLimit = 2; }"
-)]
-extern "C" {
-    pub fn lower_stack_trace_size();
-}
-
-#[wasm_bindgen_test]
+#[test]
 fn count_basic() {
-    lower_stack_trace_size();
     let output0 = Rc::new(RefCell::new(Vec::new()));
     let output1 = output0.clone();
 
@@ -87,9 +73,8 @@ fn count_basic() {
         ]
     );
 }
-#[wasm_bindgen_test]
+#[test]
 fn reduce_least() {
-    lower_stack_trace_size();
     let output0 = Rc::new(RefCell::new(Vec::new()));
     let output1 = output0.clone();
 
@@ -166,9 +151,8 @@ fn reduce_least() {
 }
 
 // compute total post likes
-#[wasm_bindgen_test]
+#[test]
 fn aggregation() {
-    lower_stack_trace_size();
 
     #[derive(Hash, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
     enum Persisted {
@@ -351,9 +335,8 @@ fn aggregation() {
     );
 }
 
-#[wasm_bindgen_test]
+#[test]
 fn aggregation_replacement() {
-    lower_stack_trace_size();
 
     #[derive(
         Hash,

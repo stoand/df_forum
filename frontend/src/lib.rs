@@ -25,8 +25,6 @@ use web_sys::HtmlElement;
 
 use differential_dataflow::input::InputSession;
 
-pub mod operators;
-
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = console)]
