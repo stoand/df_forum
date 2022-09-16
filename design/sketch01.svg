@@ -1,0 +1,399 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="1920.0px"
+   height="1080.0px"
+   viewBox="0 0 1920.0 1080.0"
+   version="1.1"
+   id="SVGRoot"
+   sodipodi:docname="sketch01.svg"
+   inkscape:version="1.2 (1:1.2.1+202207142221+cd75a1ee6d)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview561"
+     pagecolor="#de8787"
+     bordercolor="#9b03c9"
+     borderopacity="1"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="1"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="px"
+     showgrid="false"
+     inkscape:zoom="0.54002562"
+     inkscape:cx="726.81737"
+     inkscape:cy="721.26207"
+     inkscape:window-width="1920"
+     inkscape:window-height="1012"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs556">
+    <rect
+       x="18.242618"
+       y="-1.8104478"
+       width="296.30605"
+       height="55.178239"
+       id="rect9208" />
+    <rect
+       x="213.7253"
+       y="72.063557"
+       width="342.86175"
+       height="127.59787"
+       id="rect8934" />
+    <rect
+       x="55.932957"
+       y="324.56457"
+       width="320.60113"
+       height="98.894402"
+       id="rect3914" />
+    <rect
+       x="55.932957"
+       y="324.56457"
+       width="1420.753"
+       height="647.43096"
+       id="rect8942" />
+    <rect
+       x="18.242618"
+       y="-1.8104478"
+       width="91.218689"
+       height="53.907113"
+       id="rect9315" />
+    <rect
+       x="18.242618"
+       y="-1.8104478"
+       width="91.218689"
+       height="53.907113"
+       id="rect11256" />
+    <rect
+       x="18.242618"
+       y="-1.8104478"
+       width="91.218689"
+       height="53.907113"
+       id="rect11508" />
+    <rect
+       x="18.242618"
+       y="-1.8104478"
+       width="91.218689"
+       height="53.907113"
+       id="rect12519" />
+    <rect
+       x="55.932957"
+       y="324.56457"
+       width="320.60113"
+       height="98.894402"
+       id="rect12642" />
+    <rect
+       x="55.932957"
+       y="324.56457"
+       width="744.92566"
+       height="111.21874"
+       id="rect12712" />
+    <rect
+       x="55.932957"
+       y="324.56457"
+       width="1420.753"
+       height="647.43096"
+       id="rect12720" />
+    <rect
+       x="18.242618"
+       y="-1.8104478"
+       width="162.71629"
+       height="52.439707"
+       id="rect13487" />
+    <rect
+       x="18.242618"
+       y="-1.8104478"
+       width="286.61576"
+       height="73.03489"
+       id="rect13495" />
+  </defs>
+  <g
+     inkscape:groupmode="layer"
+     id="layer2"
+     inkscape:label="TopBar">
+    <path
+       id="rect9204"
+       style="fill:#595959;fill-opacity:1;stroke-width:9.64906;stroke-linecap:round"
+       d="M -2.1438302,2.1930117 1919.3675,1.2906249 V 79.785007 H -0.10689139 Z"
+       sodipodi:nodetypes="ccccc" />
+    <text
+       xml:space="preserve"
+       id="text9206"
+       style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect9208);display:inline;fill:#d2d2d2;fill-opacity:1;stroke:none"
+       transform="matrix(1.3409176,0,0,1.3409176,14.942638,5.0369061)"><tspan
+         x="18.242188"
+         y="34.58446"
+         id="tspan13832"><tspan
+           style="font-size:18.6667px;-inkscape-font-specification:'sans-serif, Normal'"
+           id="tspan13830">Welcome, User123 </tspan></tspan></text>
+    <rect
+       style="fill:#d2d2d2;fill-opacity:1;stroke:#595959;stroke-width:7.31518;stroke-linecap:round;stroke-dasharray:none;stroke-opacity:1"
+       id="rect12513"
+       width="119.72224"
+       height="70.189598"
+       x="1773.2427"
+       y="25.583757"
+       ry="0" />
+    <text
+       xml:space="preserve"
+       id="text12517"
+       style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect12519);display:inline;fill:#595959;fill-opacity:1;stroke:none"
+       transform="matrix(1.208866,0,0,1.2813839,1769.8082,24.736999)"><tspan
+         x="18.242188"
+         y="34.58446"
+         id="tspan13836"><tspan
+           style="font-size:18.6667px;-inkscape-font-specification:'sans-serif, Normal'"
+           id="tspan13834">Log Out</tspan></tspan></text>
+  </g>
+  <g
+     inkscape:groupmode="layer"
+     id="layer3"
+     inkscape:label="PostItem"
+     transform="translate(14.399268,157.08367)">
+    <g
+       inkscape:label="Layer 1"
+       inkscape:groupmode="layer"
+       id="layer1">
+      <path
+         id="rect12316"
+         style="fill:#ffffff;stroke:#ffffff;stroke-width:7.51898;stroke-linecap:round"
+         d="M 554.13735,493.14671 H 1664.1095 v 402.4704 H 554.13735 Z" />
+      <path
+         id="rect3573"
+         style="fill:#595959;stroke-width:1.12165"
+         d="M 93.451012,489.1209 H 600.61944 v 70.24157 H 34.830377 Z"
+         sodipodi:nodetypes="ccccc" />
+      <text
+         xml:space="preserve"
+         id="text3912"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:40px;line-height:1.25;font-family:Ubuntu;-inkscape-font-specification:'Ubuntu, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-align:center;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect3914);display:inline;fill:#d2d2d2;fill-opacity:1;stroke:none;stroke-width:1;stroke-dasharray:none;stroke-opacity:1"
+         x="96.499763"
+         y="0"
+         transform="matrix(0.7006149,0,0,0.7006149,31.22387,282.73703)"><tspan
+           x="114.17373"
+           y="361.86414"
+           id="tspan13838">Post Title 1</tspan></text>
+      <text
+         xml:space="preserve"
+         id="text8940"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:40px;line-height:1.25;font-family:Ubuntu;-inkscape-font-specification:'Ubuntu, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-align:start;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect8942);display:inline;fill:#595959;fill-opacity:1;stroke:none;stroke-width:1;stroke-dasharray:none;stroke-opacity:1"
+         x="88.331993"
+         y="0"
+         transform="matrix(0.7006149,0,0,0.7006149,581.34307,281.0586)"><tspan
+           x="55.933594"
+           y="361.86414"
+           id="tspan13842"><tspan
+             style="font-size:30.6483px"
+             id="tspan13840">Here is a long post with lots of interesting information.
+</tspan></tspan><tspan
+           x="55.933594"
+           y="411.86414"
+           id="tspan13846"><tspan
+             dx="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.00010728836 0 0 0.00010728836 -0.00010204315 0.00010728836 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.00010728836 0 0 0 0 0.00010728836"
+             style="font-size:30.6483px"
+             id="tspan13844">It should be easily readable and have enough space for long messages. Here is a long post with lots of </tspan></tspan><tspan
+           x="55.933594"
+           y="461.86414"
+           id="tspan13850"><tspan
+             style="font-size:30.6483px"
+             id="tspan13848">interesting information.
+</tspan></tspan><tspan
+           x="55.933594"
+           y="511.86414"
+           id="tspan13854"><tspan
+             dx="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.00010728836 0 0 0.00010728836 -0.00010204315 0.00010728836 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.00010728836 0 0 0 0 0.00010728836"
+             style="font-size:30.6483px"
+             id="tspan13852">It should be easily readable and have enough space for long messages. Here is a long post with lots of </tspan></tspan><tspan
+           x="55.933594"
+           y="561.86414"
+           id="tspan13858"><tspan
+             style="font-size:30.6483px"
+             id="tspan13856">interesting information.
+</tspan></tspan><tspan
+           x="55.933594"
+           y="611.86414"
+           id="tspan13862"><tspan
+             dx="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.00010728836 0 0 0.00010728836 -0.00010204315 0.00010728836 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.00010728836 0 0 0 0 0.00010728836"
+             style="font-size:30.6483px"
+             id="tspan13860">It should be easily readable and have enough space for long messages. Here is a long post with lots of </tspan></tspan><tspan
+           x="55.933594"
+           y="661.86414"
+           id="tspan13866"><tspan
+             style="font-size:30.6483px"
+             id="tspan13864">interesting information.
+</tspan></tspan><tspan
+           x="55.933594"
+           y="711.86414"
+           id="tspan13870"><tspan
+             dx="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.00010728836 0 0 0.00010728836 -0.00010204315 0.00010728836 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.00010728836 0 0 0 0 0.00010728836"
+             style="font-size:30.6483px"
+             id="tspan13868">It should be easily readable and have enough space for long messages. Here is a long post with lots of </tspan></tspan><tspan
+           x="55.933594"
+           y="761.86414"
+           id="tspan13874"><tspan
+             style="font-size:30.6483px"
+             id="tspan13872">interesting information.
+</tspan></tspan><tspan
+           x="55.933594"
+           y="811.86414"
+           id="tspan13878"><tspan
+             style="font-size:30.6483px"
+             id="tspan13876">It should be easily readable and have enough space for long messages. </tspan></tspan></text>
+      <rect
+         style="fill:#d2d2d2;fill-opacity:1;stroke:#ffffff;stroke-width:8;stroke-dasharray:none;stroke-opacity:1"
+         id="rect8973"
+         width="60.53323"
+         height="66.601273"
+         x="1637.8782"
+         y="493.72507" />
+      <path
+         style="fill:none;stroke:#595959;stroke-width:1.92462;stroke-linecap:round;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1"
+         d="m 1660.2145,521.72096 7.8308,10.59767 7.8853,-10.59767"
+         id="path8979"
+         sodipodi:nodetypes="ccc" />
+      <path
+         id="rect9318"
+         style="fill:#d2d2d2;stroke:#ffffff;stroke-width:7.79593;stroke-linecap:round"
+         d="m 467.95795,562.84986 h 130.40531 v 71.03212 H 467.95795 Z" />
+      <text
+         xml:space="preserve"
+         id="text11254"
+         style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect11256);display:inline;fill:#595959;fill-opacity:1;stroke:none"
+         transform="matrix(1.3167357,0,0,1.2967651,464.80424,561.4607)"><tspan
+           x="18.242188"
+           y="34.58446"
+           id="tspan13882"><tspan
+             style="font-size:18.6667px;-inkscape-font-specification:'sans-serif, Normal'"
+             id="tspan13880">Like (33)
+</tspan></tspan></text>
+      <rect
+         style="fill:#d2d2d2;fill-opacity:1;stroke:#ffffff;stroke-width:7.58795;stroke-linecap:round;stroke-dasharray:none;stroke-opacity:1"
+         id="rect11502"
+         width="127.73023"
+         height="70.786911"
+         x="468.30194"
+         y="641.52753"
+         ry="0" />
+      <text
+         xml:space="preserve"
+         id="text11506"
+         style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect11508);display:inline;fill:#595959;fill-opacity:1;stroke:none"
+         transform="matrix(1.2876643,0,0,1.3649092,472.16175,641.76786)"><tspan
+           x="18.242188"
+           y="34.58446"
+           id="tspan13886"><tspan
+             style="font-size:18.6667px;-inkscape-font-specification:'sans-serif, Normal'"
+             id="tspan13884">Delete</tspan></tspan></text>
+      <path
+         id="path12714"
+         style="fill:#ffffff;stroke:#ffffff;stroke-width:6.58788;stroke-linecap:round"
+         d="M 35.376125,184.61354 H 1597.374 V 404.16648 H 35.376125 Z" />
+      <text
+         xml:space="preserve"
+         id="text12718"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:40px;line-height:1.25;font-family:Ubuntu;-inkscape-font-specification:'Ubuntu, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-align:start;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect12720);display:inline;fill:#b7b7b7;fill-opacity:1;stroke:none;stroke-width:1;stroke-dasharray:none;stroke-opacity:1"
+         x="88.331993"
+         y="0"
+         transform="matrix(0.7006149,0,0,0.7006149,14.71233,-26.145023)"><tspan
+           x="55.933594"
+           y="361.86414"
+           id="tspan13890"><tspan
+             style="font-size:30.6483px"
+             id="tspan13888">Enter Post Body</tspan></tspan></text>
+      <rect
+         style="fill:#d2d2d2;fill-opacity:1;stroke:#ffffff;stroke-width:10.0012;stroke-linecap:round;stroke-dasharray:none;stroke-opacity:1"
+         id="rect13481"
+         width="229.7278"
+         height="68.373657"
+         x="100.3279"
+         y="369.67697"
+         ry="0" />
+      <text
+         xml:space="preserve"
+         id="text13485"
+         style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect13487);display:inline;fill:#595959;fill-opacity:1;stroke:none"
+         transform="matrix(1.2876643,0,0,1.3649092,119.02838,368.71065)"><tspan
+           x="18.242188"
+           y="34.58446"
+           id="tspan13894"><tspan
+             style="font-size:18.6667px;-inkscape-font-specification:'sans-serif, Normal'"
+             id="tspan13892">Submit Post</tspan></tspan></text>
+      <rect
+         style="fill:#de8787;fill-opacity:1;stroke:#ffffff;stroke-width:10.5486;stroke-linecap:round;stroke-dasharray:none;stroke-opacity:1"
+         id="rect13489"
+         width="254.23755"
+         height="68.730057"
+         x="366.15668"
+         y="369.95065"
+         ry="0" />
+      <text
+         xml:space="preserve"
+         id="text13493"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:20.1148px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect13495);display:inline;fill:#595959;fill-opacity:1;stroke:none"
+         transform="matrix(1.2876643,0,0,1.3649092,355.71748,390.62451)"><tspan
+           x="18.242188"
+           y="16.49141"
+           id="tspan13896">Error: Empty Title</tspan></text>
+    </g>
+  </g>
+  <g
+     inkscape:groupmode="layer"
+     id="layer4"
+     inkscape:label="CreatePost">
+    <path
+       id="path12636"
+       style="fill:#595959;stroke-width:1.5095"
+       d="m 124.05214,147.88601 h 682.5388 v 94.52993 H 45.161467 Z"
+       sodipodi:nodetypes="ccccc" />
+    <text
+       xml:space="preserve"
+       id="text12640"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:40px;line-height:1.25;font-family:Ubuntu;-inkscape-font-specification:'Ubuntu, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-align:center;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect12642);display:inline;fill:#d2d2d2;fill-opacity:1;stroke:none;stroke-width:1;stroke-dasharray:none;stroke-opacity:1"
+       x="96.499763"
+       y="0"
+       transform="matrix(0.94287583,0,0,0.94287583,47.075841,-128.23292)"><tspan
+         x="110.35369"
+         y="361.86414"
+         id="tspan13898">Create Post</tspan></text>
+    <rect
+       style="fill:#d2d2d2;fill-opacity:1;stroke:#595959;stroke-width:8;stroke-dasharray:none;stroke-opacity:1"
+       id="rect12648"
+       width="60.53323"
+       height="66.601273"
+       x="776.17181"
+       y="4.6499186"
+       transform="translate(14.399268,157.08367)" />
+    <path
+       style="fill:none;stroke:#595959;stroke-width:1.92462;stroke-linecap:round;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1"
+       d="m 798.50813,32.645805 7.8308,10.59767 7.8853,-10.59767"
+       id="path12650"
+       sodipodi:nodetypes="ccc"
+       transform="translate(14.399268,157.08367)" />
+    <rect
+       style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:7.32761;stroke-linecap:round;stroke-dasharray:none;stroke-opacity:1"
+       id="rect12706"
+       width="699.27618"
+       height="68.768105"
+       x="925.47791"
+       y="160.77992" />
+    <text
+       xml:space="preserve"
+       id="text12710"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:40px;line-height:1.25;font-family:Ubuntu;-inkscape-font-specification:'Ubuntu, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-align:center;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect12712);display:inline;fill:#b7b7b7;fill-opacity:1;stroke:none;stroke-width:1;stroke-dasharray:none;stroke-opacity:1"
+       x="-7.8599734"
+       y="0"
+       transform="matrix(0.82702355,0,0,0.82702355,910.71251,-89.906188)"><tspan
+         x="55.933594"
+         y="361.86414"
+         id="tspan13902"><tspan
+           style="text-align:start;text-anchor:start"
+           id="tspan13900">Enter Post Title</tspan></tspan></text>
+  </g>
+</svg>
