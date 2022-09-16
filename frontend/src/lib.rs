@@ -41,7 +41,7 @@ pub fn get_local_storage() -> Storage {
 #[wasm_bindgen]
 pub fn bootstrap() {
     std::panic::set_hook(Box::new(console_error_panic_hook::hook));
-    
+
     let local_storage = get_local_storage();
     if let Ok(Some(user_name)) = local_storage.get_item(USERNAME_LOCAL_STORAGE_KEY) {
         render_page_forum(user_name);
@@ -93,7 +93,7 @@ pub fn render_page_enter_username() {
 pub fn render_page_forum(username: String) {
     let (document, root) = document_and_root();
     root.set_inner_html("");
-    
+
     let username_label = document.create_element("div").unwrap();
     username_label.set_text_content(Some(&("Username: ".to_owned() + &username)));
     root.append_child(&username_label).unwrap();
@@ -114,53 +114,63 @@ pub fn render_page_forum(username: String) {
     use_different_name_el.set_onclick(Some(use_different_name_click.as_ref().unchecked_ref()));
 
     use_different_name_click.forget();
-    
+
     let username_label = document.create_element("h2").unwrap();
     username_label.set_text_content(Some("Posts"));
     root.append_child(&username_label).unwrap();
-    
+
+    // on (user_id, Aggregations)
+
     let username_label = document.create_element("div").unwrap();
     username_label.set_text_content(Some("My Likes: ? -- My Posts: ? -- Posts Total: ?"));
     root.append_child(&username_label).unwrap();
-    
+
+    // on (page_num, Post & post_user_author)
+
     let username_label = document.create_element("h3").unwrap();
     username_label.set_text_content(Some("Post Title"));
     root.append_child(&username_label).unwrap();
-    
-    let username_label = document.create_element("p").unwrap();
+
+    let username_label = document.create_element("h6").unwrap();
     username_label.set_text_content(Some("Post Author"));
     root.append_child(&username_label).unwrap();
-    
+
     let username_label = document.create_element("p").unwrap();
     username_label.set_text_content(Some("Post Body"));
     root.append_child(&username_label).unwrap();
-    
+
     let username_label = document.create_element("button").unwrap();
-    username_label.set_text_content(Some("Like"));
+    username_label.set_text_content(Some("Like (like count?)"));
     root.append_child(&username_label).unwrap();
-    
+
     let username_label = document.create_element("button").unwrap();
     username_label.set_text_content(Some("Delete"));
     root.append_child(&username_label).unwrap();
-    
+
     let username_label = document.create_element("button").unwrap();
     username_label.set_text_content(Some("Collapse"));
     root.append_child(&username_label).unwrap();
-    
+
     let page_ops = document.create_element("div").unwrap();
     root.append_child(&page_ops).unwrap();
-    
+
     let username_label = document.create_element("br").unwrap();
     page_ops.append_child(&username_label).unwrap();
     
+    // on (page_num) - activate or deactive
+
     let username_label = document.create_element("button").unwrap();
     username_label.set_text_content(Some("Prev"));
     page_ops.append_child(&username_label).unwrap();
-    
+
+    // on (page_num)
+
     let username_label = document.create_element("span").unwrap();
     username_label.set_text_content(Some("Page ?"));
     page_ops.append_child(&username_label).unwrap();
     
+    // on (page_num) - activate or deactive
+
     let username_label = document.create_element("button").unwrap();
     username_label.set_text_content(Some("Next"));
     page_ops.append_child(&username_label).unwrap();
