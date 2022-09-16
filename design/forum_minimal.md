@@ -4,20 +4,25 @@ partof: REQ-purpose
 
 # Features
 
-* Page Form to Enter Username
-* Page Posts List
-    * Aggregation stats
-        * total posts
-        * posts by entered user id
-        * total likes for user id
-    * List of posts
-        * Post title, body, author and like count
-        * Post can be collapsed
-        * Post can be liked
-        * Post can be deleted by original user
-        * Displays 3 newest posts, can go to previous page
+Pages:
 
-## [[.pagination]]
+* [[.page_enter_username]] Page Form to Enter Username
+* [[.page_posts]] Page Posts List
+
+Posts Page Features:
+
+* Aggregation stats
+    * [[.aggregates_total_global_post_count]] total posts
+    * [[.aggregates_total_user_post_count]] posts by entered user id
+    * [[.aggregates_total_user_likes]] total likes for user id
+* List of posts
+    * [[.post_info]] Post title, body, author and like count
+    * [[.post_collapse]] Post can be collapsed
+    * [[.post_like]] Post can be liked
+    * [[.post_delete]] Post can be deleted by original user
+    * [[.post_pagination]] Displays 3 newest posts, can go to previous page
+
+## [[.post_pagination]]
 
 While the user is on the front page (no page selected),
 new posts will instantly appear when they are posted

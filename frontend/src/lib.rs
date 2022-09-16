@@ -44,7 +44,7 @@ pub fn bootstrap() {
 
     let local_storage = get_local_storage();
     if let Ok(Some(user_name)) = local_storage.get_item(USERNAME_LOCAL_STORAGE_KEY) {
-        render_page_forum(user_name);
+        render_page_posts(user_name);
     } else {
         render_page_enter_username();
     }
@@ -58,6 +58,7 @@ pub fn document_and_root() -> (Document, Element) {
     (document, root)
 }
 
+// #SPC-forum_minimal.page_enter_username
 pub fn render_page_enter_username() {
     let (document, root) = document_and_root();
     root.set_inner_html("");
@@ -80,7 +81,7 @@ pub fn render_page_enter_username() {
                 .set_item(USERNAME_LOCAL_STORAGE_KEY, &name)
                 .unwrap();
 
-            render_page_forum(name);
+            render_page_posts(name);
         }
     });
 
@@ -90,7 +91,8 @@ pub fn render_page_enter_username() {
     use_chat_name_click.forget();
 }
 
-pub fn render_page_forum(username: String) {
+// #SPC-forum_minimal.page_posts
+pub fn render_page_posts(username: String) {
     let (document, root) = document_and_root();
     root.set_inner_html("");
 
