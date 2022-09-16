@@ -12,3 +12,7 @@ socket.onopen = (error) => {
 socket.onmessage = (msg) => {
     console.log("msg", msg);
 }
+
+function send() {
+    socket.send("manualsend");
+}
