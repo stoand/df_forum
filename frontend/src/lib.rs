@@ -66,7 +66,7 @@ pub fn render_page_enter_username() {
     use_chat_name.set_text_content(Some("Chat with this name"));
     root.append_child(&use_chat_name).unwrap();
 
-    let user_chat_name_click = Closure::<dyn FnMut()>::new(move || {
+    let use_chat_name_click = Closure::<dyn FnMut()>::new(move || {
         let name = enter_chat_name
             .dyn_ref::<HtmlInputElement>()
             .unwrap()
@@ -79,17 +79,36 @@ pub fn render_page_enter_username() {
         render_page_forum(name);
     });
 
-    let count_up_el = use_chat_name.dyn_ref::<HtmlElement>().unwrap();
-    count_up_el.set_onclick(Some(user_chat_name_click.as_ref().unchecked_ref()));
+    let use_chat_name_el = use_chat_name.dyn_ref::<HtmlElement>().unwrap();
+    use_chat_name_el.set_onclick(Some(use_chat_name_click.as_ref().unchecked_ref()));
 
-    user_chat_name_click.forget();
+    use_chat_name_click.forget();
 }
 
 pub fn render_page_forum(username: String) {
-    let (_document, root) = document_and_root();
-    root.set_inner_html(&("TODO: forum page for username: ".to_owned() + &username));
+    let (document, root) = document_and_root();
+    root.set_inner_html("");
+    
+    let username_label = document.create_element("div").unwrap();
+    username_label.set_text_content(Some(&("Username: ".to_owned() + &username)));
+    root.append_child(&username_label).unwrap();
 
-    // TODO: add button to delete username and go back
+    let use_different_name = document.create_element("button").unwrap();
+    use_different_name.set_text_content(Some("Use different name"));
+    root.append_child(&use_different_name).unwrap();
+
+    let use_different_name_click = Closure::<dyn FnMut()>::new(move || {
+        get_local_storage()
+            .remove_item(USERNAME_LOCAL_STORAGE_KEY)
+            .unwrap();
+
+        render_page_enter_username();
+    });
+
+    let use_different_name_el = use_different_name.dyn_ref::<HtmlElement>().unwrap();
+    use_different_name_el.set_onclick(Some(use_different_name_click.as_ref().unchecked_ref()));
+
+    use_different_name_click.forget();
 }
 
 pub fn run0() {
