@@ -7,7 +7,11 @@ artifact_paths = ["design"]
 exclude_artifact_paths = []
 
 # Paths containing code that has artifact links
-code_paths = ["src"]
+code_paths = [
+    "frontend/src",
+    "backend/src",
+    "backend/tests",
+]
 
 # Paths to exclude when searching through code
 exclude_code_paths = []
