@@ -96,5 +96,6 @@ a {
 }
 .pagination-action,.pagination-page-num {
     margin-top: 60px;
+    margin-bottom: 30px;
     padding: 0 30px;
 }
