@@ -11,6 +11,9 @@ Pages:
 
 Posts Page Features:
 
+* [[.create_post]] Create Post
+    * Post titles have to be unique
+    * Title or body cannot be empty
 * Aggregation stats
     * [[.aggregates_total_global_post_count]] total posts
     * [[.aggregates_total_user_post_count]] posts by entered user id

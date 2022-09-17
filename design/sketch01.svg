@@ -25,8 +25,8 @@
      inkscape:document-units="px"
      showgrid="false"
      inkscape:zoom="0.54002562"
-     inkscape:cx="726.81737"
-     inkscape:cy="721.26207"
+     inkscape:cx="683.30091"
+     inkscape:cy="478.68099"
      inkscape:window-width="1920"
      inkscape:window-height="1012"
      inkscape:window-x="0"
@@ -113,6 +113,30 @@
        width="286.61576"
        height="73.03489"
        id="rect13495" />
+    <rect
+       x="18.242618"
+       y="-1.8104478"
+       width="296.30605"
+       height="55.178239"
+       id="rect13930" />
+    <rect
+       x="18.242618"
+       y="-1.8104478"
+       width="296.30605"
+       height="55.178239"
+       id="rect13936" />
+    <rect
+       x="18.242618"
+       y="-1.8104478"
+       width="296.30605"
+       height="55.178239"
+       id="rect13946" />
+    <rect
+       x="18.242618"
+       y="-1.8104478"
+       width="296.30605"
+       height="55.178239"
+       id="rect13948" />
   </defs>
   <g
      inkscape:groupmode="layer"
@@ -130,9 +154,9 @@
        transform="matrix(1.3409176,0,0,1.3409176,14.942638,5.0369061)"><tspan
          x="18.242188"
          y="34.58446"
-         id="tspan13832"><tspan
+         id="tspan1051"><tspan
            style="font-size:18.6667px;-inkscape-font-specification:'sans-serif, Normal'"
-           id="tspan13830">Welcome, User123 </tspan></tspan></text>
+           id="tspan1049">Welcome, User123 </tspan></tspan></text>
     <rect
        style="fill:#d2d2d2;fill-opacity:1;stroke:#595959;stroke-width:7.31518;stroke-linecap:round;stroke-dasharray:none;stroke-opacity:1"
        id="rect12513"
@@ -148,9 +172,49 @@
        transform="matrix(1.208866,0,0,1.2813839,1769.8082,24.736999)"><tspan
          x="18.242188"
          y="34.58446"
-         id="tspan13836"><tspan
+         id="tspan1055"><tspan
            style="font-size:18.6667px;-inkscape-font-specification:'sans-serif, Normal'"
-           id="tspan13834">Log Out</tspan></tspan></text>
+           id="tspan1053">Log Out</tspan></tspan></text>
+    <text
+       xml:space="preserve"
+       id="text13928"
+       style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect13930);display:inline;fill:#d2d2d2;fill-opacity:1;stroke:none"
+       transform="matrix(1.3409176,0,0,1.3409176,333.87005,5.0369061)"><tspan
+         x="18.242188"
+         y="34.58446"
+         id="tspan1059"><tspan
+           style="font-size:18.6667px;-inkscape-font-specification:'sans-serif, Normal'"
+           id="tspan1057">My total likes: </tspan></tspan></text>
+    <text
+       xml:space="preserve"
+       id="text13934"
+       style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect13936);display:inline;fill:#d2d2d2;fill-opacity:1;stroke:none"
+       transform="matrix(1.3409176,0,0,1.3409176,503.31301,5.0369061)"><tspan
+         x="18.242188"
+         y="34.58446"
+         id="tspan1063"><tspan
+           style="font-weight:bold;font-size:18.6667px;-inkscape-font-specification:'sans-serif, Bold'"
+           id="tspan1061">312</tspan></tspan></text>
+    <text
+       xml:space="preserve"
+       id="text13940"
+       style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect13946);display:inline;fill:#d2d2d2;fill-opacity:1;stroke:none"
+       transform="matrix(1.3409176,0,0,1.3409176,601.60332,5.0369061)"><tspan
+         x="18.242188"
+         y="34.58446"
+         id="tspan1067"><tspan
+           style="font-size:18.6667px;-inkscape-font-specification:'sans-serif, Normal'"
+           id="tspan1065">My total posts: </tspan></tspan></text>
+    <text
+       xml:space="preserve"
+       id="text13944"
+       style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect13948);display:inline;fill:#d2d2d2;fill-opacity:1;stroke:none"
+       transform="matrix(1.3409176,0,0,1.3409176,786.6277,5.0369061)"><tspan
+         x="18.242188"
+         y="34.58446"
+         id="tspan1071"><tspan
+           style="font-weight:bold;font-size:18.6667px;-inkscape-font-specification:'sans-serif, Bold'"
+           id="tspan1069">51</tspan></tspan></text>
   </g>
   <g
      inkscape:groupmode="layer"
@@ -163,8 +227,8 @@
        id="layer1">
       <path
          id="rect12316"
-         style="fill:#ffffff;stroke:#ffffff;stroke-width:7.51898;stroke-linecap:round"
-         d="M 554.13735,493.14671 H 1664.1095 v 402.4704 H 554.13735 Z" />
+         style="fill:#ffffff;stroke:#ffffff;stroke-width:7.35244;stroke-linecap:round"
+         d="M 603.2844,493.06344 H 1664.1928 V 895.70038 H 603.2844 Z" />
       <path
          id="rect3573"
          style="fill:#595959;stroke-width:1.12165"
@@ -179,7 +243,7 @@
          transform="matrix(0.7006149,0,0,0.7006149,31.22387,282.73703)"><tspan
            x="114.17373"
            y="361.86414"
-           id="tspan13838">Post Title 1</tspan></text>
+           id="tspan1073">Post Title 1</tspan></text>
       <text
          xml:space="preserve"
          id="text8940"
@@ -189,63 +253,63 @@
          transform="matrix(0.7006149,0,0,0.7006149,581.34307,281.0586)"><tspan
            x="55.933594"
            y="361.86414"
-           id="tspan13842"><tspan
+           id="tspan1077"><tspan
              style="font-size:30.6483px"
-             id="tspan13840">Here is a long post with lots of interesting information.
+             id="tspan1075">Here is a long post with lots of interesting information.
 </tspan></tspan><tspan
            x="55.933594"
            y="411.86414"
-           id="tspan13846"><tspan
+           id="tspan1081"><tspan
              dx="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.00010728836 0 0 0.00010728836 -0.00010204315 0.00010728836 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.00010728836 0 0 0 0 0.00010728836"
              style="font-size:30.6483px"
-             id="tspan13844">It should be easily readable and have enough space for long messages. Here is a long post with lots of </tspan></tspan><tspan
+             id="tspan1079">It should be easily readable and have enough space for long messages. Here is a long post with lots of </tspan></tspan><tspan
            x="55.933594"
            y="461.86414"
-           id="tspan13850"><tspan
+           id="tspan1085"><tspan
              style="font-size:30.6483px"
-             id="tspan13848">interesting information.
+             id="tspan1083">interesting information.
 </tspan></tspan><tspan
            x="55.933594"
            y="511.86414"
-           id="tspan13854"><tspan
+           id="tspan1089"><tspan
              dx="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.00010728836 0 0 0.00010728836 -0.00010204315 0.00010728836 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.00010728836 0 0 0 0 0.00010728836"
              style="font-size:30.6483px"
-             id="tspan13852">It should be easily readable and have enough space for long messages. Here is a long post with lots of </tspan></tspan><tspan
+             id="tspan1087">It should be easily readable and have enough space for long messages. Here is a long post with lots of </tspan></tspan><tspan
            x="55.933594"
            y="561.86414"
-           id="tspan13858"><tspan
+           id="tspan1093"><tspan
              style="font-size:30.6483px"
-             id="tspan13856">interesting information.
+             id="tspan1091">interesting information.
 </tspan></tspan><tspan
            x="55.933594"
            y="611.86414"
-           id="tspan13862"><tspan
+           id="tspan1097"><tspan
              dx="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.00010728836 0 0 0.00010728836 -0.00010204315 0.00010728836 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.00010728836 0 0 0 0 0.00010728836"
              style="font-size:30.6483px"
-             id="tspan13860">It should be easily readable and have enough space for long messages. Here is a long post with lots of </tspan></tspan><tspan
+             id="tspan1095">It should be easily readable and have enough space for long messages. Here is a long post with lots of </tspan></tspan><tspan
            x="55.933594"
            y="661.86414"
-           id="tspan13866"><tspan
+           id="tspan1101"><tspan
              style="font-size:30.6483px"
-             id="tspan13864">interesting information.
+             id="tspan1099">interesting information.
 </tspan></tspan><tspan
            x="55.933594"
            y="711.86414"
-           id="tspan13870"><tspan
+           id="tspan1105"><tspan
              dx="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.00010728836 0 0 0.00010728836 -0.00010204315 0.00010728836 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.00010728836 0 0 0 0 0.00010728836"
              style="font-size:30.6483px"
-             id="tspan13868">It should be easily readable and have enough space for long messages. Here is a long post with lots of </tspan></tspan><tspan
+             id="tspan1103">It should be easily readable and have enough space for long messages. Here is a long post with lots of </tspan></tspan><tspan
            x="55.933594"
            y="761.86414"
-           id="tspan13874"><tspan
+           id="tspan1109"><tspan
              style="font-size:30.6483px"
-             id="tspan13872">interesting information.
+             id="tspan1107">interesting information.
 </tspan></tspan><tspan
            x="55.933594"
            y="811.86414"
-           id="tspan13878"><tspan
+           id="tspan1113"><tspan
              style="font-size:30.6483px"
-             id="tspan13876">It should be easily readable and have enough space for long messages. </tspan></tspan></text>
+             id="tspan1111">It should be easily readable and have enough space for long messages. </tspan></tspan></text>
       <rect
          style="fill:#d2d2d2;fill-opacity:1;stroke:#ffffff;stroke-width:8;stroke-dasharray:none;stroke-opacity:1"
          id="rect8973"
@@ -260,87 +324,87 @@
          sodipodi:nodetypes="ccc" />
       <path
          id="rect9318"
-         style="fill:#d2d2d2;stroke:#ffffff;stroke-width:7.79593;stroke-linecap:round"
-         d="m 467.95795,562.84986 h 130.40531 v 71.03212 H 467.95795 Z" />
+         style="fill:#d2d2d2;stroke:#ffffff;stroke-width:2;stroke-linecap:round;stroke-dasharray:none"
+         d="m 469.90714,558.13857 h 130.40531 v 71.03212 H 469.90714 Z" />
       <text
          xml:space="preserve"
          id="text11254"
          style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect11256);display:inline;fill:#595959;fill-opacity:1;stroke:none"
-         transform="matrix(1.3167357,0,0,1.2967651,464.80424,561.4607)"><tspan
+         transform="matrix(1.3167357,0,0,1.2967651,466.75343,556.74941)"><tspan
            x="18.242188"
            y="34.58446"
-           id="tspan13882"><tspan
+           id="tspan1117"><tspan
              style="font-size:18.6667px;-inkscape-font-specification:'sans-serif, Normal'"
-             id="tspan13880">Like (33)
+             id="tspan1115">Like (33)
 </tspan></tspan></text>
       <rect
-         style="fill:#d2d2d2;fill-opacity:1;stroke:#ffffff;stroke-width:7.58795;stroke-linecap:round;stroke-dasharray:none;stroke-opacity:1"
+         style="fill:#d2d2d2;fill-opacity:1;stroke:#ffffff;stroke-width:2;stroke-linecap:round;stroke-dasharray:none;stroke-opacity:1"
          id="rect11502"
          width="127.73023"
          height="70.786911"
-         x="468.30194"
-         y="641.52753"
+         x="320.77808"
+         y="561.43506"
          ry="0" />
       <text
          xml:space="preserve"
          id="text11506"
          style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect11508);display:inline;fill:#595959;fill-opacity:1;stroke:none"
-         transform="matrix(1.2876643,0,0,1.3649092,472.16175,641.76786)"><tspan
+         transform="matrix(1.2876643,0,0,1.3649092,324.6379,561.6754)"><tspan
            x="18.242188"
            y="34.58446"
-           id="tspan13886"><tspan
+           id="tspan1121"><tspan
              style="font-size:18.6667px;-inkscape-font-specification:'sans-serif, Normal'"
-             id="tspan13884">Delete</tspan></tspan></text>
+             id="tspan1119">Delete</tspan></tspan></text>
       <path
          id="path12714"
          style="fill:#ffffff;stroke:#ffffff;stroke-width:6.58788;stroke-linecap:round"
-         d="M 35.376125,184.61354 H 1597.374 V 404.16648 H 35.376125 Z" />
+         d="M 47.071037,96.50177 H 1609.0689 V 316.05471 H 47.071037 Z" />
       <text
          xml:space="preserve"
          id="text12718"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:40px;line-height:1.25;font-family:Ubuntu;-inkscape-font-specification:'Ubuntu, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-align:start;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect12720);display:inline;fill:#b7b7b7;fill-opacity:1;stroke:none;stroke-width:1;stroke-dasharray:none;stroke-opacity:1"
          x="88.331993"
          y="0"
-         transform="matrix(0.7006149,0,0,0.7006149,14.71233,-26.145023)"><tspan
+         transform="matrix(0.7006149,0,0,0.7006149,25.627611,-116.06108)"><tspan
            x="55.933594"
            y="361.86414"
-           id="tspan13890"><tspan
+           id="tspan1125"><tspan
              style="font-size:30.6483px"
-             id="tspan13888">Enter Post Body</tspan></tspan></text>
+             id="tspan1123">Enter Post Body</tspan></tspan></text>
       <rect
-         style="fill:#d2d2d2;fill-opacity:1;stroke:#ffffff;stroke-width:10.0012;stroke-linecap:round;stroke-dasharray:none;stroke-opacity:1"
+         style="fill:#d2d2d2;fill-opacity:1;stroke:#ffffff;stroke-width:2;stroke-linecap:round;stroke-dasharray:none;stroke-opacity:1"
          id="rect13481"
          width="229.7278"
          height="68.373657"
-         x="100.3279"
-         y="369.67697"
+         x="111.24319"
+         y="279.76093"
          ry="0" />
       <text
          xml:space="preserve"
          id="text13485"
          style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect13487);display:inline;fill:#595959;fill-opacity:1;stroke:none"
-         transform="matrix(1.2876643,0,0,1.3649092,119.02838,368.71065)"><tspan
+         transform="matrix(1.2876643,0,0,1.3649092,129.94366,278.79459)"><tspan
            x="18.242188"
            y="34.58446"
-           id="tspan13894"><tspan
+           id="tspan1129"><tspan
              style="font-size:18.6667px;-inkscape-font-specification:'sans-serif, Normal'"
-             id="tspan13892">Submit Post</tspan></tspan></text>
+             id="tspan1127">Submit Post</tspan></tspan></text>
       <rect
-         style="fill:#de8787;fill-opacity:1;stroke:#ffffff;stroke-width:10.5486;stroke-linecap:round;stroke-dasharray:none;stroke-opacity:1"
+         style="fill:#de8787;fill-opacity:1;stroke:#ffffff;stroke-width:2;stroke-linecap:round;stroke-dasharray:none;stroke-opacity:1"
          id="rect13489"
          width="254.23755"
          height="68.730057"
-         x="366.15668"
-         y="369.95065"
+         x="377.07196"
+         y="280.03461"
          ry="0" />
       <text
          xml:space="preserve"
          id="text13493"
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:20.1148px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect13495);display:inline;fill:#595959;fill-opacity:1;stroke:none"
-         transform="matrix(1.2876643,0,0,1.3649092,355.71748,390.62451)"><tspan
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:20.1148px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect13495);display:inline;fill:#595959;fill-opacity:1;stroke:none"
+         transform="matrix(1.2876643,0,0,1.3649092,366.63276,300.70845)"><tspan
            x="18.242188"
            y="16.49141"
-           id="tspan13896">Error: Empty Title</tspan></text>
+           id="tspan1131">Error: Empty Title</tspan></text>
     </g>
   </g>
   <g
@@ -361,9 +425,9 @@
        transform="matrix(0.94287583,0,0,0.94287583,47.075841,-128.23292)"><tspan
          x="110.35369"
          y="361.86414"
-         id="tspan13898">Create Post</tspan></text>
+         id="tspan1133">Create Post</tspan></text>
     <rect
-       style="fill:#d2d2d2;fill-opacity:1;stroke:#595959;stroke-width:8;stroke-dasharray:none;stroke-opacity:1"
+       style="fill:#d2d2d2;fill-opacity:1;stroke:#595959;stroke-width:2;stroke-dasharray:none;stroke-opacity:1"
        id="rect12648"
        width="60.53323"
        height="66.601273"
@@ -392,8 +456,8 @@
        transform="matrix(0.82702355,0,0,0.82702355,910.71251,-89.906188)"><tspan
          x="55.933594"
          y="361.86414"
-         id="tspan13902"><tspan
-           style="text-align:start;text-anchor:start"
-           id="tspan13900">Enter Post Title</tspan></tspan></text>
+         id="tspan1137"><tspan
+           style="text-align:start"
+           id="tspan1135">Enter Post Title</tspan></tspan></text>
   </g>
 </svg>
