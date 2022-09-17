@@ -25,14 +25,14 @@
      inkscape:document-units="px"
      showgrid="false"
      inkscape:zoom="1.0800512"
-     inkscape:cx="545.80744"
-     inkscape:cy="390.25926"
+     inkscape:cx="522.19745"
+     inkscape:cy="317.11458"
      inkscape:window-width="1920"
      inkscape:window-height="1012"
      inkscape:window-x="0"
      inkscape:window-y="0"
      inkscape:window-maximized="1"
-     inkscape:current-layer="layer1" />
+     inkscape:current-layer="layer2" />
   <defs
      id="defs556">
     <rect
@@ -185,80 +185,25 @@
        width="132.79399"
        height="48.573384"
        id="rect2059" />
-  </defs>
-  <g
-     inkscape:groupmode="layer"
-     id="layer2"
-     inkscape:label="TopBar">
-    <text
-       xml:space="preserve"
-       id="text9206"
-       style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect9208);display:inline;fill:#3c3c3c;fill-opacity:1;stroke:none"
-       transform="matrix(0.96671075,0,0,0.96671075,21.852812,12.669891)"><tspan
-         x="18.242188"
-         y="34.58446"
-         id="tspan2162"><tspan
-           style="font-size:18.6667px;-inkscape-font-specification:'sans-serif, Normal'"
-           id="tspan2160">Welcome, User123 </tspan></tspan></text>
     <rect
-       style="fill:#d2d2d2;fill-opacity:1;stroke:#595959;stroke-width:2;stroke-linecap:round;stroke-dasharray:none;stroke-opacity:1"
-       id="rect12513"
-       width="119.72224"
-       height="70.189598"
-       x="1773.2427"
-       y="25.583757"
-       ry="0" />
-    <text
-       xml:space="preserve"
-       id="text12517"
-       style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect12519);display:inline;fill:#595959;fill-opacity:1;stroke:none"
-       transform="matrix(1.208866,0,0,1.2813839,1769.8082,24.736999)"><tspan
-         x="18.242188"
-         y="34.58446"
-         id="tspan2166"><tspan
-           style="font-size:18.6667px;-inkscape-font-specification:'sans-serif, Normal'"
-           id="tspan2164">Log Out</tspan></tspan></text>
-    <text
-       xml:space="preserve"
-       id="text13928"
-       style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect13930);display:inline;fill:#3c3c3c;fill-opacity:1;stroke:none"
-       transform="matrix(0.96671075,0,0,0.96671075,251.77787,12.669891)"><tspan
-         x="18.242188"
-         y="34.58446"
-         id="tspan2170"><tspan
-           style="font-size:18.6667px;-inkscape-font-specification:'sans-serif, Normal'"
-           id="tspan2168">My total likes: </tspan></tspan></text>
-    <text
-       xml:space="preserve"
-       id="text13934"
-       style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect13936);display:inline;fill:#3c3c3c;fill-opacity:1;stroke:none"
-       transform="matrix(0.96671075,0,0,0.96671075,373.93476,12.669891)"><tspan
-         x="18.242188"
-         y="34.58446"
-         id="tspan2174"><tspan
-           style="font-weight:bold;font-size:18.6667px;-inkscape-font-specification:'sans-serif, Bold'"
-           id="tspan2172">312</tspan></tspan></text>
-    <text
-       xml:space="preserve"
-       id="text13940"
-       style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect13946);display:inline;fill:#3c3c3c;fill-opacity:1;stroke:none"
-       transform="matrix(0.96671075,0,0,0.96671075,444.79542,12.669891)"><tspan
-         x="18.242188"
-         y="34.58446"
-         id="tspan2178"><tspan
-           style="font-size:18.6667px;-inkscape-font-specification:'sans-serif, Normal'"
-           id="tspan2176">My total posts: </tspan></tspan></text>
-    <text
-       xml:space="preserve"
-       id="text13944"
-       style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect13948);display:inline;fill:#3c3c3c;fill-opacity:1;stroke:none"
-       transform="matrix(0.96671075,0,0,0.96671075,578.18546,12.669891)"><tspan
-         x="18.242188"
-         y="34.58446"
-         id="tspan2182"><tspan
-           style="font-weight:bold;font-size:18.6667px;-inkscape-font-specification:'sans-serif, Bold'"
-           id="tspan2180">51</tspan></tspan></text>
-  </g>
+       x="18.242618"
+       y="-1.8104478"
+       width="296.30605"
+       height="55.178239"
+       id="rect2236" />
+    <rect
+       x="18.242618"
+       y="-1.8104478"
+       width="397.89096"
+       height="66.581486"
+       id="rect2304" />
+    <rect
+       x="18.242618"
+       y="-1.8104478"
+       width="217.26849"
+       height="143.94698"
+       id="rect2341" />
+  </defs>
   <g
      inkscape:groupmode="layer"
      id="layer3"
@@ -268,6 +213,13 @@
        inkscape:label="Layer 1"
        inkscape:groupmode="layer"
        id="layer1">
+      <rect
+         style="fill:#ffffff;fill-opacity:0.0866317;stroke:none;stroke-width:2;stroke-dasharray:none;stroke-opacity:1"
+         id="rect1859"
+         width="482.50168"
+         height="43.253902"
+         x="5.8969841"
+         y="-68.940475" />
       <path
          id="rect12316"
          style="fill:none;stroke:none;stroke-width:7.35244;stroke-linecap:round;fill-opacity:1"
@@ -281,9 +233,9 @@
          transform="matrix(0.51962488,0,0,0.51962488,-48.501802,51.342826)"><tspan
            x="114.17373"
            y="361.86414"
-           id="tspan2186"><tspan
+           id="tspan10229"><tspan
              style="fill:#3c3c3c"
-             id="tspan2184">Post Title 1</tspan></tspan></text>
+             id="tspan10227">Post Title 1</tspan></tspan></text>
       <text
          xml:space="preserve"
          id="text8940"
@@ -293,27 +245,27 @@
          transform="matrix(0.7006149,0,0,0.7006149,-29.367066,50.181086)"><tspan
            x="55.933594"
            y="345.85987"
-           id="tspan2188">Here is a long post with lots of interesting information.
+           id="tspan10231">Here is a long post with lots of interesting information.
 </tspan><tspan
            x="55.933594"
            y="374.40626"
-           id="tspan2190">It should be easily readable and have enough space for long messages. Here is a long post with lots of interesting information.
+           id="tspan10233">It should be easily readable and have enough space for long messages. Here is a long post with lots of interesting information.
 </tspan><tspan
            x="55.933594"
            y="402.95264"
-           id="tspan2192">It should be easily readable and have enough space for long messages. Here is a long post with lots of interesting information.
+           id="tspan10235">It should be easily readable and have enough space for long messages. Here is a long post with lots of interesting information.
 </tspan><tspan
            x="55.933594"
            y="431.49903"
-           id="tspan2194">It should be easily readable and have enough space for long messages. Here is a long post with lots of interesting information.
+           id="tspan10237">It should be easily readable and have enough space for long messages. Here is a long post with lots of interesting information.
 </tspan><tspan
            x="55.933594"
            y="460.04542"
-           id="tspan2196">It should be easily readable and have enough space for long messages. Here is a long post with lots of interesting information.
+           id="tspan10239">It should be easily readable and have enough space for long messages. Here is a long post with lots of interesting information.
 </tspan><tspan
            x="55.933594"
            y="488.5918"
-           id="tspan2198">It should be easily readable and have enough space for long messages. </tspan></text>
+           id="tspan10241">It should be easily readable and have enough space for long messages. </tspan></text>
       <text
          xml:space="preserve"
          id="text11254"
@@ -321,9 +273,9 @@
          transform="matrix(0.77840385,0,0,0.76659799,-2.8921137,236.27175)"><tspan
            x="18.242188"
            y="34.58446"
-           id="tspan2202"><tspan
+           id="tspan10245"><tspan
              style="font-size:18.6667px;-inkscape-font-specification:'sans-serif, Normal'"
-             id="tspan2200">Like (33)
+             id="tspan10243">Like (33)
 </tspan></tspan></text>
       <text
          xml:space="preserve"
@@ -332,9 +284,9 @@
          transform="matrix(0.77840385,0,0,0.76659799,69.205065,236.27175)"><tspan
            x="18.242188"
            y="34.58446"
-           id="tspan2206"><tspan
+           id="tspan10249"><tspan
              style="font-size:18.6667px;-inkscape-font-specification:'sans-serif, Normal'"
-             id="tspan2204">Delete
+             id="tspan10247">Delete
 </tspan></tspan></text>
       <text
          xml:space="preserve"
@@ -343,9 +295,9 @@
          transform="matrix(0.77840385,0,0,0.76659799,130.27757,236.27175)"><tspan
            x="18.242188"
            y="34.58446"
-           id="tspan2210"><tspan
+           id="tspan10253"><tspan
              style="font-size:18.6667px;-inkscape-font-specification:'sans-serif, Normal'"
-             id="tspan2208">Collapse
+             id="tspan10251">Collapse
 </tspan></tspan></text>
       <text
          xml:space="preserve"
@@ -354,47 +306,40 @@
          transform="matrix(1.3167357,0,0,1.2967651,-12.979524,164.53308)"><tspan
            x="18.242188"
            y="13.044076"
-           id="tspan2212">Create Post</tspan></text>
+           id="tspan10255">Create Post</tspan></text>
       <text
          xml:space="preserve"
          id="text1787"
          style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;text-decoration:underline;text-decoration-line:underline;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect1789);display:inline;fill:#3c3c3c;fill-opacity:1;stroke:none"
-         transform="matrix(0.92995893,0,0,0.8579978,19.955643,857.96482)"><tspan
+         transform="matrix(0.92995893,0,0,0.8579978,514.76486,858.51614)"><tspan
            x="18.242188"
            y="34.58446"
-           id="tspan2216"><tspan
+           id="tspan10259"><tspan
              style="font-size:18.6667px;-inkscape-font-specification:'sans-serif, Normal'"
-             id="tspan2214">Prev
+             id="tspan10257">Prev
 </tspan></tspan></text>
       <text
          xml:space="preserve"
          id="text1795"
          style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;text-decoration:underline;text-decoration-line:underline;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect1797);display:inline;fill:#3c3c3c;fill-opacity:1;stroke:none"
-         transform="matrix(0.92995893,0,0,0.8579978,140.87272,857.67086)"><tspan
+         transform="matrix(0.92995893,0,0,0.8579978,635.68194,858.22218)"><tspan
            x="18.242188"
            y="34.58446"
-           id="tspan2220"><tspan
+           id="tspan10263"><tspan
              style="font-size:18.6667px;-inkscape-font-specification:'sans-serif, Normal'"
-             id="tspan2218">Next Page
+             id="tspan10261">Next Page
 </tspan></tspan></text>
       <text
          xml:space="preserve"
          id="text1803"
          style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect1805);display:inline;fill:#3c3c3c;fill-opacity:1;stroke:none"
-         transform="matrix(1.7078377,0,0,1.5756835,84.382123,837.9895)"><tspan
+         transform="matrix(1.7078377,0,0,1.5756835,579.19134,838.54082)"><tspan
            x="18.242188"
            y="34.58446"
-           id="tspan2224"><tspan
+           id="tspan10267"><tspan
              style="font-size:18.6667px;-inkscape-font-specification:'sans-serif, Normal'"
-             id="tspan2222">1
+             id="tspan10265">1
 </tspan></tspan></text>
-      <rect
-         style="fill:#ffffff;fill-opacity:0.0866317;stroke:none;stroke-width:2;stroke-dasharray:none;stroke-opacity:1"
-         id="rect1859"
-         width="482.50168"
-         height="43.253902"
-         x="5.8969841"
-         y="-69.642174" />
       <rect
          style="fill:#ffffff;fill-opacity:0.0866317;stroke:none;stroke-width:2.06537;stroke-dasharray:none;stroke-opacity:1"
          id="rect1861"
@@ -409,10 +354,96 @@
          transform="matrix(0.77840385,0,0,0.76659799,200.82949,236.27175)"><tspan
            x="18.242188"
            y="34.58446"
-           id="tspan2228"><tspan
+           id="tspan10271"><tspan
              style="font-weight:bold;font-size:18.6667px;-inkscape-font-specification:'sans-serif, Bold'"
-             id="tspan2226">User123
+             id="tspan10269">User123
 </tspan></tspan></text>
+      <text
+         xml:space="preserve"
+         id="text2339"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16.326px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-decoration:underline;text-decoration-line:underline;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect2341);display:inline;fill:#3c3c3c;fill-opacity:1;stroke:none"
+         transform="matrix(1.3167357,0,0,1.2967651,1654.1233,-122.01061)"><tspan
+           x="18.242188"
+           y="13.044076"
+           id="tspan10273">Change Username</tspan></text>
+    </g>
+    <g
+       inkscape:groupmode="layer"
+       id="layer2"
+       inkscape:label="TopBar"
+       transform="translate(-14.399268,-157.08367)">
+      <text
+         xml:space="preserve"
+         id="text9206"
+         style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect9208);display:inline;fill:#3c3c3c;fill-opacity:1;stroke:none"
+         transform="matrix(0.96671075,0,0,0.96671075,21.852812,12.669891)"><tspan
+           x="18.242188"
+           y="34.58446"
+           id="tspan10279"><tspan
+             style="font-size:18.6667px;-inkscape-font-specification:'sans-serif, Normal'"
+             id="tspan10275">Welcome, </tspan><tspan
+             style="font-weight:bold;font-size:18.6667px;-inkscape-font-specification:'sans-serif, Bold'"
+             id="tspan10277">User123 </tspan></tspan></text>
+      <text
+         xml:space="preserve"
+         id="text13928"
+         style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect13930);display:inline;fill:#3c3c3c;fill-opacity:1;stroke:none"
+         transform="matrix(0.96671075,0,0,0.96671075,251.77787,12.669891)"><tspan
+           x="18.242188"
+           y="34.58446"
+           id="tspan10283"><tspan
+             style="font-size:18.6667px;-inkscape-font-specification:'sans-serif, Normal'"
+             id="tspan10281">My total likes: </tspan></tspan></text>
+      <text
+         xml:space="preserve"
+         id="text13934"
+         style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect13936);display:inline;fill:#3c3c3c;fill-opacity:1;stroke:none"
+         transform="matrix(0.96671075,0,0,0.96671075,373.93476,12.669891)"><tspan
+           x="18.242188"
+           y="34.58446"
+           id="tspan10287"><tspan
+             style="font-weight:bold;font-size:18.6667px;-inkscape-font-specification:'sans-serif, Bold'"
+             id="tspan10285">312</tspan></tspan></text>
+      <text
+         xml:space="preserve"
+         id="text13940"
+         style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect13946);display:inline;fill:#3c3c3c;fill-opacity:1;stroke:none"
+         transform="matrix(0.96671075,0,0,0.96671075,444.79542,12.669891)"><tspan
+           x="18.242188"
+           y="34.58446"
+           id="tspan10291"><tspan
+             style="font-size:18.6667px;-inkscape-font-specification:'sans-serif, Normal'"
+             id="tspan10289">My total posts: </tspan></tspan></text>
+      <text
+         xml:space="preserve"
+         id="text13944"
+         style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect13948);display:inline;fill:#3c3c3c;fill-opacity:1;stroke:none"
+         transform="matrix(0.96671075,0,0,0.96671075,578.18546,12.669891)"><tspan
+           x="18.242188"
+           y="34.58446"
+           id="tspan10295"><tspan
+             style="font-weight:bold;font-size:18.6667px;-inkscape-font-specification:'sans-serif, Bold'"
+             id="tspan10293">51</tspan></tspan></text>
+      <text
+         xml:space="preserve"
+         id="text2234"
+         style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect2236);display:inline;fill:#3c3c3c;fill-opacity:1;stroke:none"
+         transform="matrix(0.96671075,0,0,0.96671075,22.019888,83.189334)"><tspan
+           x="18.242188"
+           y="34.58446"
+           id="tspan10299"><tspan
+             style="font-size:18.6667px;-inkscape-font-specification:'sans-serif, Normal'"
+             id="tspan10297">Enter Post Title ...</tspan></tspan></text>
+      <text
+         xml:space="preserve"
+         id="text2302"
+         style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect2304);display:inline;fill:#3c3c3c;fill-opacity:1;stroke:none"
+         transform="matrix(0.96671075,0,0,0.96671075,16.562219,139.52467)"><tspan
+           x="18.242188"
+           y="34.58446"
+           id="tspan10303"><tspan
+             style="font-size:18.6667px;-inkscape-font-specification:'sans-serif, Normal'"
+             id="tspan10301">Enter Post Contents ...</tspan></tspan></text>
     </g>
   </g>
 </svg>
