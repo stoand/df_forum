@@ -3,6 +3,18 @@ body {
     color: #3c3c3c;
     font-family: "Ubuntu";
     font-size: 18px;
+    padding: 0;
+    margin: 0;
+}
+
+.global-root {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.global-root-spacer {
+    flex-grow: 2;
 }
 
 .top-bar {
@@ -21,4 +33,68 @@ body {
 
 a {
     color: inherit;
+}
+
+.create-post-form {
+    padding: 30px;
+}
+
+.create-post-title,.create-post-body {
+    font-size: inherit;
+    display: block;
+    margin-bottom: 25px;
+    padding: 20px;
+    border: none;
+    background: #e19191;
+}
+
+.create-post-title-container,.create-post-body-container {
+    display: flex;
+}
+.create-post-title {
+    flex-grow: 1;
+}
+.create-post-title-spacer {
+    flex-grow: 2;
+}
+.create-post-body {
+    flex-grow: 1;
+    height: 150px;
+    font-size: inherit;
+    font-family: inherit;
+}
+
+.create-post-button a {
+    padding: 20px 0;
+    font-size: 22px;
+}
+
+.post-container {
+    padding: 30px;
+}
+.post-title {
+    font-size: 22px;
+    padding: 20px 0;
+}
+
+.post-info-actions {
+    display: flex;
+    margin-bottom: 30px;
+}
+.post-action {
+    margin-right: 20px;
+}
+.post-info-bold {
+    font-weight: bold;
+}
+
+.pagination-container {
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+    font-size: 22px;
+}
+.pagination-action,.pagination-page-num {
+    margin-top: 60px;
+    padding: 0 30px;
 }
