@@ -1,1 +1,24 @@
+body {
+    background: #de8787;
+    color: #3c3c3c;
+    font-family: "Ubuntu";
+    font-size: 18px;
+}
 
+.top-bar {
+    padding: 30px;
+    display: flex;
+}
+
+.top-bar-item {
+    margin-right: 30px;
+}
+
+.top-bar-right-link {
+    flex-grow: 2;
+    text-align: right;
+}
+
+a {
+    color: inherit;
+}
