@@ -48,6 +48,10 @@ a {
     background: #e19191;
 }
 
+::placeholder {
+    color: #3c3c3c;
+}
+
 .create-post-title-container,.create-post-body-container {
     display: flex;
 }
