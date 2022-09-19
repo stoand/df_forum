@@ -110,3 +110,32 @@ a {
     margin: 30px 0;
     padding: 0 30px;
 }
+
+.username-selection {
+    margin: 300px auto;
+    background: #FFF;
+    padding: 30px;
+    text-align: center;
+}
+
+.username-selection-welcome {
+    font-size: 22px;
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.username-selection-input {
+    font-size: inherit;
+    display: inline-block;
+    margin-bottom: 25px;
+    padding: 20px;
+    border: none;
+    background: #EDF2F7;
+    color: #3c3c3c;
+    width: 80%;
+}
+
+.username-selection-chose {
+    font-size: 22px;
+    display: inline-block;
+}
