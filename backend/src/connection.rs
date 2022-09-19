@@ -25,7 +25,7 @@ async fn handle_connection(
     peer_map: PeerMap,
     raw_stream: TcpStream,
     addr: SocketAddr,
-    count: Arc<Mutex<u64>>,
+    count: Arc<Mutex<ForumMinimal>>,
 ) -> Result<(), HandlerError> {
     println!("tcp connection from: {}", addr);
 
@@ -57,10 +57,8 @@ async fn handle_connection(
                     .map(|(_, ws_sink)| ws_sink);
 
                 for recp in broadcast_recipients {
-                    // forum_minimal.say_hi();
-                    let mut c = count.lock().unwrap();
-                    println!("count {}", c);
-                    *c += 1;
+                    let mut forum_minimal = count.lock().unwrap();
+                    forum_minimal.say_hi();
                     
                     let m = if let Message::Text(recieved) = msg.clone() {
                         recieved
@@ -93,17 +91,15 @@ async fn handle_connection(
 pub async fn establish(addr: String) -> Result<(), HandlerError> {
     let state = PeerMap::new(Mutex::new(HashMap::new()));
 
-    let count = Arc::new(Mutex::new(0u64));
+    let forum_minimal = Arc::new(Mutex::new(ForumMinimal::new()));
 
     let try_socket = TcpListener::bind(&addr).await;
     let listener = try_socket.map_err(|_err| HandlerError::FailedSocketBind)?;
     println!("listening on: {}", addr);
 
-    let mut forum_minimal = ForumMinimal::new();
-
     loop {
         if let Ok((stream, addr)) = listener.accept().await {
-            tokio::spawn(handle_connection(state.clone(), stream, addr, count.clone()));
+            tokio::spawn(handle_connection(state.clone(), stream, addr, forum_minimal.clone()));
         }
     }
 }
