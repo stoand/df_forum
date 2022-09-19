@@ -3,6 +3,7 @@ use std::{
     net::SocketAddr,
     sync::{Arc, Mutex},
 };
+use df_forum_backend::forum_minimal::ForumMinimal;
 
 use futures_channel::mpsc::{unbounded, UnboundedSender};
 use futures_util::{future, pin_mut, stream::TryStreamExt, StreamExt};
@@ -24,6 +25,7 @@ async fn handle_connection(
     peer_map: PeerMap,
     raw_stream: TcpStream,
     addr: SocketAddr,
+    count: Arc<Mutex<u64>>,
 ) -> Result<(), HandlerError> {
     println!("tcp connection from: {}", addr);
 
@@ -55,6 +57,11 @@ async fn handle_connection(
                     .map(|(_, ws_sink)| ws_sink);
 
                 for recp in broadcast_recipients {
+                    // forum_minimal.say_hi();
+                    let mut c = count.lock().unwrap();
+                    println!("count {}", c);
+                    *c += 1;
+                    
                     let m = if let Message::Text(recieved) = msg.clone() {
                         recieved
                     } else {
@@ -86,13 +93,17 @@ async fn handle_connection(
 pub async fn establish(addr: String) -> Result<(), HandlerError> {
     let state = PeerMap::new(Mutex::new(HashMap::new()));
 
+    let count = Arc::new(Mutex::new(0u64));
+
     let try_socket = TcpListener::bind(&addr).await;
     let listener = try_socket.map_err(|_err| HandlerError::FailedSocketBind)?;
     println!("listening on: {}", addr);
 
+    let mut forum_minimal = ForumMinimal::new();
+
     loop {
         if let Ok((stream, addr)) = listener.accept().await {
-            tokio::spawn(handle_connection(state.clone(), stream, addr));
+            tokio::spawn(handle_connection(state.clone(), stream, addr, count.clone()));
         }
     }
 }

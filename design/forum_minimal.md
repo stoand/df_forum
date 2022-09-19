@@ -15,9 +15,9 @@ Posts Page Features:
     * Post titles have to be unique
     * Title or body cannot be empty
 * Aggregation stats
-    * [[.aggregates_total_global_post_count]] total posts
-    * [[.aggregates_total_user_post_count]] posts by entered user id
-    * [[.aggregates_total_user_likes]] total likes for user id
+    * [[.aggregates_global_post_count]] total posts
+    * [[.aggregates_user_post_count]] posts by entered user id
+    * [[.aggregates_user_likes]] total likes for user id
 * List of posts
     * [[.post_info]] Post title, body, author and like count
     * [[.post_collapse]] Post can be collapsed
