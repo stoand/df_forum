@@ -1,9 +1,9 @@
+use df_forum_backend::forum_minimal::ForumMinimal;
 use std::{
     collections::HashMap,
     net::SocketAddr,
     sync::{Arc, Mutex},
 };
-use df_forum_backend::forum_minimal::ForumMinimal;
 
 use futures_channel::mpsc::{unbounded, UnboundedSender};
 use futures_util::{future, pin_mut, stream::TryStreamExt, StreamExt};
@@ -47,30 +47,30 @@ async fn handle_connection(
             addr,
             msg.to_text().unwrap()
         );
-        let current = addr.clone();
-        let _ = peer_map
-            .lock()
-            .map(|peers| {
-                let broadcast_recipients = peers
-                    .iter()
-                    .filter(|(peer_addr, _)| peer_addr == &&current)
-                    .map(|(_, ws_sink)| ws_sink);
+        let mut forum_minimal = count.lock().unwrap();
+        forum_minimal.say_hi();
+        // let _ = peer_map
+        //     .lock()
+        //     .map(|peers| {
+        //         let broadcast_recipients = peers
+        //             .iter()
+        //             .filter(|(peer_addr, _)| peer_addr == &&addr)
+        //             .map(|(_, ws_sink)| ws_sink);
 
-                for recp in broadcast_recipients {
-                    let mut forum_minimal = count.lock().unwrap();
-                    forum_minimal.say_hi();
-                    
-                    let m = if let Message::Text(recieved) = msg.clone() {
-                        recieved
-                    } else {
-                        "__".into()
-                    };
-                    let _ = recp
-                        .unbounded_send(Message::Text(m + "_asdf".into()))
-                        .map_err(|_err| println!("unbounded send failed: {:?}", msg.clone()));
-                }
-            })
-            .map_err(|_err| println!("incoming broadcast error"));
+        //         for recp in broadcast_recipients {
+        //             let mut forum_minimal = count.lock().unwrap();
+        //             forum_minimal.say_hi();
+        //             let m = if let Message::Text(recieved) = msg.clone() {
+        //                 recieved
+        //             } else {
+        //                 "__".into()
+        //             };
+        //             let _ = recp
+        //                 .unbounded_send(Message::Text(m + "_asdf".into()))
+        //                 .map_err(|_err| println!("unbounded send failed: {:?}", msg.clone()));
+        //         }
+        //     })
+        //     .map_err(|_err| println!("incoming broadcast error"));
         future::ok(())
     });
 
@@ -99,7 +99,12 @@ pub async fn establish(addr: String) -> Result<(), HandlerError> {
 
     loop {
         if let Ok((stream, addr)) = listener.accept().await {
-            tokio::spawn(handle_connection(state.clone(), stream, addr, forum_minimal.clone()));
+            tokio::spawn(handle_connection(
+                state.clone(),
+                stream,
+                addr,
+                forum_minimal.clone(),
+            ));
         }
     }
 }

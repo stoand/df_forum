@@ -4,12 +4,15 @@ extern crate abomonation_derive;
 extern crate console_error_panic_hook;
 extern crate differential_dataflow;
 extern crate serde;
+#[macro_use]
 extern crate serde_derive;
 extern crate timely;
 extern crate wasm_bindgen_test;
 use wasm_bindgen_test::*;
 
 wasm_bindgen_test_configure!(run_in_browser);
+
+pub mod persisted;
 
 use std::cell::RefCell;
 use std::rc::Rc;

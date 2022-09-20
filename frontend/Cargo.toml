@@ -1,5 +1,5 @@
 [package]
-name = "df_forum"
+name = "df_forum_frontend"
 version = "0.1.0"
 edition = "2021"
 
