@@ -12,7 +12,7 @@ use crate::log;
 use crate::query_result::QueryResult;
 
 pub struct FrontendConnection {
-    buffer: Vec<QueryResult>,
+    buffer: Rc<RefCell<Vec<QueryResult>>>,
     websocket: Rc<RefCell<WebSocket>>,
 }
 
@@ -31,12 +31,17 @@ impl FrontendConnection {
             .set_onopen(Some(onopen.as_ref().unchecked_ref()));
         onopen.forget();
 
+        let buffer = Rc::new(RefCell::new(Vec::new()));
+        let buffer0 = buffer.clone();
+
         let onmessage = Closure::<dyn FnMut(WebSocketMessageEvent)>::new(
             move |message: WebSocketMessageEvent| {
-                log(&format!(
-                    "got websocket message: {:?}",
-                    message.data().as_string().unwrap()
-                ));
+                let data = message.data().as_string().unwrap();
+                log(&format!("got websocket message: {:?}", data));
+
+                let mut parsed_data : Vec<QueryResult> = serde_json::from_str(&data).expect("could not parse QueryResults");
+
+                buffer.borrow_mut().append(&mut parsed_data);
             },
         );
         websocket0
@@ -45,14 +50,14 @@ impl FrontendConnection {
         onmessage.forget();
 
         FrontendConnection {
-            buffer: Vec::new(),
+            buffer: buffer0,
             websocket: websocket0,
         }
     }
 
     pub fn latest_results(&mut self) -> Vec<QueryResult> {
-        let ret = self.buffer.clone();
-        self.buffer.clear();
+        let ret = self.buffer.borrow().clone();
+        self.buffer.borrow_mut().clear();
 
         vec![]
     }
