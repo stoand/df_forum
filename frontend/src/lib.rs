@@ -2,11 +2,11 @@
 extern crate abomonation;
 extern crate abomonation_derive;
 extern crate console_error_panic_hook;
-extern crate differential_dataflow;
+// extern crate differential_dataflow;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
-extern crate timely;
+// extern crate timely;
 extern crate wasm_bindgen_test;
 use wasm_bindgen_test::*;
 
@@ -17,9 +17,15 @@ pub mod persisted;
 use wasm_bindgen::prelude::*;
 
 use wasm_bindgen::JsCast;
-use web_sys::{Document, Element, HtmlElement, HtmlInputElement, Storage};
+use web_sys::Event;
+use web_sys::MessageEvent as WebSocketMessageEvent;
+use web_sys::{Document, Element, HtmlElement, HtmlInputElement, Storage, WebSocket};
+
+use std::cell::RefCell;
+use std::rc::Rc;
 
 pub const USERNAME_LOCAL_STORAGE_KEY: &'static str = "df_forum_username";
+pub const WEBSOCKET_URL: &'static str = "ws://127.0.0.1:5050";
 
 #[wasm_bindgen]
 extern "C" {
@@ -35,12 +41,41 @@ pub fn get_local_storage() -> Storage {
 pub fn bootstrap() {
     std::panic::set_hook(Box::new(console_error_panic_hook::hook));
 
+    websocket_connection();
+
     let local_storage = get_local_storage();
     if let Ok(Some(user_name)) = local_storage.get_item(USERNAME_LOCAL_STORAGE_KEY) {
         render_page_posts(user_name);
     } else {
         render_page_enter_username();
     }
+}
+
+pub fn websocket_connection() {
+    let websocket = Rc::new(RefCell::new(WebSocket::new(WEBSOCKET_URL).unwrap()));
+    let websocket0 = websocket.clone();
+
+    let onopen = Closure::<dyn FnMut(Event)>::new(move |_event: Event| {
+        log(&format!("websocket opened"));
+        websocket.clone().borrow().send_with_str("asdf").unwrap();
+    });
+
+    websocket0
+        .borrow()
+        .set_onopen(Some(onopen.as_ref().unchecked_ref()));
+    onopen.forget();
+
+    let onmessage =
+        Closure::<dyn FnMut(WebSocketMessageEvent)>::new(move |message: WebSocketMessageEvent| {
+            log(&format!(
+                "got websocket message: {:?}",
+                message.data().as_string().unwrap()
+            ));
+        });
+    websocket0
+        .borrow()
+        .set_onmessage(Some(onmessage.as_ref().unchecked_ref()));
+    onmessage.forget();
 }
 
 pub fn document_and_root() -> (Document, Element) {
@@ -151,7 +186,6 @@ pub fn render_page_posts(username: String) {
 
     let username_label = document.create_element("br").unwrap();
     page_ops.append_child(&username_label).unwrap();
-    
     // on (page_num) - activate or deactive
 
     let username_label = document.create_element("button").unwrap();
@@ -163,7 +197,6 @@ pub fn render_page_posts(username: String) {
     let username_label = document.create_element("span").unwrap();
     username_label.set_text_content(Some("Page ?"));
     page_ops.append_child(&username_label).unwrap();
-    
     // on (page_num) - activate or deactive
 
     let username_label = document.create_element("button").unwrap();

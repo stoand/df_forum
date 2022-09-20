@@ -12,12 +12,12 @@ crate-type = ["cdylib", "lib"]
 abomonation = "0.7.3"
 abomonation_derive = "0.5.0"
 console_error_panic_hook = "0.1.7"
-differential-dataflow = { git = "https://github.com/stoand/differential-dataflow", branch = "instant_wasm_compat", default-features = false }
+# differential-dataflow = { git = "https://github.com/stoand/differential-dataflow", branch = "instant_wasm_compat", default-features = false }
 # differential-dataflow = { path = "../differential-dataflow", default-features = false }
 serde = { version = "1.0.144", features = ["serde_derive"] }
 serde_derive = "1.0.144"
 serde_json = "1.0.85"
-timely = { git = "https://github.com/stoand/timely-dataflow", branch = "instant_wasm_compat", default-features = false, features = ["bincode"] }
+# timely = { git = "https://github.com/stoand/timely-dataflow", branch = "instant_wasm_compat", default-features = false, features = ["bincode"] }
 wasm-bindgen = "0.2.82"
 wasm-bindgen-test = "0.3.32"
-web-sys = { version = "0.3.59", features = ["Document", "Element", "HtmlElement", "HtmlInputElement", "Node", "Window", "Storage"] }
+web-sys = { version = "0.3.59", features = ["Document", "Element", "HtmlElement", "HtmlInputElement", "Node", "Window", "Storage", "WebSocket"] }
