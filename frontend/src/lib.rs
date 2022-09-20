@@ -12,17 +12,14 @@ use wasm_bindgen_test::*;
 
 wasm_bindgen_test_configure!(run_in_browser);
 
+pub mod connection;
 pub mod persisted;
+pub mod query_result;
 
 use wasm_bindgen::prelude::*;
 
 use wasm_bindgen::JsCast;
-use web_sys::Event;
-use web_sys::MessageEvent as WebSocketMessageEvent;
-use web_sys::{Document, Element, HtmlElement, HtmlInputElement, Storage, WebSocket};
-
-use std::cell::RefCell;
-use std::rc::Rc;
+use web_sys::{Document, Element, HtmlElement, HtmlInputElement, Storage};
 
 pub const USERNAME_LOCAL_STORAGE_KEY: &'static str = "df_forum_username";
 pub const WEBSOCKET_URL: &'static str = "ws://127.0.0.1:5050";
@@ -41,7 +38,7 @@ pub fn get_local_storage() -> Storage {
 pub fn bootstrap() {
     std::panic::set_hook(Box::new(console_error_panic_hook::hook));
 
-    websocket_connection();
+    let connection = connection::FrontendConnection::new(&WEBSOCKET_URL);
 
     let local_storage = get_local_storage();
     if let Ok(Some(user_name)) = local_storage.get_item(USERNAME_LOCAL_STORAGE_KEY) {
@@ -49,33 +46,6 @@ pub fn bootstrap() {
     } else {
         render_page_enter_username();
     }
-}
-
-pub fn websocket_connection() {
-    let websocket = Rc::new(RefCell::new(WebSocket::new(WEBSOCKET_URL).unwrap()));
-    let websocket0 = websocket.clone();
-
-    let onopen = Closure::<dyn FnMut(Event)>::new(move |_event: Event| {
-        log(&format!("websocket opened"));
-        websocket.clone().borrow().send_with_str("asdf").unwrap();
-    });
-
-    websocket0
-        .borrow()
-        .set_onopen(Some(onopen.as_ref().unchecked_ref()));
-    onopen.forget();
-
-    let onmessage =
-        Closure::<dyn FnMut(WebSocketMessageEvent)>::new(move |message: WebSocketMessageEvent| {
-            log(&format!(
-                "got websocket message: {:?}",
-                message.data().as_string().unwrap()
-            ));
-        });
-    websocket0
-        .borrow()
-        .set_onmessage(Some(onmessage.as_ref().unchecked_ref()));
-    onmessage.forget();
 }
 
 pub fn document_and_root() -> (Document, Element) {
