@@ -12,6 +12,7 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::tungstenite::protocol::Message;
 
 use df_forum_frontend::persisted::Persisted;
+use df_forum_frontend::query_result::QueryResult;
 
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -83,7 +84,7 @@ async fn handle_connection(
                     
                     forum_minimal.compute_forum(output0);
 
-                    let output0_vec : &Vec<isize> = &*output1.borrow();
+                    let output0_vec : &Vec<QueryResult> = &*output1.borrow();
                     let output_payload = serde_json::to_string(output0_vec).unwrap();
                     
                     recp.unbounded_send(Message::Text(output_payload)).unwrap();
