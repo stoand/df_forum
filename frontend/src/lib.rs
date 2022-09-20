@@ -14,20 +14,10 @@ wasm_bindgen_test_configure!(run_in_browser);
 
 pub mod persisted;
 
-use std::cell::RefCell;
-use std::rc::Rc;
-use timely::communication::allocator::thread::Thread;
-use timely::worker::Worker;
-use timely::WorkerConfig;
 use wasm_bindgen::prelude::*;
-
-use differential_dataflow::operators::Count;
-use differential_dataflow::operators::Reduce;
 
 use wasm_bindgen::JsCast;
 use web_sys::{Document, Element, HtmlElement, HtmlInputElement, Storage};
-
-use differential_dataflow::input::InputSession;
 
 pub const USERNAME_LOCAL_STORAGE_KEY: &'static str = "df_forum_username";
 
