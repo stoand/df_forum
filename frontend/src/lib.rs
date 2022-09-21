@@ -118,6 +118,25 @@ pub fn render_page_posts(username: String) {
     let username_label = document.create_element("h2").unwrap();
     username_label.set_text_content(Some("Posts"));
     root.append_child(&username_label).unwrap();
+    
+
+    let username_label = document.create_element("input").unwrap();
+    root.append_child(&username_label).unwrap();
+    username_label
+        .dyn_ref::<HtmlInputElement>()
+        .unwrap()
+        .set_placeholder("Post Title");
+
+    let username_label = document.create_element("input").unwrap();
+    root.append_child(&username_label).unwrap();
+    username_label
+        .dyn_ref::<HtmlInputElement>()
+        .unwrap()
+        .set_placeholder("Post Body");
+
+    let use_different_name = document.create_element("button").unwrap();
+    use_different_name.set_text_content(Some("Create Post"));
+    root.append_child(&use_different_name).unwrap();
 
     // on (user_id, Aggregations)
 
