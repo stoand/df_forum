@@ -31,7 +31,7 @@ async fn handle_connection(
     peer_map: PeerMap,
     raw_stream: TcpStream,
     addr: SocketAddr,
-    count: Arc<Mutex<ForumMinimal>>,
+    // forum_minimal_locked: Arc<Mutex<ForumMinimal>>,
 ) -> Result<(), HandlerError> {
     println!("tcp connection from: {}", addr);
 
@@ -48,30 +48,21 @@ async fn handle_connection(
     let (outgoing, incoming) = ws_stream.split();
 
     let broadcast_incoming = incoming.try_for_each(|msg| {
-        let fake_payload = vec![Persisted::Post {
-            title: "Cool Stuff".into(),
-            body: "Body".into(),
-            user_id: 20,
-            likes: 0,
-        }];
+        let forum_minimal_locked = Arc::new(Mutex::new(ForumMinimal::new()));
 
         println!(
             "Received a message from {}: {}",
             addr,
             msg.to_text().unwrap()
         );
-        
-        // let fake_msg = serde_json::to_string(&fake_payload).unwrap();
-        
-        let fake_msg = msg.to_text().unwrap();
 
-        // println!("recieved fake message:\n{}", fake_msg);
+        let parsed_msg: Vec<Persisted> = serde_json::from_str(&msg.to_text().unwrap()).unwrap();
 
-        let parsed_fake_msg: Vec<Persisted> = serde_json::from_str(&fake_msg).unwrap();
+        let mut forum_minimal = forum_minimal_locked.lock().unwrap();
+        forum_minimal.submit_transaction(parsed_msg);
 
-        let mut forum_minimal = count.lock().unwrap();
-        forum_minimal.say_hi();
-        forum_minimal.new_persisted_transaction(parsed_fake_msg);
+        // let mut forum_minimal = forum_minimal_locked.lock().unwrap();
+        // forum_minimal.new_persisted_transaction(parsled_fake_msg);
 
         let _ = peer_map
             .lock()
@@ -82,15 +73,8 @@ async fn handle_connection(
                     .map(|(_, ws_sink)| ws_sink);
 
                 if let Some(recp) = broadcast_recipients.next() {
-                    
-                    let output0 = Rc::new(RefCell::new(Vec::new()));
-                    let output1 = output0.clone();
-                    
-                    forum_minimal.compute_forum(output0);
-
-                    let output0_vec : &Vec<QueryResult> = &*output1.borrow();
+                    let output0_vec: &Vec<QueryResult> = &*forum_minimal.output.borrow();
                     let output_payload = serde_json::to_string(output0_vec).unwrap();
-                    
                     recp.unbounded_send(Message::Text(output_payload)).unwrap();
                 }
 
@@ -128,8 +112,6 @@ async fn handle_connection(
 pub async fn establish(addr: String) -> Result<(), HandlerError> {
     let state = PeerMap::new(Mutex::new(HashMap::new()));
 
-    let forum_minimal = Arc::new(Mutex::new(ForumMinimal::new()));
-
     let try_socket = TcpListener::bind(&addr).await;
     let listener = try_socket.map_err(|_err| HandlerError::FailedSocketBind)?;
     println!("listening on: {}", addr);
@@ -140,7 +122,7 @@ pub async fn establish(addr: String) -> Result<(), HandlerError> {
                 state.clone(),
                 stream,
                 addr,
-                forum_minimal.clone(),
+                // forum_minimal.clone(),
             ));
         }
     }

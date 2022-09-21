@@ -12,30 +12,17 @@ use differential_dataflow::operators::Count;
 use differential_dataflow::operators::Join;
 use differential_dataflow::operators::Reduce;
 
-#[derive(Hash, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone)]
 pub struct ForumMinimal {
-    pub state: Vec<Persisted>,
-    pub connection_count: u64,
+    pub input: Rc<RefCell<InputSession<u64, (u64, Persisted), isize>>>,
+    pub output: Rc<RefCell<Vec<QueryResult>>>,
+    pub worker: Rc<RefCell<Worker<timely::communication::allocator::Thread>>>,
+    time: u64,
 }
 
 impl ForumMinimal {
     pub fn new() -> Self {
-        ForumMinimal {
-            state: Vec::new(),
-            connection_count: 0,
-        }
-    }
-    pub fn say_hi(&mut self) {
-        self.connection_count += 1;
-        println!("forum_minimal says hi, count = {}", self.connection_count);
-    }
-
-    pub fn new_persisted_transaction(&mut self, persisted_items: Vec<Persisted>) {}
-
-    pub fn compute_forum(
-        &mut self,
-        output0: Rc<RefCell<Vec<QueryResult>>>,
-    ) -> Rc<RefCell<InputSession<u64, (u64, Persisted), isize>>> {
+        let output0 = Rc::new(RefCell::new(Vec::new()));
         let output1 = output0.clone();
 
         let worker_fn = move |worker: &mut Worker<Thread>| {
@@ -53,7 +40,9 @@ impl ForumMinimal {
                     })
                     .count()
                     .inspect(move |(((_id, persisted), count), _time, _diff)| {
-                        output1.borrow_mut().push(QueryResult::PostCount(*count as u64))
+                        output1
+                            .borrow_mut()
+                            .push(QueryResult::PostCount(*count as u64))
                     });
 
                 input
@@ -61,34 +50,38 @@ impl ForumMinimal {
         };
 
         let alloc = Thread::new();
-        let mut worker = Worker::new(WorkerConfig::default(), alloc);
-        let input = worker_fn(&mut worker);
+        let worker = Worker::new(WorkerConfig::default(), alloc);
+        let worker0 = Rc::new(RefCell::new(worker.clone()));
+        let worker1 = worker0.clone();
+        let input = worker_fn(&mut worker1.borrow_mut());
 
         let input0: Rc<RefCell<InputSession<u64, (u64, Persisted), isize>>> =
             Rc::new(RefCell::new(input));
         let input1 = input0.clone();
 
-        input0.borrow_mut().insert((
-            10u64,
-            Persisted::Post {
-                title: "asdf".into(),
-                body: "body0".into(),
-                user_id: 20,
-                likes: 0,
-            },
-        ));
-        input0.borrow_mut().advance_to(1u64);
+        ForumMinimal {
+            input: input1,
+            output: output0,
+            time: 0,
+            worker: worker0,
+        }
+    }
 
-        let mut go = move || {
-            for _ in 0..10 {
-                input0.borrow_mut().flush();
-                worker.step();
-            }
-        };
+    pub fn submit_transaction(&mut self, persisted_items: Vec<Persisted>) {
+        let input0 = self.input.clone();
+        for item in persisted_items {
+            self.input.borrow_mut().insert((10u64, item));
+        }
 
-        go();
+        let mut this = &mut *self;
+        this.time += 1;
+        
+        input0.borrow_mut().advance_to(self.time);
 
-        input1
+        for _ in 0..100 {
+            input0.borrow_mut().flush();
+            self.worker.borrow_mut().step();
+        }
     }
 
     // #SPC-forum_minimal.create_post
