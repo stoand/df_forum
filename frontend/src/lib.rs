@@ -16,6 +16,8 @@ pub mod connection;
 pub mod persisted;
 pub mod query_result;
 
+use persisted::Persisted;
+
 use wasm_bindgen::prelude::*;
 
 use wasm_bindgen::JsCast;
@@ -42,7 +44,7 @@ pub fn bootstrap() {
 
     let local_storage = get_local_storage();
     if let Ok(Some(user_name)) = local_storage.get_item(USERNAME_LOCAL_STORAGE_KEY) {
-        render_page_posts(user_name);
+        render_page_posts(user_name, connection);
     } else {
         render_page_enter_username();
     }
@@ -79,7 +81,7 @@ pub fn render_page_enter_username() {
                 .set_item(USERNAME_LOCAL_STORAGE_KEY, &name)
                 .unwrap();
 
-            render_page_posts(name);
+            bootstrap();
         }
     });
 
@@ -90,7 +92,7 @@ pub fn render_page_enter_username() {
 }
 
 // #SPC-forum_minimal.page_posts
-pub fn render_page_posts(username: String) {
+pub fn render_page_posts(username: String, connection: connection::FrontendConnection) {
     let (document, root) = document_and_root();
     root.set_inner_html("");
 
@@ -120,23 +122,45 @@ pub fn render_page_posts(username: String) {
     root.append_child(&username_label).unwrap();
     
 
-    let username_label = document.create_element("input").unwrap();
-    root.append_child(&username_label).unwrap();
-    username_label
+    let post_title = document.create_element("input").unwrap();
+    root.append_child(&post_title).unwrap();
+    post_title
         .dyn_ref::<HtmlInputElement>()
         .unwrap()
         .set_placeholder("Post Title");
 
-    let username_label = document.create_element("input").unwrap();
-    root.append_child(&username_label).unwrap();
-    username_label
+    let post_body = document.create_element("input").unwrap();
+    root.append_child(&post_body).unwrap();
+    post_body
         .dyn_ref::<HtmlInputElement>()
         .unwrap()
         .set_placeholder("Post Body");
 
-    let use_different_name = document.create_element("button").unwrap();
-    use_different_name.set_text_content(Some("Create Post"));
-    root.append_child(&use_different_name).unwrap();
+    let submit_post = document.create_element("button").unwrap();
+    submit_post.set_text_content(Some("Create Post"));
+    root.append_child(&submit_post).unwrap();
+
+    let submit_post_click = Closure::<dyn FnMut()>::new(move || {
+        let title = post_title
+            .dyn_ref::<HtmlInputElement>()
+            .unwrap()
+            .value();
+        
+        let body = post_body
+            .dyn_ref::<HtmlInputElement>()
+            .unwrap()
+            .value();
+
+        if !title.is_empty() && !body.is_empty() {
+            connection.send_transaction(vec![Persisted::Post { title, body, user_id: 0, likes: 0 }]);
+        }
+    });
+
+    let submit_post_el = submit_post.dyn_ref::<HtmlElement>().unwrap();
+    submit_post_el.set_onclick(Some(submit_post_click.as_ref().unchecked_ref()));
+
+    submit_post_click.forget();
+    
 
     // on (user_id, Aggregations)
 

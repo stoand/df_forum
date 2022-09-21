@@ -50,18 +50,22 @@ async fn handle_connection(
     let broadcast_incoming = incoming.try_for_each(|msg| {
         let fake_payload = vec![Persisted::Post {
             title: "Cool Stuff".into(),
+            body: "Body".into(),
             user_id: 20,
             likes: 0,
         }];
-        let fake_msg = serde_json::to_string(&fake_payload).unwrap();
-
-        println!("recieved fake message:\n{}", fake_msg);
 
         println!(
             "Received a message from {}: {}",
             addr,
             msg.to_text().unwrap()
         );
+        
+        // let fake_msg = serde_json::to_string(&fake_payload).unwrap();
+        
+        let fake_msg = msg.to_text().unwrap();
+
+        // println!("recieved fake message:\n{}", fake_msg);
 
         let parsed_fake_msg: Vec<Persisted> = serde_json::from_str(&fake_msg).unwrap();
 

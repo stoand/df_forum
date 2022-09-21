@@ -10,6 +10,7 @@ use wasm_bindgen::JsCast;
 
 use crate::log;
 use crate::query_result::QueryResult;
+use crate::persisted::Persisted;
 
 pub struct FrontendConnection {
     buffer: Rc<RefCell<Vec<QueryResult>>>,
@@ -23,7 +24,6 @@ impl FrontendConnection {
 
         let onopen = Closure::<dyn FnMut(Event)>::new(move |_event: Event| {
             log(&format!("websocket opened"));
-            websocket.clone().borrow().send_with_str("asdf").unwrap();
         });
 
         websocket0
@@ -53,6 +53,29 @@ impl FrontendConnection {
             buffer: buffer0,
             websocket: websocket0,
         }
+    }
+
+    pub fn send_transaction(&self, persisted_items: Vec<Persisted>) {
+
+            let fake_payload = vec![
+                Persisted::Post {
+                title: "Cool Stuff".into(),
+                body: "Body".into(),
+                user_id: 20,
+                likes: 0,
+            },
+                Persisted::Post {
+                title: "Cool Stuff".into(),
+                body: "Body".into(),
+                user_id: 20,
+                likes: 0,
+            },
+            ];
+            
+        
+            let fake_msg = serde_json::to_string(&persisted_items).unwrap();
+
+            self.websocket.clone().borrow().send_with_str(&fake_msg).unwrap();
     }
 
     pub fn latest_results(&mut self) -> Vec<QueryResult> {

@@ -72,6 +72,7 @@ impl ForumMinimal {
             10u64,
             Persisted::Post {
                 title: "asdf".into(),
+                body: "body0".into(),
                 user_id: 20,
                 likes: 0,
             },

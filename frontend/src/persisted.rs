@@ -9,6 +9,7 @@ pub enum Persisted {
     },
     Post {
         title: String,
+        body: String,
         user_id: u64,
         likes: u64,
     },
