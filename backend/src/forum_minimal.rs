@@ -131,17 +131,48 @@ pub fn aggregates_global_post_count() {
 
     forum_minimal.submit_transaction(inputs);
 
-    let outputs : &Vec<QueryResult> = &*forum_minimal.output.borrow();
-    let outputs : Vec<&QueryResult> = outputs.into_iter().filter(|output| {
-        if let QueryResult::PostCount(..) = output { true } else { false }
-    }).collect();
+    let outputs: &Vec<QueryResult> = &*forum_minimal.output.borrow();
+    let outputs: Vec<&QueryResult> = outputs
+        .into_iter()
+        .filter(|output| {
+            if let QueryResult::PostCount(..) = output {
+                true
+            } else {
+                false
+            }
+        })
+        .collect();
 
-    assert_eq!(
-        outputs,
-        vec![&QueryResult::PostCount(2)]
-    );
+    assert_eq!(outputs, vec![&QueryResult::PostCount(2)]);
 }
 
-// #[test]
-// pub fn test_aggregates_global_post_count() {
-// }
+use test::Bencher;
+
+#[bench]
+pub fn test_bench(bencher: &mut Bencher) {
+    bencher.iter(|| {
+        let mut forum_minimal = ForumMinimal::new();
+        let inputs = vec![
+            (
+                1u64,
+                Persisted::Post {
+                    title: "asdf".into(),
+                    body: "a".into(),
+                    user_id: 0,
+                    likes: 0,
+                },
+            ),
+            (
+                2u64,
+                Persisted::Post {
+                    title: "b".into(),
+                    body: "ba".into(),
+                    user_id: 0,
+                    likes: 0,
+                },
+            ),
+        ];
+
+        forum_minimal.submit_transaction(inputs);
+    });
+}
