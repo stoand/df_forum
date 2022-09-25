@@ -17,7 +17,6 @@ pub struct ForumMinimal {
     pub input: Rc<RefCell<InputSession<u64, (u64, Persisted), isize>>>,
     pub output: Rc<RefCell<Vec<QueryResult>>>,
     pub worker: Rc<RefCell<Worker<timely::communication::allocator::Thread>>>,
-    time: u64,
 }
 
 impl ForumMinimal {
@@ -38,8 +37,9 @@ impl ForumMinimal {
                             false
                         }
                     })
+                    .map(|post| 1)
                     .count()
-                    .inspect(move |(((_id, persisted), count), _time, _diff)| {
+                    .inspect(move |((one, count), _time, _diff)| {
                         output1
                             .borrow_mut()
                             .push(QueryResult::PostCount(*count as u64))
@@ -62,36 +62,55 @@ impl ForumMinimal {
         ForumMinimal {
             input: input1,
             output: output0,
-            time: 0,
             worker: worker0,
         }
     }
 
-    pub fn submit_transaction(&mut self, persisted_items: Vec<Persisted>) {
+    pub fn submit_transaction(&mut self, persisted_items: Vec<(u64, Persisted)>) {
         let input0 = self.input.clone();
-        for item in persisted_items {
-            self.input.borrow_mut().insert((10u64, item));
+        let mut max_time = 0u64;
+        for (time, item) in persisted_items {
+            self.input.borrow_mut().insert((time, item));
+            if time > max_time {
+                max_time = time;
+            }
         }
-
-        let mut this = &mut *self;
-        this.time += 1;
-        
-        input0.borrow_mut().advance_to(self.time);
+        input0.borrow_mut().advance_to(max_time);
 
         for _ in 0..100 {
             input0.borrow_mut().flush();
             self.worker.borrow_mut().step();
         }
     }
-
-    // #SPC-forum_minimal.create_post
-    // pub fn create_post(data: String) {
-    // }
 }
 
-// // #SPC-forum_minimal.aggregates_global_post_count
-// pub fn aggregates_global_post_count() {
-// }
+// #SPC-forum_minimal.aggregates_global_post_count
+#[test]
+pub fn aggregates_global_post_count() {
+    let mut forum_minimal = ForumMinimal::new();
+
+    let inputs = vec![(
+        1u64,
+        Persisted::Post {
+            title: "asdf".into(),
+            body: "a".into(),
+            user_id: 0,
+            likes: 0,
+        },
+    ),(
+        2u64,
+        Persisted::Post {
+            title: "b".into(),
+            body: "ba".into(),
+            user_id: 0,
+            likes: 0,
+        },
+    )];
+
+    forum_minimal.submit_transaction(inputs);
+
+    assert_eq!(*forum_minimal.output.borrow(), vec![QueryResult::PostCount(2)]);
+}
 
 // #[test]
 // pub fn test_aggregates_global_post_count() {

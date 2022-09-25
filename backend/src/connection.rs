@@ -31,6 +31,10 @@ async fn handle_connection(
     peer_map: PeerMap,
     raw_stream: TcpStream,
     addr: SocketAddr,
+    // TODO: reuse dataflows between connections
+    // instead of only preserving the persisted data
+    existing_persisted_locked: Arc<Mutex<Vec<(u64, Persisted)>>>,
+    current_time_locked: Arc<Mutex<u64>>,
     // forum_minimal_locked: Arc<Mutex<ForumMinimal>>,
 ) -> Result<(), HandlerError> {
     println!("tcp connection from: {}", addr);
@@ -49,7 +53,11 @@ async fn handle_connection(
 
     let broadcast_incoming = {
         incoming.try_for_each(|msg| {
-            let forum_minimal_locked = Arc::new(Mutex::new(ForumMinimal::new()));
+
+            let mut current_time = current_time_locked.lock().unwrap();
+            *current_time += 1;
+
+            let mut existing_persisted = existing_persisted_locked.lock().unwrap();
 
             println!(
                 "Received a message from {}: {}",
@@ -59,8 +67,15 @@ async fn handle_connection(
 
             let parsed_msg: Vec<Persisted> = serde_json::from_str(&msg.to_text().unwrap()).unwrap();
 
-            let mut forum_minimal = forum_minimal_locked.lock().unwrap();
-            forum_minimal.submit_transaction(parsed_msg);
+            for item in parsed_msg {
+                existing_persisted.push((*current_time, item));
+            }
+
+            println!("existing persisted: {:?}", existing_persisted);
+
+            let mut forum_minimal = ForumMinimal::new();
+            // TODO
+            forum_minimal.submit_transaction((&existing_persisted).to_vec());
 
             // let mut forum_minimal = forum_minimal_locked.lock().unwrap();
             // forum_minimal.new_persisted_transaction(parsled_fake_msg);
@@ -118,13 +133,17 @@ pub async fn establish(addr: String) -> Result<(), HandlerError> {
     let listener = try_socket.map_err(|_err| HandlerError::FailedSocketBind)?;
     println!("listening on: {}", addr);
 
+    let existing_persisted = Arc::new(Mutex::new(Vec::new()));
+    let current_time = Arc::new(Mutex::new(1u64));
+
     loop {
         if let Ok((stream, addr)) = listener.accept().await {
             tokio::spawn(handle_connection(
                 state.clone(),
                 stream,
                 addr,
-                // forum_minimal.clone(),
+                existing_persisted.clone(),
+                current_time.clone()
             ));
         }
     }
