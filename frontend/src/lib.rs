@@ -105,12 +105,8 @@ pub fn render_page_posts(
     root.set_inner_html("");
 
     let connection0 = connection.clone();
-    let load_buffered = document.create_element("button").unwrap();
-    load_buffered.set_text_content(Some("Load Buffered Results"));
-    root.append_child(&load_buffered).unwrap();
-
-    let load_buffered_click = Closure::<dyn FnMut()>::new(move || {
-        let items = connection.borrow_mut().load_buffered();
+    
+    let on_parsed_message = move |items: Vec<QueryResult>| {
         log(&format!("load buffered: {}", items.len()));
 
         let window = web_sys::window().unwrap();
@@ -123,16 +119,15 @@ pub fn render_page_posts(
                         .unwrap()
                         .unwrap()
                         .set_text_content(Some(&count.to_string()));
-                }
+                },
+                // QueryResult::Post { id } => {
+                // }
                 _ => {}
             }
         }
-    });
+    };
 
-    let load_buffered_el = load_buffered.dyn_ref::<HtmlElement>().unwrap();
-    load_buffered_el.set_onclick(Some(load_buffered_click.as_ref().unchecked_ref()));
-
-    load_buffered_click.forget();
+    connection.borrow_mut().init_on_parsed_message(on_parsed_message);
 
     let username_label = document.create_element("div").unwrap();
     username_label.set_text_content(Some(&("Username: ".to_owned() + &username)));

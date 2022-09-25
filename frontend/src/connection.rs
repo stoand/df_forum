@@ -9,12 +9,13 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
 use crate::log;
-use crate::query_result::QueryResult;
 use crate::persisted::Persisted;
+use crate::query_result::QueryResult;
 
 pub struct FrontendConnection {
     buffer: Rc<RefCell<Vec<QueryResult>>>,
     websocket: Rc<RefCell<WebSocket>>,
+    pub onmessage: Option<fn(Vec<QueryResult>) -> ()>,
 }
 
 impl FrontendConnection {
@@ -34,54 +35,36 @@ impl FrontendConnection {
         let buffer = Rc::new(RefCell::new(Vec::new()));
         let buffer0 = buffer.clone();
 
+        FrontendConnection {
+            buffer: buffer0,
+            websocket: websocket0.clone(),
+            onmessage: None,
+        }
+    }
+
+    pub fn init_on_parsed_message(&self, on_parsed_message: fn(Vec<QueryResult>) -> ()) {
+
         let onmessage = Closure::<dyn FnMut(WebSocketMessageEvent)>::new(
             move |message: WebSocketMessageEvent| {
                 let data = message.data().as_string().unwrap();
                 log(&format!("got websocket message: {:?}", data));
 
-                let mut parsed_data : Vec<QueryResult> = serde_json::from_str(&data).expect("could not parse QueryResults");
+                let mut parsed_data: Vec<QueryResult> =
+                    serde_json::from_str(&data).expect("could not parse QueryResults");
 
-                buffer.borrow_mut().append(&mut parsed_data);
+                on_parsed_message(parsed_data);
             },
         );
-        websocket0
+        self.websocket
             .borrow()
             .set_onmessage(Some(onmessage.as_ref().unchecked_ref()));
         onmessage.forget();
-
-        FrontendConnection {
-            buffer: buffer0,
-            websocket: websocket0,
-        }
     }
 
-    pub fn send_transaction(&self, persisted_items: Vec<Persisted>) {
-
-            let fake_payload = vec![
-                Persisted::Post {
-                title: "Cool Stuff".into(),
-                body: "Body".into(),
-                user_id: 20,
-                likes: 0,
-            },
-                Persisted::Post {
-                title: "Cool Stuff".into(),
-                body: "Body".into(),
-                user_id: 20,
-                likes: 0,
-            },
-            ];
-            
         
-            let fake_msg = serde_json::to_string(&persisted_items).unwrap();
+    pub fn send_transaction(&self, persisted_items: Vec<Persisted>) {
+        let msg = serde_json::to_string(&persisted_items).unwrap();
 
-            self.websocket.clone().borrow().send_with_str(&fake_msg).unwrap();
-    }
-
-    pub fn load_buffered(&mut self) -> Vec<QueryResult> {
-        let ret = self.buffer.borrow().clone();
-        self.buffer.borrow_mut().clear();
-
-        ret
+        self.websocket.clone().borrow().send_with_str(&msg).unwrap();
     }
 }
