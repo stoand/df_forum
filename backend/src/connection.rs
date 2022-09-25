@@ -53,7 +53,6 @@ async fn handle_connection(
 
     let broadcast_incoming = {
         incoming.try_for_each(|msg| {
-
             let mut current_time = current_time_locked.lock().unwrap();
             *current_time += 1;
 
@@ -71,14 +70,12 @@ async fn handle_connection(
                 existing_persisted.push((*current_time, item));
             }
 
-            println!("existing persisted: {:?}", existing_persisted);
-
             let mut forum_minimal = ForumMinimal::new();
             // TODO
             forum_minimal.submit_transaction((&existing_persisted).to_vec());
 
-            // let mut forum_minimal = forum_minimal_locked.lock().unwrap();
-            // forum_minimal.new_persisted_transaction(parsled_fake_msg);
+            let output0_vec: &Vec<QueryResult> = &*forum_minimal.output.borrow();
+            let output_payload = serde_json::to_string(output0_vec).unwrap();
 
             let _ = peer_map
                 .lock()
@@ -89,8 +86,6 @@ async fn handle_connection(
                         .map(|(_, ws_sink)| ws_sink);
 
                     if let Some(recp) = broadcast_recipients.next() {
-                        let output0_vec: &Vec<QueryResult> = &*forum_minimal.output.borrow();
-                        let output_payload = serde_json::to_string(output0_vec).unwrap();
                         recp.unbounded_send(Message::Text(output_payload)).unwrap();
                     }
 
@@ -143,7 +138,7 @@ pub async fn establish(addr: String) -> Result<(), HandlerError> {
                 stream,
                 addr,
                 existing_persisted.clone(),
-                current_time.clone()
+                current_time.clone(),
             ));
         }
     }

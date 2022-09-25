@@ -23,6 +23,7 @@ impl ForumMinimal {
     pub fn new() -> Self {
         let output0 = Rc::new(RefCell::new(Vec::new()));
         let output1 = output0.clone();
+        let output2 = output0.clone();
 
         let worker_fn = move |worker: &mut Worker<Thread>| {
             worker.dataflow(|scope| {
@@ -44,6 +45,24 @@ impl ForumMinimal {
                             .borrow_mut()
                             .push(QueryResult::PostCount(*count as u64))
                     });
+
+                manages.inspect(move |((id, persisted), _time, _diff)| {
+                    if let Persisted::Post {
+                        title,
+                        body,
+                        user_id,
+                        likes,
+                    } = persisted
+                    {
+                        output2.borrow_mut().push(QueryResult::Post {
+                            id: *id,
+                            title: title.clone(),
+                            body: body.clone(),
+                            user_id: *user_id,
+                            likes: *likes,
+                        })
+                    }
+                });
 
                 input
             })
@@ -89,27 +108,38 @@ impl ForumMinimal {
 pub fn aggregates_global_post_count() {
     let mut forum_minimal = ForumMinimal::new();
 
-    let inputs = vec![(
-        1u64,
-        Persisted::Post {
-            title: "asdf".into(),
-            body: "a".into(),
-            user_id: 0,
-            likes: 0,
-        },
-    ),(
-        2u64,
-        Persisted::Post {
-            title: "b".into(),
-            body: "ba".into(),
-            user_id: 0,
-            likes: 0,
-        },
-    )];
+    let inputs = vec![
+        (
+            1u64,
+            Persisted::Post {
+                title: "asdf".into(),
+                body: "a".into(),
+                user_id: 0,
+                likes: 0,
+            },
+        ),
+        (
+            2u64,
+            Persisted::Post {
+                title: "b".into(),
+                body: "ba".into(),
+                user_id: 0,
+                likes: 0,
+            },
+        ),
+    ];
 
     forum_minimal.submit_transaction(inputs);
 
-    assert_eq!(*forum_minimal.output.borrow(), vec![QueryResult::PostCount(2)]);
+    let outputs : &Vec<QueryResult> = &*forum_minimal.output.borrow();
+    let outputs : Vec<&QueryResult> = outputs.into_iter().filter(|output| {
+        if let QueryResult::PostCount(..) = output { true } else { false }
+    }).collect();
+
+    assert_eq!(
+        outputs,
+        vec![&QueryResult::PostCount(2)]
+    );
 }
 
 // #[test]
