@@ -17,6 +17,8 @@ pub mod persisted;
 pub mod query_result;
 
 use persisted::Persisted;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 use wasm_bindgen::prelude::*;
 
@@ -40,7 +42,7 @@ pub fn get_local_storage() -> Storage {
 pub fn bootstrap() {
     std::panic::set_hook(Box::new(console_error_panic_hook::hook));
 
-    let connection = connection::FrontendConnection::new(&WEBSOCKET_URL);
+    let connection = Rc::new(RefCell::new(connection::FrontendConnection::new(&WEBSOCKET_URL)));
 
     let local_storage = get_local_storage();
     if let Ok(Some(user_name)) = local_storage.get_item(USERNAME_LOCAL_STORAGE_KEY) {
@@ -92,9 +94,26 @@ pub fn render_page_enter_username() {
 }
 
 // #SPC-forum_minimal.page_posts
-pub fn render_page_posts(username: String, connection: connection::FrontendConnection) {
+pub fn render_page_posts(username: String, connection: Rc<RefCell<connection::FrontendConnection>>) {
     let (document, root) = document_and_root();
     root.set_inner_html("");
+
+    let connection0 = connection.clone();
+    
+    let load_buffered = document.create_element("button").unwrap();
+    load_buffered.set_text_content(Some("Load Buffered Results"));
+    root.append_child(&load_buffered).unwrap();
+
+    let load_buffered_click = Closure::<dyn FnMut()>::new(move || {
+        let items = connection.borrow_mut().load_buffered();
+        log(&format!("load buffered: {}", items.len()));
+    });
+
+    let load_buffered_el = load_buffered.dyn_ref::<HtmlElement>().unwrap();
+    load_buffered_el.set_onclick(Some(load_buffered_click.as_ref().unchecked_ref()));
+
+    load_buffered_click.forget();
+    
 
     let username_label = document.create_element("div").unwrap();
     username_label.set_text_content(Some(&("Username: ".to_owned() + &username)));
@@ -152,7 +171,7 @@ pub fn render_page_posts(username: String, connection: connection::FrontendConne
             .value();
 
         if !title.is_empty() && !body.is_empty() {
-            connection.send_transaction(vec![Persisted::Post { title, body, user_id: 0, likes: 0 }]);
+            connection0.borrow().send_transaction(vec![Persisted::Post { title, body, user_id: 0, likes: 0 }]);
         }
     });
 

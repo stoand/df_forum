@@ -78,10 +78,10 @@ impl FrontendConnection {
             self.websocket.clone().borrow().send_with_str(&fake_msg).unwrap();
     }
 
-    pub fn latest_results(&mut self) -> Vec<QueryResult> {
+    pub fn load_buffered(&mut self) -> Vec<QueryResult> {
         let ret = self.buffer.borrow().clone();
         self.buffer.borrow_mut().clear();
 
-        vec![]
+        ret
     }
 }
