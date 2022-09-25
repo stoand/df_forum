@@ -17,6 +17,7 @@ pub mod persisted;
 pub mod query_result;
 
 use persisted::Persisted;
+use query_result::QueryResult;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -42,7 +43,9 @@ pub fn get_local_storage() -> Storage {
 pub fn bootstrap() {
     std::panic::set_hook(Box::new(console_error_panic_hook::hook));
 
-    let connection = Rc::new(RefCell::new(connection::FrontendConnection::new(&WEBSOCKET_URL)));
+    let connection = Rc::new(RefCell::new(connection::FrontendConnection::new(
+        &WEBSOCKET_URL,
+    )));
 
     let local_storage = get_local_storage();
     if let Ok(Some(user_name)) = local_storage.get_item(USERNAME_LOCAL_STORAGE_KEY) {
@@ -94,12 +97,14 @@ pub fn render_page_enter_username() {
 }
 
 // #SPC-forum_minimal.page_posts
-pub fn render_page_posts(username: String, connection: Rc<RefCell<connection::FrontendConnection>>) {
+pub fn render_page_posts(
+    username: String,
+    connection: Rc<RefCell<connection::FrontendConnection>>,
+) {
     let (document, root) = document_and_root();
     root.set_inner_html("");
 
     let connection0 = connection.clone();
-    
     let load_buffered = document.create_element("button").unwrap();
     load_buffered.set_text_content(Some("Load Buffered Results"));
     root.append_child(&load_buffered).unwrap();
@@ -107,13 +112,27 @@ pub fn render_page_posts(username: String, connection: Rc<RefCell<connection::Fr
     let load_buffered_click = Closure::<dyn FnMut()>::new(move || {
         let items = connection.borrow_mut().load_buffered();
         log(&format!("load buffered: {}", items.len()));
+
+        let window = web_sys::window().unwrap();
+        let document = window.document().unwrap();
+        for item in items {
+            match item {
+                QueryResult::PostCount(count) => {
+                    document
+                        .query_selector("#posts-total")
+                        .unwrap()
+                        .unwrap()
+                        .set_text_content(Some(&count.to_string()));
+                }
+                _ => {}
+            }
+        }
     });
 
     let load_buffered_el = load_buffered.dyn_ref::<HtmlElement>().unwrap();
     load_buffered_el.set_onclick(Some(load_buffered_click.as_ref().unchecked_ref()));
 
     load_buffered_click.forget();
-    
 
     let username_label = document.create_element("div").unwrap();
     username_label.set_text_content(Some(&("Username: ".to_owned() + &username)));
@@ -139,7 +158,6 @@ pub fn render_page_posts(username: String, connection: Rc<RefCell<connection::Fr
     let username_label = document.create_element("h2").unwrap();
     username_label.set_text_content(Some("Posts"));
     root.append_child(&username_label).unwrap();
-    
 
     let post_title = document.create_element("input").unwrap();
     root.append_child(&post_title).unwrap();
@@ -160,18 +178,16 @@ pub fn render_page_posts(username: String, connection: Rc<RefCell<connection::Fr
     root.append_child(&submit_post).unwrap();
 
     let submit_post_click = Closure::<dyn FnMut()>::new(move || {
-        let title = post_title
-            .dyn_ref::<HtmlInputElement>()
-            .unwrap()
-            .value();
-        
-        let body = post_body
-            .dyn_ref::<HtmlInputElement>()
-            .unwrap()
-            .value();
+        let title = post_title.dyn_ref::<HtmlInputElement>().unwrap().value();
 
+        let body = post_body.dyn_ref::<HtmlInputElement>().unwrap().value();
         if !title.is_empty() && !body.is_empty() {
-            connection0.borrow().send_transaction(vec![Persisted::Post { title, body, user_id: 0, likes: 0 }]);
+            connection0.borrow().send_transaction(vec![Persisted::Post {
+                title,
+                body,
+                user_id: 0,
+                likes: 0,
+            }]);
         }
     });
 
@@ -179,13 +195,14 @@ pub fn render_page_posts(username: String, connection: Rc<RefCell<connection::Fr
     submit_post_el.set_onclick(Some(submit_post_click.as_ref().unchecked_ref()));
 
     submit_post_click.forget();
-    
 
     // on (user_id, Aggregations)
 
-    let username_label = document.create_element("div").unwrap();
-    username_label.set_text_content(Some("My Likes: ? -- My Posts: ? -- Posts Total: ?"));
-    root.append_child(&username_label).unwrap();
+    let aggregates = document.create_element("div").unwrap();
+    aggregates.set_inner_html(
+        "My Likes: ? -- My Posts: ? -- Posts Total: <span id='posts-total'>???</span>",
+    );
+    root.append_child(&aggregates).unwrap();
 
     // on (page_num, Post & post_user_author)
 
