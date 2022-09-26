@@ -64,7 +64,8 @@ async fn handle_connection(
                 msg.to_text().unwrap()
             );
 
-            let parsed_msg: Vec<Persisted> = serde_json::from_str(&msg.to_text().unwrap()).unwrap();
+            let parsed_msg: Vec<Persisted> =
+                serde_json::from_str(&msg.to_text().unwrap_or("[]")).unwrap_or(Vec::new());
 
             for item in parsed_msg {
                 existing_persisted.push((*current_time, item));
