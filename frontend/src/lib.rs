@@ -105,6 +105,7 @@ pub fn render_page_posts(
     root.set_inner_html("");
 
     let connection0 = connection.clone();
+    let connection1 = connection.clone();
 
     let username_label = document.create_element("div").unwrap();
     username_label.set_text_content(Some(&("Username: ".to_owned() + &username)));
@@ -177,7 +178,7 @@ pub fn render_page_posts(
     root.append_child(&aggregates).unwrap();
 
     // on (page_num, Post & post_user_author)
-    // 
+    //
     let posts_container = document.create_element("div").unwrap();
     posts_container.set_id("posts-container");
     root.append_child(&posts_container).unwrap();
@@ -185,7 +186,6 @@ pub fn render_page_posts(
     let post_template = document.create_element("div").unwrap();
     post_template.set_id("post-template");
     posts_container.append_child(&post_template).unwrap();
-    
     let username_label = document.create_element("h3").unwrap();
     username_label.set_text_content(Some("Post Title"));
     username_label.set_id("post-title");
@@ -207,6 +207,7 @@ pub fn render_page_posts(
 
     let username_label = document.create_element("button").unwrap();
     username_label.set_text_content(Some("Delete"));
+    username_label.set_id("post-remove");
     post_template.append_child(&username_label).unwrap();
 
     let username_label = document.create_element("button").unwrap();
@@ -234,10 +235,8 @@ pub fn render_page_posts(
     let username_label = document.create_element("button").unwrap();
     username_label.set_text_content(Some("Next"));
     page_ops.append_child(&username_label).unwrap();
-    
     let on_parsed_message = move |items: Vec<QueryResult>| {
-        log(&format!("load buffered: {}", items.len()));
-
+        let connection2 = connection1.clone();
         let window = web_sys::window().unwrap();
         let document = window.document().unwrap();
         for item in items {
@@ -248,23 +247,63 @@ pub fn render_page_posts(
                         .unwrap()
                         .unwrap()
                         .set_text_content(Some(&count.to_string()));
-                },
-                QueryResult::Post { id: _id, title, body, user_id, likes } => {
-                    let posts_container = document.query_selector("#posts-container").unwrap().unwrap();
+                }
+                QueryResult::Post {
+                    id,
+                    title,
+                    body,
+                    user_id,
+                    likes,
+                } => {
+                    let posts_container = document
+                        .query_selector("#posts-container")
+                        .unwrap()
+                        .unwrap();
                     let post_template = document.query_selector("#post-template").unwrap().unwrap();
                     let new_post = document.create_element("div").unwrap();
                     new_post.set_inner_html(&post_template.inner_html());
                     posts_container.append_child(&new_post).unwrap();
 
-                    new_post.query_selector("#post-title").unwrap().unwrap().set_text_content(Some(&title));
-                    new_post.query_selector("#post-body").unwrap().unwrap().set_text_content(Some(&body));
-                    new_post.query_selector("#post-author").unwrap().unwrap().set_text_content(Some(&user_id.to_string()));
-                    new_post.query_selector("#post-likes").unwrap().unwrap().set_text_content(Some(&likes.to_string()));
+                    new_post
+                        .query_selector("#post-title")
+                        .unwrap()
+                        .unwrap()
+                        .set_text_content(Some(&title));
+                    new_post
+                        .query_selector("#post-body")
+                        .unwrap()
+                        .unwrap()
+                        .set_text_content(Some(&body));
+                    new_post
+                        .query_selector("#post-author")
+                        .unwrap()
+                        .unwrap()
+                        .set_text_content(Some(&user_id.to_string()));
+                    new_post
+                        .query_selector("#post-likes")
+                        .unwrap()
+                        .unwrap()
+                        .set_text_content(Some(&likes.to_string()));
+
+                    let post_remove = new_post.query_selector("#post-remove").unwrap().unwrap();
+
+                    let connection3 = connection2.clone();
+
+                    let post_remove_click = Closure::<dyn FnMut()>::new(move || {
+                        connection3.borrow().send_transaction(vec![Persisted::PostDeleted { id }]);
+                    });
+
+                    let post_remove_el = post_remove.dyn_ref::<HtmlElement>().unwrap();
+                    post_remove_el.set_onclick(Some(post_remove_click.as_ref().unchecked_ref()));
+
+                    post_remove_click.forget();
                 }
                 _ => {}
             }
         }
     };
 
-    connection.borrow_mut().init_on_parsed_message(on_parsed_message);
+    connection
+        .borrow_mut()
+        .init_on_parsed_message(Box::new(on_parsed_message));
 }

@@ -42,7 +42,7 @@ impl FrontendConnection {
         }
     }
 
-    pub fn init_on_parsed_message(&self, on_parsed_message: fn(Vec<QueryResult>) -> ()) {
+    pub fn init_on_parsed_message(&self, on_parsed_message: Box<dyn Fn(Vec<QueryResult>)>) {
 
         let onmessage = Closure::<dyn FnMut(WebSocketMessageEvent)>::new(
             move |message: WebSocketMessageEvent| {

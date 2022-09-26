@@ -13,6 +13,9 @@ pub enum Persisted {
         user_id: u64,
         likes: u64,
     },
+    PostDeleted {
+        id: u64,
+    },
     Deleted,
 }
 
