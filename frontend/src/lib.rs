@@ -183,22 +183,26 @@ pub fn render_page_posts(
     root.append_child(&posts_container).unwrap();
 
     let post_template = document.create_element("div").unwrap();
+    post_template.set_id("post-template");
     posts_container.append_child(&post_template).unwrap();
     
     let username_label = document.create_element("h3").unwrap();
     username_label.set_text_content(Some("Post Title"));
+    username_label.set_id("post-title");
     post_template.append_child(&username_label).unwrap();
 
     let username_label = document.create_element("h6").unwrap();
     username_label.set_text_content(Some("Post Author"));
+    username_label.set_id("post-author");
     post_template.append_child(&username_label).unwrap();
 
     let username_label = document.create_element("p").unwrap();
     username_label.set_text_content(Some("Post Body"));
+    username_label.set_id("post-body");
     post_template.append_child(&username_label).unwrap();
 
     let username_label = document.create_element("button").unwrap();
-    username_label.set_text_content(Some("Like (like count?)"));
+    username_label.set_inner_html("Like <span id='post-likes'></span>");
     post_template.append_child(&username_label).unwrap();
 
     let username_label = document.create_element("button").unwrap();
@@ -245,11 +249,17 @@ pub fn render_page_posts(
                         .unwrap()
                         .set_text_content(Some(&count.to_string()));
                 },
-                QueryResult::Post { id, title, body, user_id, likes } => {
+                QueryResult::Post { id: _id, title, body, user_id, likes } => {
                     let posts_container = document.query_selector("#posts-container").unwrap().unwrap();
+                    let post_template = document.query_selector("#post-template").unwrap().unwrap();
                     let new_post = document.create_element("div").unwrap();
-                    new_post.set_text_content(Some(&title));
+                    new_post.set_inner_html(&post_template.inner_html());
                     posts_container.append_child(&new_post).unwrap();
+
+                    new_post.query_selector("#post-title").unwrap().unwrap().set_text_content(Some(&title));
+                    new_post.query_selector("#post-body").unwrap().unwrap().set_text_content(Some(&body));
+                    new_post.query_selector("#post-author").unwrap().unwrap().set_text_content(Some(&user_id.to_string()));
+                    new_post.query_selector("#post-likes").unwrap().unwrap().set_text_content(Some(&likes.to_string()));
                 }
                 _ => {}
             }
