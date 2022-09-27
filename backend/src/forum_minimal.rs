@@ -25,7 +25,7 @@ pub struct ForumMinimal {
 
 impl ForumMinimal {
     pub fn new(
-        persisted_receiver: broadcast::Receiver<Vec<Persisted>>,
+        persisted_sender: broadcast::Sender<Vec<Persisted>>,
         query_result_sender: broadcast::Sender<Vec<QueryResult>>,
     ) -> Self {
         let output0 = Rc::new(RefCell::new(Vec::new()));
@@ -91,7 +91,7 @@ impl ForumMinimal {
             input: input1,
             output: output0,
             worker: worker0,
-            persisted_receiver,
+            persisted_receiver: persisted_sender.subscribe(),
             dataflow_time: 1,
         }
     }
@@ -118,9 +118,9 @@ impl ForumMinimal {
 #[tokio::test]
 pub async fn test_channels() {
     let (query_result_sender, mut query_result_receiver) = broadcast::channel(16);
-    let (persisted_sender, persisted_receiver) = broadcast::channel(16);
+    let (persisted_sender, _persisted_receiver) = broadcast::channel(16);
 
-    let mut forum_minimal = ForumMinimal::new(persisted_receiver, query_result_sender);
+    let mut forum_minimal = ForumMinimal::new(persisted_sender.clone(), query_result_sender);
 
     let persisted_items = vec![Persisted::Post {
         title: "asdf".into(),
@@ -128,9 +128,9 @@ pub async fn test_channels() {
         user_id: 0,
         likes: 0,
     }];
-    persisted_sender.send(persisted_items).unwrap();
+    persisted_sender.clone().send(persisted_items).unwrap();
 
-    forum_minimal.advance_dataflow_computation().await;
+    forum_minimal.loop_advance_dataflow_computation().await;
 
     tokio::spawn(async move {
         assert_eq!(
