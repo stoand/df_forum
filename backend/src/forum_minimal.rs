@@ -133,7 +133,7 @@ pub async fn test_channels() {
     tokio::spawn(async move {
         assert_eq!(
             query_result_receiver.recv().await.unwrap(),
-            vec![QueryResult::PostCount(2)]
+            vec![QueryResult::PostCount(1)]
         );
     });
 
