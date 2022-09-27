@@ -47,57 +47,55 @@ async fn handle_connection(
 
     let (outgoing, incoming) = ws_stream.split();
 
-    let broadcast_incoming = {
-        incoming.try_for_each(|msg| {
-            println!(
-                "Received a message from {}: {}",
-                addr,
-                msg.to_text().unwrap()
-            );
+    let broadcast_incoming = incoming.try_for_each(|msg| {
+        println!(
+            "Received a message from {}: {}",
+            addr,
+            msg.to_text().unwrap()
+        );
 
-            let parsed_msg: Vec<Persisted> =
-                serde_json::from_str(&msg.to_text().unwrap_or("[]")).unwrap_or(Vec::new());
+        let parsed_msg: Vec<Persisted> =
+            serde_json::from_str(&msg.to_text().unwrap_or("[]")).unwrap_or(Vec::new());
 
-            let persisted_sender = persisted_sender_locked.lock().unwrap();
-            persisted_sender.send(parsed_msg).unwrap();
-            // sleep(Duration::from_millis(1)).await;
+        let persisted_sender = persisted_sender_locked.lock().unwrap();
+        persisted_sender.send(parsed_msg).unwrap();
+        // sleep(Duration::from_millis(1)).await;
 
-            if let Ok(query_results) = query_result_receiver_locked.lock().unwrap().try_recv() {
-                println!("query results found");
-                let output_payload = serde_json::to_string(&query_results.clone()).unwrap();
+        if let Ok(query_results) = query_result_receiver_locked.lock().unwrap().try_recv() {
+            println!("query results found");
+            let output_payload = serde_json::to_string(&query_results.clone()).unwrap();
 
-                let _ = peer_map
-                    .lock()
-                    .map(move |peers| {
-                        let mut broadcast_recipients = peers
-                            .iter()
-                            .filter(|(peer_addr, _)| peer_addr == &&addr)
-                            .map(|(_, ws_sink)| ws_sink);
+            let _ = peer_map
+                .lock()
+                .map(move |peers| {
+                    let mut broadcast_recipients = peers
+                        .iter()
+                        .filter(|(peer_addr, _)| peer_addr == &&addr)
+                        .map(|(_, ws_sink)| ws_sink);
 
-                        if let Some(recp) = broadcast_recipients.next() {
-                            recp.unbounded_send(Message::Text(output_payload)).unwrap();
-                        }
+                    if let Some(recp) = broadcast_recipients.next() {
+                        recp.unbounded_send(Message::Text(output_payload)).unwrap();
+                    }
 
-                        // for recp in broadcast_recipients {
-                        //     let mut forum_minimal = count.lock().unwrap();
-                        //     forum_minimal.say_hi();
-                        //     let m = if let Message::Text(recieved) = msg.clone() {
-                        //         recieved
-                        //     } else {
-                        //         "__".into()
-                        //     };
-                        //     let _ = recp
-                        //         .unbounded_send(Message::Text(m + "_asdf".into()))
-                        //         .map_err(|_err| println!("unbounded send failed: {:?}", msg.clone()));
-                        // }
-                    })
-                    .map_err(|_err| println!("incoming broadcast error"));
-            } else {
-                println!("none at all query results found");
-            }
-            future::ok(())
-        })
-    };
+                    // for recp in broadcast_recipients {
+                    //     let mut forum_minimal = count.lock().unwrap();
+                    //     forum_minimal.say_hi();
+                    //     let m = if let Message::Text(recieved) = msg.clone() {
+                    //         recieved
+                    //     } else {
+                    //         "__".into()
+                    //     };
+                    //     let _ = recp
+                    //         .unbounded_send(Message::Text(m + "_asdf".into()))
+                    //         .map_err(|_err| println!("unbounded send failed: {:?}", msg.clone()));
+                    // }
+                })
+                .map_err(|_err| println!("incoming broadcast error"));
+        } else {
+            println!("none at all query results found");
+        }
+        future::ok(())
+    });
 
     let recieve_from_others = rx.map(Ok).forward(outgoing);
 
