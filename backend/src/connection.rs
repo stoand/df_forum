@@ -9,6 +9,8 @@ use futures_channel::mpsc::{unbounded, UnboundedSender};
 use futures_util::{future, pin_mut, stream::TryStreamExt, StreamExt};
 
 use tokio::net::{TcpListener, TcpStream};
+use tokio::sync::broadcast;
+use tokio::time::{sleep, Duration};
 use tokio_tungstenite::tungstenite::protocol::Message;
 
 use df_forum_frontend::persisted::Persisted;
@@ -28,11 +30,8 @@ async fn handle_connection(
     peer_map: PeerMap,
     raw_stream: TcpStream,
     addr: SocketAddr,
-    // TODO: reuse dataflows between connections
-    // instead of only preserving the persisted data
-    existing_persisted_locked: Arc<Mutex<Vec<(u64, Persisted)>>>,
-    current_time_locked: Arc<Mutex<u64>>,
-    // forum_minimal_locked: Arc<Mutex<ForumMinimal>>,
+    persisted_sender_locked: Arc<Mutex<broadcast::Sender<Vec<Persisted>>>>,
+    query_result_receiver_locked: Arc<Mutex<broadcast::Receiver<Vec<QueryResult>>>>,
 ) -> Result<(), HandlerError> {
     println!("tcp connection from: {}", addr);
 
@@ -50,11 +49,6 @@ async fn handle_connection(
 
     let broadcast_incoming = {
         incoming.try_for_each(|msg| {
-            let mut current_time = current_time_locked.lock().unwrap();
-            *current_time += 1;
-
-            let mut existing_persisted = existing_persisted_locked.lock().unwrap();
-
             println!(
                 "Received a message from {}: {}",
                 addr,
@@ -64,45 +58,45 @@ async fn handle_connection(
             let parsed_msg: Vec<Persisted> =
                 serde_json::from_str(&msg.to_text().unwrap_or("[]")).unwrap_or(Vec::new());
 
-            for item in parsed_msg {
-                existing_persisted.push((*current_time, item));
-            }
-
-            let mut forum_minimal = ForumMinimal::new(unimplemented!(), unimplemented!());
-            // let mut forum_minimal = ForumMinimal::new();
+            let persisted_sender = persisted_sender_locked.lock().unwrap();
             
-            // TODO
-            // forum_minimal.submit_transaction((&existing_persisted).to_vec());
+            persisted_sender.send(parsed_msg).unwrap();
+            // sleep(Duration::from_millis(1)).await;
 
-            let output0_vec: &Vec<QueryResult> = &*forum_minimal.output.borrow();
-            let output_payload = serde_json::to_string(output0_vec).unwrap();
+            if let Ok(query_results) = query_result_receiver_locked.lock().unwrap().try_recv() {
+                println!("query results found");
+                let output_payload = serde_json::to_string(&query_results.clone()).unwrap();
 
-            let _ = peer_map
-                .lock()
-                .map(move |peers| {
-                    let mut broadcast_recipients = peers
-                        .iter()
-                        .filter(|(peer_addr, _)| peer_addr == &&addr)
-                        .map(|(_, ws_sink)| ws_sink);
+                let _ = peer_map
+                    .lock()
+                    .map(move |peers| {
+                        let mut broadcast_recipients = peers
+                            .iter()
+                            .filter(|(peer_addr, _)| peer_addr == &&addr)
+                            .map(|(_, ws_sink)| ws_sink);
 
-                    if let Some(recp) = broadcast_recipients.next() {
-                        recp.unbounded_send(Message::Text(output_payload)).unwrap();
-                    }
+                        if let Some(recp) = broadcast_recipients.next() {
+                            recp.unbounded_send(Message::Text(output_payload)).unwrap();
+                        }
 
-                    // for recp in broadcast_recipients {
-                    //     let mut forum_minimal = count.lock().unwrap();
-                    //     forum_minimal.say_hi();
-                    //     let m = if let Message::Text(recieved) = msg.clone() {
-                    //         recieved
-                    //     } else {
-                    //         "__".into()
-                    //     };
-                    //     let _ = recp
-                    //         .unbounded_send(Message::Text(m + "_asdf".into()))
-                    //         .map_err(|_err| println!("unbounded send failed: {:?}", msg.clone()));
-                    // }
-                })
-                .map_err(|_err| println!("incoming broadcast error"));
+                        // for recp in broadcast_recipients {
+                        //     let mut forum_minimal = count.lock().unwrap();
+                        //     forum_minimal.say_hi();
+                        //     let m = if let Message::Text(recieved) = msg.clone() {
+                        //         recieved
+                        //     } else {
+                        //         "__".into()
+                        //     };
+                        //     let _ = recp
+                        //         .unbounded_send(Message::Text(m + "_asdf".into()))
+                        //         .map_err(|_err| println!("unbounded send failed: {:?}", msg.clone()));
+                        // }
+                    })
+                    .map_err(|_err| println!("incoming broadcast error"));
+            } else {
+                println!("none at all query results found");
+            }
+            
             future::ok(())
         })
     };
@@ -128,8 +122,13 @@ pub async fn establish(addr: String) -> Result<(), HandlerError> {
     let listener = try_socket.map_err(|_err| HandlerError::FailedSocketBind)?;
     println!("listening on: {}", addr);
 
-    let existing_persisted = Arc::new(Mutex::new(Vec::new()));
-    let current_time = Arc::new(Mutex::new(1u64));
+    let (query_result_sender, query_result_receiver) = broadcast::channel(16);
+    let (persisted_sender, persisted_receiver) = broadcast::channel(16);
+
+    let mut forum_minimal = ForumMinimal::new(persisted_receiver, query_result_sender);
+
+    let persisted_sender_locked = Arc::new(Mutex::new(persisted_sender));
+    let query_result_receiver_locked = Arc::new(Mutex::new(query_result_receiver));
 
     loop {
         if let Ok((stream, addr)) = listener.accept().await {
@@ -137,9 +136,11 @@ pub async fn establish(addr: String) -> Result<(), HandlerError> {
                 state.clone(),
                 stream,
                 addr,
-                existing_persisted.clone(),
-                current_time.clone(),
+                persisted_sender_locked.clone(),
+                query_result_receiver_locked.clone(),
             ));
         }
+        // TODO run these in parallel
+        forum_minimal.poll_persisted();
     }
 }

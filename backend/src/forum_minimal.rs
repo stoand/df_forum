@@ -98,6 +98,7 @@ impl ForumMinimal {
 
     pub fn poll_persisted(&mut self) {
         if let Ok(persisted_items) = self.persisted_receiver.try_recv() {
+            println!("polling found something!!!");
             self.dataflow_time += 1;
 
             for item in persisted_items {
@@ -109,6 +110,8 @@ impl ForumMinimal {
                 self.input.borrow_mut().flush();
                 self.worker.borrow_mut().step();
             }
+        } else {
+            println!("polling found nothing");
         }
     }
 }
