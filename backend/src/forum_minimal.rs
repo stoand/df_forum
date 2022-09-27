@@ -96,19 +96,21 @@ impl ForumMinimal {
         }
     }
 
-    pub async fn advance_dataflow_computation(&mut self) {
-        let persisted_items = self.persisted_receiver.recv().await.unwrap();
+    pub async fn loop_advance_dataflow_computation(&mut self) {
+        loop {
+            let persisted_items = self.persisted_receiver.recv().await.unwrap();
 
-        self.dataflow_time += 1;
+            self.dataflow_time += 1;
 
-        for item in persisted_items {
-            self.input.borrow_mut().insert((self.dataflow_time, item));
-        }
-        self.input.borrow_mut().advance_to(self.dataflow_time);
+            for item in persisted_items {
+                self.input.borrow_mut().insert((self.dataflow_time, item));
+            }
+            self.input.borrow_mut().advance_to(self.dataflow_time);
 
-        for _ in 0..100 {
-            self.input.borrow_mut().flush();
-            self.worker.borrow_mut().step();
+            for _ in 0..100 {
+                self.input.borrow_mut().flush();
+                self.worker.borrow_mut().step();
+            }
         }
     }
 }

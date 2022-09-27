@@ -6,7 +6,7 @@ use std::{
 };
 
 use futures_channel::mpsc::{unbounded, UnboundedSender};
-use futures_util::{future, pin_mut, stream::TryStreamExt, StreamExt};
+use futures_util::{future, pin_mut, select, stream::TryStreamExt, StreamExt};
 
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::broadcast;
@@ -59,7 +59,6 @@ async fn handle_connection(
                 serde_json::from_str(&msg.to_text().unwrap_or("[]")).unwrap_or(Vec::new());
 
             let persisted_sender = persisted_sender_locked.lock().unwrap();
-            
             persisted_sender.send(parsed_msg).unwrap();
             // sleep(Duration::from_millis(1)).await;
 
@@ -96,7 +95,6 @@ async fn handle_connection(
             } else {
                 println!("none at all query results found");
             }
-            
             future::ok(())
         })
     };
@@ -115,20 +113,16 @@ async fn handle_connection(
     Ok(())
 }
 
-pub async fn establish(addr: String) -> Result<(), HandlerError> {
+async fn loop_check_for_connections(
+    addr: String,
+    persisted_sender_locked: Arc<Mutex<broadcast::Sender<Vec<Persisted>>>>,
+    query_result_receiver_locked: Arc<Mutex<broadcast::Receiver<Vec<QueryResult>>>>,
+) {
     let state = PeerMap::new(Mutex::new(HashMap::new()));
 
     let try_socket = TcpListener::bind(&addr).await;
-    let listener = try_socket.map_err(|_err| HandlerError::FailedSocketBind)?;
+    let listener = try_socket.unwrap();
     println!("listening on: {}", addr);
-
-    let (query_result_sender, query_result_receiver) = broadcast::channel(16);
-    let (persisted_sender, persisted_receiver) = broadcast::channel(16);
-
-    let mut forum_minimal = ForumMinimal::new(persisted_receiver, query_result_sender);
-
-    let persisted_sender_locked = Arc::new(Mutex::new(persisted_sender));
-    let query_result_receiver_locked = Arc::new(Mutex::new(query_result_receiver));
 
     loop {
         if let Ok((stream, addr)) = listener.accept().await {
@@ -140,7 +134,22 @@ pub async fn establish(addr: String) -> Result<(), HandlerError> {
                 query_result_receiver_locked.clone(),
             ));
         }
-        // TODO run these in parallel
-        forum_minimal.advance_dataflow_computation().await;
     }
+}
+
+pub async fn establish(addr: String) -> Result<(), HandlerError> {
+    let (query_result_sender, query_result_receiver) = broadcast::channel(64);
+    let (persisted_sender, persisted_receiver) = broadcast::channel(64);
+
+    let mut forum_minimal = ForumMinimal::new(persisted_receiver, query_result_sender);
+
+    let persisted_sender_locked = Arc::new(Mutex::new(persisted_sender));
+    let query_result_receiver_locked = Arc::new(Mutex::new(query_result_receiver));
+
+    tokio::join!(
+        loop_check_for_connections(addr, persisted_sender_locked, query_result_receiver_locked),
+        forum_minimal.loop_advance_dataflow_computation(),
+    );
+
+    Ok(())
 }
