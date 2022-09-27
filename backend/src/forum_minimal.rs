@@ -44,15 +44,16 @@ impl ForumMinimal {
                             false
                         }
                     })
-                    .map(|_post| 1)
+                    .map(|(_id, persisted)| 1)
                     .count()
-                    .inspect(move |((_one, count), _time, _diff)| {
-                        query_result_sender
-                            .send(vec![QueryResult::PostCount(*count as u64)])
-                            .unwrap();
-                        // output1
-                        //     .borrow_mut()
-                        //     .push(QueryResult::PostCount(*count as u64))
+                    .inspect(move |((_one, count), _time, diff)| {
+                        println!("{:?}", ((_one, count), _time, diff));
+
+                        if *diff > 0 {
+                            query_result_sender
+                                .send(vec![QueryResult::PostCount(*count as u64)])
+                                .unwrap();
+                        }
                     });
 
                 manages.inspect(move |((id, persisted), _time, _diff)| {
@@ -102,7 +103,9 @@ impl ForumMinimal {
         self.dataflow_time += 1;
 
         for item in persisted_items {
-            self.input.borrow_mut().insert((self.dataflow_time, item));
+            // TODO: actually generate an ID
+            let FAKE_ID_REPLACE = 0;
+            self.input.borrow_mut().insert((FAKE_ID_REPLACE, item));
         }
         self.input.borrow_mut().advance_to(self.dataflow_time);
 
