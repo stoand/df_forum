@@ -98,72 +98,20 @@ impl ForumMinimal {
 
     pub fn poll_persisted(&mut self) {
         if let Ok(persisted_items) = self.persisted_receiver.try_recv() {
-            println!("poll got something!!!");
-        } else {
-            println!("poll got nothing...");
-        }
-    }
+            self.dataflow_time += 1;
 
-    pub fn submit_transaction(&mut self, persisted_items: Vec<(u64, Persisted)>) {
-        let input0 = self.input.clone();
-        let mut max_time = 0u64;
-        for (time, item) in persisted_items {
-            self.input.borrow_mut().insert((time, item));
-            if time > max_time {
-                max_time = time;
+            for item in persisted_items {
+                self.input.borrow_mut().insert((self.dataflow_time, item));
             }
-        }
-        input0.borrow_mut().advance_to(max_time);
+            self.input.borrow_mut().advance_to(self.dataflow_time);
 
-        for _ in 0..100 {
-            input0.borrow_mut().flush();
-            self.worker.borrow_mut().step();
+            for _ in 0..100 {
+                self.input.borrow_mut().flush();
+                self.worker.borrow_mut().step();
+            }
         }
     }
 }
-
-// #SPC-forum_minimal.aggregates_global_post_count
-// #[test]
-// pub fn aggregates_global_post_count() {
-//     let mut forum_minimal = ForumMinimal::new();
-
-//     let inputs = vec![
-//         (
-//             1u64,
-//             Persisted::Post {
-//                 title: "asdf".into(),
-//                 body: "a".into(),
-//                 user_id: 0,
-//                 likes: 0,
-//             },
-//         ),
-//         (
-//             2u64,
-//             Persisted::Post {
-//                 title: "b".into(),
-//                 body: "ba".into(),
-//                 user_id: 0,
-//                 likes: 0,
-//             },
-//         ),
-//     ];
-
-//     forum_minimal.submit_transaction(inputs);
-
-//     let outputs: &Vec<QueryResult> = &*forum_minimal.output.borrow();
-//     let outputs: Vec<&QueryResult> = outputs
-//         .into_iter()
-//         .filter(|output| {
-//             if let QueryResult::PostCount(..) = output {
-//                 true
-//             } else {
-//                 false
-//             }
-//         })
-//         .collect();
-
-//     assert_eq!(outputs, vec![&QueryResult::PostCount(2)]);
-// }
 
 #[tokio::test]
 pub async fn test_channels() {
@@ -172,27 +120,20 @@ pub async fn test_channels() {
 
     let mut forum_minimal = ForumMinimal::new(persisted_receiver, query_result_sender);
 
-    let persisted_items = vec![
-        Persisted::Post {
-            title: "asdf".into(),
-            body: "a".into(),
-            user_id: 0,
-            likes: 0,
-        },
-    ];
-    
+    let persisted_items = vec![Persisted::Post {
+        title: "asdf".into(),
+        body: "a".into(),
+        user_id: 0,
+        likes: 0,
+    }];
     persisted_sender.send(persisted_items).unwrap();
-    
-    sleep(Duration::from_millis(1)).await;
 
     forum_minimal.poll_persisted();
-    
-    sleep(Duration::from_millis(1)).await;
 
     tokio::spawn(async move {
         assert_eq!(
             query_result_receiver.recv().await.unwrap(),
-            vec![QueryResult::PostCount(1)]
+            vec![QueryResult::PostCount(2)]
         );
     });
 

@@ -72,7 +72,7 @@ async fn handle_connection(
             // let mut forum_minimal = ForumMinimal::new();
             
             // TODO
-            forum_minimal.submit_transaction((&existing_persisted).to_vec());
+            // forum_minimal.submit_transaction((&existing_persisted).to_vec());
 
             let output0_vec: &Vec<QueryResult> = &*forum_minimal.output.borrow();
             let output_payload = serde_json::to_string(output0_vec).unwrap();
