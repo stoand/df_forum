@@ -15,18 +15,20 @@ use differential_dataflow::operators::Count;
 // use differential_dataflow::operators::Join;
 // use differential_dataflow::operators::Reduce;
 
-#[derive(Clone)]
 pub struct ForumMinimal {
     pub input: Rc<RefCell<InputSession<u64, (u64, Persisted), isize>>>,
     pub output: Rc<RefCell<Vec<QueryResult>>>,
     pub worker: Rc<RefCell<Worker<timely::communication::allocator::Thread>>>,
+    pub persisted_receiver: broadcast::Receiver<Vec<Persisted>>,
+    pub dataflow_time: u64,
 }
 
 impl ForumMinimal {
-    pub fn new(query_result_sender: broadcast::Sender<Vec<QueryResult>>) -> Self {
-    // pub fn new() -> Self {
+    pub fn new(
+        persisted_receiver: broadcast::Receiver<Vec<Persisted>>,
+        query_result_sender: broadcast::Sender<Vec<QueryResult>>,
+    ) -> Self {
         let output0 = Rc::new(RefCell::new(Vec::new()));
-        let output1 = output0.clone();
         let output2 = output0.clone();
 
         let worker_fn = move |worker: &mut Worker<Thread>| {
@@ -45,8 +47,9 @@ impl ForumMinimal {
                     .map(|_post| 1)
                     .count()
                     .inspect(move |((_one, count), _time, _diff)| {
-                        println!("hello");
-                        query_result_sender.send(vec![QueryResult::PostCount(*count as u64)]).unwrap();
+                        query_result_sender
+                            .send(vec![QueryResult::PostCount(*count as u64)])
+                            .unwrap();
                         // output1
                         //     .borrow_mut()
                         //     .push(QueryResult::PostCount(*count as u64))
@@ -88,6 +91,16 @@ impl ForumMinimal {
             input: input1,
             output: output0,
             worker: worker0,
+            persisted_receiver,
+            dataflow_time: 1,
+        }
+    }
+
+    pub fn poll_persisted(&mut self) {
+        if let Ok(persisted_items) = self.persisted_receiver.try_recv() {
+            println!("poll got something!!!");
+        } else {
+            println!("poll got nothing...");
         }
     }
 
@@ -154,26 +167,33 @@ impl ForumMinimal {
 
 #[tokio::test]
 pub async fn test_channels() {
-    let (tx, mut rx1) = broadcast::channel(16);
+    let (query_result_sender, mut query_result_receiver) = broadcast::channel(16);
+    let (persisted_sender, persisted_receiver) = broadcast::channel(16);
 
-    let mut rx2: broadcast::Receiver<Vec<QueryResult>> = tx.subscribe();
-    let mut forum_minimal = ForumMinimal::new(tx);
-    // let mut forum_minimal = ForumMinimal::new();
+    let mut forum_minimal = ForumMinimal::new(persisted_receiver, query_result_sender);
 
-    let inputs = vec![(
-        1u64,
+    let persisted_items = vec![
         Persisted::Post {
             title: "asdf".into(),
             body: "a".into(),
             user_id: 0,
             likes: 0,
         },
-    )];
+    ];
+    
+    persisted_sender.send(persisted_items).unwrap();
+    
+    sleep(Duration::from_millis(1)).await;
 
-    forum_minimal.submit_transaction(inputs);
+    forum_minimal.poll_persisted();
+    
+    sleep(Duration::from_millis(1)).await;
 
     tokio::spawn(async move {
-        assert_eq!(rx2.recv().await.unwrap(), vec![QueryResult::PostCount(1)]);
+        assert_eq!(
+            query_result_receiver.recv().await.unwrap(),
+            vec![QueryResult::PostCount(1)]
+        );
     });
 
     sleep(Duration::from_millis(1)).await;

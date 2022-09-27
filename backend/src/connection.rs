@@ -68,7 +68,7 @@ async fn handle_connection(
                 existing_persisted.push((*current_time, item));
             }
 
-            let mut forum_minimal = ForumMinimal::new(unimplemented!());
+            let mut forum_minimal = ForumMinimal::new(unimplemented!(), unimplemented!());
             // let mut forum_minimal = ForumMinimal::new();
             
             // TODO
