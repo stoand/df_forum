@@ -27,3 +27,15 @@ cargo watch -x 'test -- --nocapture'
 
 * `cd frontend/`
 * `nodemon -e rs -x 'wasm-pack test --chrome --headless'`
+
+# Backend
+
+Install `cargo watch` command: `cargo install cargo-watch`
+
+## Run Server
+
+`cargo watch -x run`
+
+## Run Tests
+
+`cargo watch -x 'test -- --nocapture'`

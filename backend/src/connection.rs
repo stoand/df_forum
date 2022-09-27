@@ -68,7 +68,9 @@ async fn handle_connection(
                 existing_persisted.push((*current_time, item));
             }
 
-            let mut forum_minimal = ForumMinimal::new();
+            let mut forum_minimal = ForumMinimal::new(unimplemented!());
+            // let mut forum_minimal = ForumMinimal::new();
+            
             // TODO
             forum_minimal.submit_transaction((&existing_persisted).to_vec());
 

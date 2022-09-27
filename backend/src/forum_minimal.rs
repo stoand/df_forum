@@ -8,6 +8,7 @@ use timely::worker::Worker;
 use timely::WorkerConfig;
 
 use tokio::sync::broadcast;
+use tokio::time::{sleep, Duration};
 
 use differential_dataflow::input::InputSession;
 use differential_dataflow::operators::Count;
@@ -22,7 +23,8 @@ pub struct ForumMinimal {
 }
 
 impl ForumMinimal {
-    pub fn new() -> Self {
+    pub fn new(query_result_sender: broadcast::Sender<Vec<QueryResult>>) -> Self {
+    // pub fn new() -> Self {
         let output0 = Rc::new(RefCell::new(Vec::new()));
         let output1 = output0.clone();
         let output2 = output0.clone();
@@ -43,9 +45,11 @@ impl ForumMinimal {
                     .map(|_post| 1)
                     .count()
                     .inspect(move |((_one, count), _time, _diff)| {
-                        output1
-                            .borrow_mut()
-                            .push(QueryResult::PostCount(*count as u64))
+                        println!("hello");
+                        query_result_sender.send(vec![QueryResult::PostCount(*count as u64)]).unwrap();
+                        // output1
+                        //     .borrow_mut()
+                        //     .push(QueryResult::PostCount(*count as u64))
                     });
 
                 manages.inspect(move |((id, persisted), _time, _diff)| {
@@ -106,60 +110,71 @@ impl ForumMinimal {
 }
 
 // #SPC-forum_minimal.aggregates_global_post_count
-#[test]
-pub fn aggregates_global_post_count() {
-    let mut forum_minimal = ForumMinimal::new();
+// #[test]
+// pub fn aggregates_global_post_count() {
+//     let mut forum_minimal = ForumMinimal::new();
 
-    let inputs = vec![
-        (
-            1u64,
-            Persisted::Post {
-                title: "asdf".into(),
-                body: "a".into(),
-                user_id: 0,
-                likes: 0,
-            },
-        ),
-        (
-            2u64,
-            Persisted::Post {
-                title: "b".into(),
-                body: "ba".into(),
-                user_id: 0,
-                likes: 0,
-            },
-        ),
-    ];
+//     let inputs = vec![
+//         (
+//             1u64,
+//             Persisted::Post {
+//                 title: "asdf".into(),
+//                 body: "a".into(),
+//                 user_id: 0,
+//                 likes: 0,
+//             },
+//         ),
+//         (
+//             2u64,
+//             Persisted::Post {
+//                 title: "b".into(),
+//                 body: "ba".into(),
+//                 user_id: 0,
+//                 likes: 0,
+//             },
+//         ),
+//     ];
 
-    forum_minimal.submit_transaction(inputs);
+//     forum_minimal.submit_transaction(inputs);
 
-    let outputs: &Vec<QueryResult> = &*forum_minimal.output.borrow();
-    let outputs: Vec<&QueryResult> = outputs
-        .into_iter()
-        .filter(|output| {
-            if let QueryResult::PostCount(..) = output {
-                true
-            } else {
-                false
-            }
-        })
-        .collect();
+//     let outputs: &Vec<QueryResult> = &*forum_minimal.output.borrow();
+//     let outputs: Vec<&QueryResult> = outputs
+//         .into_iter()
+//         .filter(|output| {
+//             if let QueryResult::PostCount(..) = output {
+//                 true
+//             } else {
+//                 false
+//             }
+//         })
+//         .collect();
 
-    assert_eq!(outputs, vec![&QueryResult::PostCount(2)]);
-}
+//     assert_eq!(outputs, vec![&QueryResult::PostCount(2)]);
+// }
 
 #[tokio::test]
 pub async fn test_channels() {
     let (tx, mut rx1) = broadcast::channel(16);
-    let mut rx2 : broadcast::Receiver<u64> = tx.subscribe();
+
+    let mut rx2: broadcast::Receiver<Vec<QueryResult>> = tx.subscribe();
+    let mut forum_minimal = ForumMinimal::new(tx);
+    // let mut forum_minimal = ForumMinimal::new();
+
+    let inputs = vec![(
+        1u64,
+        Persisted::Post {
+            title: "asdf".into(),
+            body: "a".into(),
+            user_id: 0,
+            likes: 0,
+        },
+    )];
+
+    forum_minimal.submit_transaction(inputs);
 
     tokio::spawn(async move {
-        assert_eq!(rx1.recv().await.unwrap(), 10);
+        assert_eq!(rx2.recv().await.unwrap(), vec![QueryResult::PostCount(1)]);
     });
 
-    tokio::spawn(async move {
-        assert_eq!(rx2.recv().await.unwrap(), 10);
-    });
-
-    tx.send(10).unwrap();
+    sleep(Duration::from_millis(1)).await;
 }
