@@ -14,9 +14,6 @@ use tokio_tungstenite::tungstenite::protocol::Message;
 use df_forum_frontend::persisted::Persisted;
 use df_forum_frontend::query_result::QueryResult;
 
-use std::cell::RefCell;
-use std::rc::Rc;
-
 type Tx = UnboundedSender<Message>;
 type PeerMap = Arc<Mutex<HashMap<SocketAddr, Tx>>>;
 

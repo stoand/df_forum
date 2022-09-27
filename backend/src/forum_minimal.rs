@@ -7,10 +7,12 @@ use timely::communication::allocator::thread::Thread;
 use timely::worker::Worker;
 use timely::WorkerConfig;
 
+use tokio::sync::broadcast;
+
 use differential_dataflow::input::InputSession;
 use differential_dataflow::operators::Count;
-use differential_dataflow::operators::Join;
-use differential_dataflow::operators::Reduce;
+// use differential_dataflow::operators::Join;
+// use differential_dataflow::operators::Reduce;
 
 #[derive(Clone)]
 pub struct ForumMinimal {
@@ -38,9 +40,9 @@ impl ForumMinimal {
                             false
                         }
                     })
-                    .map(|post| 1)
+                    .map(|_post| 1)
                     .count()
-                    .inspect(move |((one, count), _time, _diff)| {
+                    .inspect(move |((_one, count), _time, _diff)| {
                         output1
                             .borrow_mut()
                             .push(QueryResult::PostCount(*count as u64))
@@ -144,4 +146,20 @@ pub fn aggregates_global_post_count() {
         .collect();
 
     assert_eq!(outputs, vec![&QueryResult::PostCount(2)]);
+}
+
+#[tokio::test]
+pub async fn test_channels() {
+    let (tx, mut rx1) = broadcast::channel(16);
+    let mut rx2 : broadcast::Receiver<u64> = tx.subscribe();
+
+    tokio::spawn(async move {
+        assert_eq!(rx1.recv().await.unwrap(), 10);
+    });
+
+    tokio::spawn(async move {
+        assert_eq!(rx2.recv().await.unwrap(), 10);
+    });
+
+    tx.send(10).unwrap();
 }
