@@ -8,7 +8,6 @@ use timely::worker::Worker;
 use timely::WorkerConfig;
 
 use tokio::sync::broadcast;
-use tokio::time::{sleep, Duration};
 
 use differential_dataflow::input::InputSession;
 use differential_dataflow::operators::Count;
@@ -44,7 +43,7 @@ impl ForumMinimal {
                             false
                         }
                     })
-                    .map(|(_id, persisted)| 1)
+                    .map(|(_id, _persisted)| 1)
                     .count()
                     .inspect(move |((_one, count), _time, diff)| {
                         println!("{:?}", ((_one, count), _time, diff));
@@ -104,8 +103,8 @@ impl ForumMinimal {
 
         for item in persisted_items {
             // TODO: actually generate an ID
-            let FAKE_ID_REPLACE = 0;
-            self.input.borrow_mut().insert((FAKE_ID_REPLACE, item));
+            let fake_id_replace = 0;
+            self.input.borrow_mut().insert((fake_id_replace, item));
         }
         self.input.borrow_mut().advance_to(self.dataflow_time);
 
