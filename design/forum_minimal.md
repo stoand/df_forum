@@ -2,6 +2,10 @@
 partof: REQ-purpose
 ###
 
+# TODO's
+
+* Maintain dataflows for every connection (prevent stale data on initial load)
+
 # Features
 
 Pages:
