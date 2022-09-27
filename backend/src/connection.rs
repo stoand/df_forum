@@ -141,6 +141,6 @@ pub async fn establish(addr: String) -> Result<(), HandlerError> {
             ));
         }
         // TODO run these in parallel
-        forum_minimal.poll_persisted();
+        forum_minimal.advance_dataflow_computation().await;
     }
 }

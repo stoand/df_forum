@@ -96,22 +96,19 @@ impl ForumMinimal {
         }
     }
 
-    pub fn poll_persisted(&mut self) {
-        if let Ok(persisted_items) = self.persisted_receiver.try_recv() {
-            println!("polling found something!!!");
-            self.dataflow_time += 1;
+    pub async fn advance_dataflow_computation(&mut self) {
+        let persisted_items = self.persisted_receiver.recv().await.unwrap();
 
-            for item in persisted_items {
-                self.input.borrow_mut().insert((self.dataflow_time, item));
-            }
-            self.input.borrow_mut().advance_to(self.dataflow_time);
+        self.dataflow_time += 1;
 
-            for _ in 0..100 {
-                self.input.borrow_mut().flush();
-                self.worker.borrow_mut().step();
-            }
-        } else {
-            println!("polling found nothing");
+        for item in persisted_items {
+            self.input.borrow_mut().insert((self.dataflow_time, item));
+        }
+        self.input.borrow_mut().advance_to(self.dataflow_time);
+
+        for _ in 0..100 {
+            self.input.borrow_mut().flush();
+            self.worker.borrow_mut().step();
         }
     }
 }
@@ -131,11 +128,13 @@ pub async fn test_channels() {
     }];
     persisted_sender.send(persisted_items).unwrap();
 
-    forum_minimal.poll_persisted();
+    forum_minimal.advance_dataflow_computation().await;
 
     tokio::spawn(async move {
         assert_eq!(
             query_result_receiver.recv().await.unwrap(),
+            // to check if the test works, change this to
+            // a wrong value to see if the closure even ran
             vec![QueryResult::PostCount(1)]
         );
     });
