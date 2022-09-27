@@ -113,7 +113,7 @@ impl ForumMinimal {
     }
     pub async fn loop_advance_dataflow_computation(&mut self) {
         loop {
-            self.advance_dataflow_computation_once();
+            self.advance_dataflow_computation_once().await;
         }
     }
 }
