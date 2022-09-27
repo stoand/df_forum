@@ -31,6 +31,15 @@ impl FrontendConnection {
             .borrow()
             .set_onopen(Some(onopen.as_ref().unchecked_ref()));
         onopen.forget();
+        
+        let onclose = Closure::<dyn FnMut(Event)>::new(move |_event: Event| {
+            log(&format!("websocket close"));
+        });
+
+        websocket0
+            .borrow()
+            .set_onclose(Some(onclose.as_ref().unchecked_ref()));
+        onclose.forget();
 
         let buffer = Rc::new(RefCell::new(Vec::new()));
         let buffer0 = buffer.clone();
