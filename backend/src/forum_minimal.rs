@@ -15,10 +15,11 @@ use tokio::sync::broadcast;
 use differential_dataflow::input::InputSession;
 use differential_dataflow::operators::Count;
 
-use timely::dataflow::operators::Map;
-use timely::dataflow::*;
 use differential_dataflow::AsCollection;
 use differential_dataflow::{Collection, ExchangeData};
+use timely::dataflow::operators::Filter;
+use timely::dataflow::operators::Map;
+use timely::dataflow::*;
 
 pub type PersistedInputSession = InputSession<Time, (Id, Persisted), Diff>;
 
@@ -51,16 +52,22 @@ impl ForumMinimal {
                             false
                         }
                     })
+                    // .inspect(move |((_one, count), _time, diff)| {
+                    //     println!("0. {:?}", ((_one, count), _time, diff));
+                    // })
+                    // .only_latest()
+                    // .inspect(move |((_one, count), _time, diff)| {
+                    //     println!("1. {:?}", ((_one, count), _time, diff));
+                    // })
+                    .inner
+                    // .filter(|((_id, _persisted), time, diff)| *diff > 0)
                     // this de-dups multiple values, but sets the diff to
                     // to 2 or more if multiple duplicates are present
-                    .only_latest()
-                    .inner
-                    // set the diff to 1 
-                    .map(|((_id, _persisted), time, _diff)| (1, time, 1))
+                    .map(|((id, _persisted), time, diff)| (0, time, diff))
                     .as_collection()
                     .count()
                     .inspect(move |((_one, count), _time, diff)| {
-                        println!("{:?}", ((_one, count), _time, diff));
+                        // println!("{:?}", ((_one, count), _time, diff));
 
                         if *diff > 0 {
                             query_result_sender0
@@ -149,36 +156,60 @@ impl ForumMinimal {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tokio::time::{sleep, Duration};
 
     #[tokio::test]
-    pub async fn test_channels() {
+    pub async fn test_basic() {
         let (query_result_sender, mut query_result_receiver) = broadcast::channel(16);
         let (persisted_sender, _persisted_receiver) = broadcast::channel(16);
 
         let mut forum_minimal = ForumMinimal::new(persisted_sender.clone(), query_result_sender);
 
-        let post = Persisted::Post {
-            title: "asdf".into(),
+        let post0 = Persisted::Post {
+            title: "a".into(),
             body: "a".into(),
             user_id: 0,
             likes: 0,
         };
 
-        let persisted_items = vec![(44, post.clone(), 1), (44, post.clone(), 1)];
+        let post1 = Persisted::Post {
+            title: "b".into(),
+            body: "b".into(),
+            user_id: 0,
+            likes: 0,
+        };
+
+        let post2 = Persisted::Post {
+            title: "c".into(),
+            body: "c".into(),
+            user_id: 0,
+            likes: 0,
+        };
+
+        let post3 = Persisted::Post {
+            title: "d".into(),
+            body: "d".into(),
+            user_id: 0,
+            likes: 0,
+        };
+
+        let persisted_items = vec![(44, post0.clone(), 1), (45, post1, 1)];
         persisted_sender.clone().send(persisted_items).unwrap();
 
         forum_minimal.advance_dataflow_computation_once().await;
 
-        tokio::spawn(async move {
-            assert_eq!(
-                query_result_receiver.recv().await.unwrap(),
-                // to check if the test works, change this to
-                // a wrong value to see if the closure even ran
-                vec![QueryResult::PostCount(1)]
-            );
-        });
+        assert_eq!(
+            query_result_receiver.recv().await.unwrap(),
+            vec![QueryResult::PostCount(2)]
+        );
 
-        sleep(Duration::from_millis(1)).await;
+        let remove_persisted_item = vec![(44, post0.clone(), -1)];
+        persisted_sender.clone().send(remove_persisted_item).unwrap();
+        
+        forum_minimal.advance_dataflow_computation_once().await;
+
+        assert_eq!(
+            query_result_receiver.recv().await.unwrap(),
+            vec![QueryResult::PostCount(1)]
+        );
     }
 }
