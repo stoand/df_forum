@@ -120,31 +120,37 @@ impl ForumMinimal {
     }
 }
 
-#[tokio::test]
-pub async fn test_channels() {
-    let (query_result_sender, mut query_result_receiver) = broadcast::channel(16);
-    let (persisted_sender, _persisted_receiver) = broadcast::channel(16);
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio::time::{sleep, Duration};
 
-    let mut forum_minimal = ForumMinimal::new(persisted_sender.clone(), query_result_sender);
+    #[tokio::test]
+    pub async fn test_channels() {
+        let (query_result_sender, mut query_result_receiver) = broadcast::channel(16);
+        let (persisted_sender, _persisted_receiver) = broadcast::channel(16);
 
-    let persisted_items = vec![Persisted::Post {
-        title: "asdf".into(),
-        body: "a".into(),
-        user_id: 0,
-        likes: 0,
-    }];
-    persisted_sender.clone().send(persisted_items).unwrap();
+        let mut forum_minimal = ForumMinimal::new(persisted_sender.clone(), query_result_sender);
 
-    forum_minimal.advance_dataflow_computation_once().await;
+        let persisted_items = vec![Persisted::Post {
+            title: "asdf".into(),
+            body: "a".into(),
+            user_id: 0,
+            likes: 0,
+        }];
+        persisted_sender.clone().send(persisted_items).unwrap();
 
-    tokio::spawn(async move {
-        assert_eq!(
-            query_result_receiver.recv().await.unwrap(),
-            // to check if the test works, change this to
-            // a wrong value to see if the closure even ran
-            vec![QueryResult::PostCount(1)]
-        );
-    });
+        forum_minimal.advance_dataflow_computation_once().await;
 
-    sleep(Duration::from_millis(1)).await;
+        tokio::spawn(async move {
+            assert_eq!(
+                query_result_receiver.recv().await.unwrap(),
+                // to check if the test works, change this to
+                // a wrong value to see if the closure even ran
+                vec![QueryResult::PostCount(1)]
+            );
+        });
+
+        sleep(Duration::from_millis(1)).await;
+    }
 }
