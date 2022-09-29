@@ -163,7 +163,7 @@ pub fn render_page_posts(
         let body = post_body.dyn_ref::<HtmlInputElement>().unwrap().value();
         if !title.is_empty() && !body.is_empty() {
             connection0.borrow().send_transaction(vec![Persisted::Post {
-                // id: get_random_u64(),
+                id: get_random_u64(),
                 title,
                 body,
                 user_id: 0,
@@ -270,6 +270,7 @@ pub fn render_page_posts(
                     let post_template = document.query_selector("#post-template").unwrap().unwrap();
                     let new_post = document.create_element("div").unwrap();
                     new_post.set_inner_html(&post_template.inner_html());
+                    new_post.set_id(&id.to_string());
                     posts_container.append_child(&new_post).unwrap();
 
                     new_post
@@ -305,8 +306,10 @@ pub fn render_page_posts(
                     post_remove_el.set_onclick(Some(post_remove_click.as_ref().unchecked_ref()));
 
                     post_remove_click.forget();
-                }
-                _ => {}
+                },
+                QueryResult::PostDeleted { id } => {
+                    document.get_element_by_id(&id.to_string()).unwrap().remove();
+                },
             }
         }
     };
