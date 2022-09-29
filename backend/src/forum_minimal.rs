@@ -1,6 +1,6 @@
 use df_forum_frontend::df_tuple_items::{Diff, Id, Time};
 pub use df_forum_frontend::persisted::{Persisted, PersistedItems};
-use df_forum_frontend::query_result::QueryResult;
+use df_forum_frontend::query_result::{QueryResult, QueryResultAggregate};
 
 // use crate::operators::only_latest::OnlyLatest;
 
@@ -36,7 +36,7 @@ impl ForumMinimal {
         query_result_sender: broadcast::Sender<Vec<QueryResult>>,
     ) -> Self {
         let query_result_sender0 = query_result_sender.clone();
-        // let query_result_sender1 = query_result_sender.clone();
+        let query_result_sender1 = query_result_sender.clone();
         // let query_result_sender2 = query_result_sender.clone();
 
         let worker_fn = move |worker: &mut Worker<Thread>| {
@@ -44,6 +44,7 @@ impl ForumMinimal {
                 let mut input: PersistedInputSession = InputSession::new();
                 let manages = input.to_collection(scope);
 
+                // QueryResultAggregate::PostCount
                 manages
                     .filter(move |(_id, persisted)| {
                         if let Persisted::Post { .. } = persisted {
@@ -66,44 +67,27 @@ impl ForumMinimal {
                     .map(|((_id, _persisted), time, diff)| (0, time, diff))
                     .as_collection()
                     .count()
-                    .inspect(move |((_one, count), _time, diff)| {
+                    .inspect(move |((_discarded_zero, count), _time, diff)| {
                         // println!("{:?}", ((_one, count), _time, diff));
 
                         if *diff > 0 {
                             query_result_sender0
-                                .send(vec![QueryResult::PostCount(*count as u64)])
+                                .send(vec![QueryResult::Aggregate(
+                                    QueryResultAggregate::PostCount(*count as u64),
+                                )])
                                 .unwrap();
                         }
                     });
 
-                // manages.inspect(move |((_id, persisted), _time, _diff)| {
-                //     if let Persisted::Post {
-                //         // id,
-                //         title,
-                //         body,
-                //         user_id,
-                //         likes,
-                //     } = persisted
-                //     {
-                //         query_result_sender1
-                //             .send(vec![QueryResult::Post {
-                //                 id: 33333,
-                //                 title: title.clone(),
-                //                 body: body.clone(),
-                //                 user_id: *user_id,
-                //                 likes: *likes,
-                //             }])
-                //             .unwrap();
-                //     }
-                // });
+                manages.inspect(move |((id, persisted), _time, diff)| {
+                    let result = if *diff > 0 {
+                        QueryResult::AddPersisted(*id, persisted.clone())
+                    } else {
+                        QueryResult::DeletePersisted(*id)
+                    };
 
-                // manages.inspect(move |((_id, persisted), _time, _diff)| {
-                //     if let Persisted::PostDeleted { id } = persisted {
-                //         query_result_sender2
-                //             .send(vec![QueryResult::PostDeleted { id: *id }])
-                //             .unwrap();
-                //     }
-                // });
+                    query_result_sender1.send(vec![result]).unwrap();
+                });
 
                 input
             })
@@ -185,17 +169,19 @@ mod tests {
 
         assert_eq!(
             query_result_receiver.recv().await.unwrap(),
-            vec![QueryResult::PostCount(2)]
+            vec![QueryResult::Aggregate(QueryResultAggregate::PostCount(2))]
         );
 
         let remove_persisted_item = vec![(44, post0.clone(), -1)];
-        persisted_sender.clone().send(remove_persisted_item).unwrap();
-        
+        persisted_sender
+            .clone()
+            .send(remove_persisted_item)
+            .unwrap();
         forum_minimal.advance_dataflow_computation_once().await;
 
         assert_eq!(
             query_result_receiver.recv().await.unwrap(),
-            vec![QueryResult::PostCount(1)]
+            vec![QueryResult::Aggregate(QueryResultAggregate::PostCount(1))]
         );
     }
 }

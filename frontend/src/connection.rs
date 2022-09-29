@@ -9,7 +9,7 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
 use crate::log;
-use crate::persisted::Persisted;
+use crate::persisted::PersistedItems;
 use crate::query_result::QueryResult;
 
 pub struct FrontendConnection {
@@ -63,7 +63,7 @@ impl FrontendConnection {
         onmessage.forget();
     }
 
-    pub fn send_transaction(&self, persisted_items: Vec<Persisted>) {
+    pub fn send_transaction(&self, persisted_items: PersistedItems) {
         let msg = serde_json::to_string(&persisted_items).unwrap();
 
         self.websocket.clone().borrow().send_with_str(&msg).unwrap();

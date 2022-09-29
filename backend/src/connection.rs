@@ -40,7 +40,8 @@ async fn handle_connection(
 
     let (outgoing, incoming) = ws_stream.split();
 
-    let mut incoming_strings = incoming.map(|msg| msg.unwrap().to_text().expect("").to_string());
+    let mut incoming_strings =
+        incoming.map(|msg| msg.unwrap().to_text().unwrap_or("[]").to_string());
 
     let mut query_result_receiver = query_result_sender.subscribe();
 
@@ -48,9 +49,9 @@ async fn handle_connection(
         while let Some(msg) = incoming_strings.next().await {
             println!("got msg: {}", msg);
 
-            let parsed_msg: PersistedItems = serde_json::from_str(&msg).unwrap_or(Vec::new());
+            let parsed_msg: PersistedItems = serde_json::from_str(&msg)
+                .expect("Could not parse PersistedItems from Websocket Message");
             persisted_sender.send(parsed_msg).unwrap();
-
         }
     });
 
@@ -64,8 +65,6 @@ async fn handle_connection(
             tx.unbounded_send(Message::Text(output_payload)).unwrap();
         }
     });
-    
-    
     let recieve_from_others = rx.map(Ok).forward(outgoing);
 
     pin_mut!(broadcast_incoming, recieve_from_others);

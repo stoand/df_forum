@@ -19,7 +19,7 @@ pub mod query_result;
 pub mod df_tuple_items;
 
 use persisted::Persisted;
-use query_result::QueryResult;
+use query_result::{QueryResult, QueryResultAggregate};
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -113,7 +113,7 @@ pub fn render_page_posts(
     root.set_inner_html("");
 
     let connection0 = connection.clone();
-    // let connection1 = connection.clone();
+    let connection1 = connection.clone();
 
     let username_label = document.create_element("div").unwrap();
     username_label.set_text_content(Some(&("Username: ".to_owned() + &username)));
@@ -163,13 +163,12 @@ pub fn render_page_posts(
 
         let body = post_body.dyn_ref::<HtmlInputElement>().unwrap().value();
         if !title.is_empty() && !body.is_empty() {
-            connection0.borrow().send_transaction(vec![Persisted::Post {
-                // id: get_random_u64(),
+            connection0.borrow().send_transaction(vec![(get_random_u64(), Persisted::Post {
                 title,
                 body,
                 user_id: 0,
                 likes: 0,
-            }]);
+            }, 1)]);
         }
     });
 
@@ -249,20 +248,19 @@ pub fn render_page_posts(
         let document = window.document().unwrap();
         for item in items {
             match item {
-                QueryResult::PostCount(count) => {
+                QueryResult::Aggregate(QueryResultAggregate::PostCount(count)) => {
                     document
                         .query_selector("#posts-total")
                         .unwrap()
                         .unwrap()
                         .set_text_content(Some(&count.to_string()));
                 }
-                QueryResult::Post {
-                    id,
+                QueryResult::AddPersisted(id, Persisted::Post {
                     title,
                     body,
                     user_id,
                     likes,
-                } => {
+                }) => {
                     let posts_container = document
                         .query_selector("#posts-container")
                         .unwrap()
@@ -296,11 +294,10 @@ pub fn render_page_posts(
 
                     let post_remove = new_post.query_selector("#post-remove").unwrap().unwrap();
 
-                    // let connection3 = connection2.clone();
+                    let connection2 = connection1.clone();
 
                     let post_remove_click = Closure::<dyn FnMut()>::new(move || {
-                        log("todo post remove");
-                        // connection3.borrow().send_transaction(vec![Persisted::PostDeleted { id }]);
+                        connection2.borrow().send_transaction(vec![(id, Persisted::Deleted, -1)]);
                     });
 
                     let post_remove_el = post_remove.dyn_ref::<HtmlElement>().unwrap();
@@ -308,9 +305,10 @@ pub fn render_page_posts(
 
                     post_remove_click.forget();
                 },
-                QueryResult::PostDeleted { id } => {
+                QueryResult::DeletePersisted(id) => {
                     document.get_element_by_id(&id.to_string()).unwrap().remove();
                 },
+                _ => {},
             }
         }
     };
