@@ -55,33 +55,32 @@ impl ForumMinimal {
                         }
                     });
 
-                manages.inspect(move |((id, persisted), _time, diff)| {
+                manages.inspect(move |((_id, persisted), _time, diff)| {
                     if let Persisted::Post {
+                        id,
                         title,
                         body,
                         user_id,
                         likes,
                     } = persisted
                     {
-                        println!("{:?}", ((id, persisted), _time, diff));
-                        
-                        // if *diff > 0 {
-                            query_result_sender1
-                                .send(vec![QueryResult::Post {
-                                    id: *id,
-                                    title: title.clone(),
-                                    body: body.clone(),
-                                    user_id: *user_id,
-                                    likes: *likes,
-                                }])
-                                .unwrap();
-                        // }
+                        query_result_sender1
+                            .send(vec![QueryResult::Post {
+                                id: *id,
+                                title: title.clone(),
+                                body: body.clone(),
+                                user_id: *user_id,
+                                likes: *likes,
+                            }])
+                            .unwrap();
                     }
                 });
 
                 manages.inspect(move |((_id, persisted), _time, _diff)| {
                     if let Persisted::PostDeleted { id } = persisted {
-                        query_result_sender2.send(vec![QueryResult::PostDeleted { id: *id }]).unwrap();
+                        query_result_sender2
+                            .send(vec![QueryResult::PostDeleted { id: *id }])
+                            .unwrap();
                     }
                 });
 
@@ -144,6 +143,7 @@ mod tests {
         let mut forum_minimal = ForumMinimal::new(persisted_sender.clone(), query_result_sender);
 
         let persisted_items = vec![Persisted::Post {
+            id: 0,
             title: "asdf".into(),
             body: "a".into(),
             user_id: 0,
