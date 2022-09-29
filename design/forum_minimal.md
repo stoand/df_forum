@@ -5,6 +5,8 @@ partof: REQ-purpose
 # TODO's
 
 * Maintain dataflows for every connection (prevent stale data on initial load)
+* Make id's external instead of being inside Persisted items
+* Delete items using "remove" instead of using a delete event
 
 # Features
 
