@@ -16,6 +16,7 @@ wasm_bindgen_test_configure!(run_in_browser);
 pub mod connection;
 pub mod persisted;
 pub mod query_result;
+pub mod df_tuple_items;
 
 use persisted::Persisted;
 use query_result::QueryResult;
@@ -163,7 +164,7 @@ pub fn render_page_posts(
         let body = post_body.dyn_ref::<HtmlInputElement>().unwrap().value();
         if !title.is_empty() && !body.is_empty() {
             connection0.borrow().send_transaction(vec![Persisted::Post {
-                id: get_random_u64(),
+                // id: get_random_u64(),
                 title,
                 body,
                 user_id: 0,
@@ -296,10 +297,11 @@ pub fn render_page_posts(
 
                     let post_remove = new_post.query_selector("#post-remove").unwrap().unwrap();
 
-                    let connection3 = connection2.clone();
+                    // let connection3 = connection2.clone();
 
                     let post_remove_click = Closure::<dyn FnMut()>::new(move || {
-                        connection3.borrow().send_transaction(vec![Persisted::PostDeleted { id }]);
+                        log("todo post remove");
+                        // connection3.borrow().send_transaction(vec![Persisted::PostDeleted { id }]);
                     });
 
                     let post_remove_el = post_remove.dyn_ref::<HtmlElement>().unwrap();

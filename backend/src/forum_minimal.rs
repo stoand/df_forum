@@ -1,5 +1,8 @@
-use df_forum_frontend::persisted::Persisted;
+use df_forum_frontend::df_tuple_items::{Diff, Id, Time};
+pub use df_forum_frontend::persisted::{Persisted, PersistedItems};
 use df_forum_frontend::query_result::QueryResult;
+
+use crate::operators::only_latest::OnlyLatest;
 
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -11,28 +14,28 @@ use tokio::sync::broadcast;
 
 use differential_dataflow::input::InputSession;
 use differential_dataflow::operators::Count;
-// use differential_dataflow::operators::Join;
-// use differential_dataflow::operators::Reduce;
+
+pub type PersistedInputSession = InputSession<Time, (Id, Persisted), Diff>;
 
 pub struct ForumMinimal {
-    pub input: Rc<RefCell<InputSession<u64, (u64, Persisted), isize>>>,
+    pub input: Rc<RefCell<PersistedInputSession>>,
     pub worker: Rc<RefCell<Worker<timely::communication::allocator::Thread>>>,
-    pub persisted_receiver: broadcast::Receiver<Vec<Persisted>>,
+    pub persisted_receiver: broadcast::Receiver<PersistedItems>,
     pub dataflow_time: u64,
 }
 
 impl ForumMinimal {
     pub fn new(
-        persisted_sender: broadcast::Sender<Vec<Persisted>>,
+        persisted_sender: broadcast::Sender<PersistedItems>,
         query_result_sender: broadcast::Sender<Vec<QueryResult>>,
     ) -> Self {
         let query_result_sender0 = query_result_sender.clone();
         let query_result_sender1 = query_result_sender.clone();
-        let query_result_sender2 = query_result_sender.clone();
+        // let query_result_sender2 = query_result_sender.clone();
 
         let worker_fn = move |worker: &mut Worker<Thread>| {
             worker.dataflow(|scope| {
-                let mut input: InputSession<u64, (u64, Persisted), isize> = InputSession::new();
+                let mut input: PersistedInputSession = InputSession::new();
                 let manages = input.to_collection(scope);
 
                 manages
@@ -43,6 +46,7 @@ impl ForumMinimal {
                             false
                         }
                     })
+                    .only_latest()
                     .map(|(_id, _persisted)| 1)
                     .count()
                     .inspect(move |((_one, count), _time, diff)| {
@@ -55,34 +59,34 @@ impl ForumMinimal {
                         }
                     });
 
-                manages.inspect(move |((_id, persisted), _time, diff)| {
-                    if let Persisted::Post {
-                        id,
-                        title,
-                        body,
-                        user_id,
-                        likes,
-                    } = persisted
-                    {
-                        query_result_sender1
-                            .send(vec![QueryResult::Post {
-                                id: *id,
-                                title: title.clone(),
-                                body: body.clone(),
-                                user_id: *user_id,
-                                likes: *likes,
-                            }])
-                            .unwrap();
-                    }
-                });
+                // manages.inspect(move |((_id, persisted), _time, _diff)| {
+                //     if let Persisted::Post {
+                //         // id,
+                //         title,
+                //         body,
+                //         user_id,
+                //         likes,
+                //     } = persisted
+                //     {
+                //         query_result_sender1
+                //             .send(vec![QueryResult::Post {
+                //                 id: 33333,
+                //                 title: title.clone(),
+                //                 body: body.clone(),
+                //                 user_id: *user_id,
+                //                 likes: *likes,
+                //             }])
+                //             .unwrap();
+                //     }
+                // });
 
-                manages.inspect(move |((_id, persisted), _time, _diff)| {
-                    if let Persisted::PostDeleted { id } = persisted {
-                        query_result_sender2
-                            .send(vec![QueryResult::PostDeleted { id: *id }])
-                            .unwrap();
-                    }
-                });
+                // manages.inspect(move |((_id, persisted), _time, _diff)| {
+                //     if let Persisted::PostDeleted { id } = persisted {
+                //         query_result_sender2
+                //             .send(vec![QueryResult::PostDeleted { id: *id }])
+                //             .unwrap();
+                //     }
+                // });
 
                 input
             })
@@ -111,10 +115,12 @@ impl ForumMinimal {
 
         self.dataflow_time += 1;
 
-        for item in persisted_items {
-            // TODO: actually generate an ID
-            let fake_id_replace = 0;
-            self.input.borrow_mut().insert((fake_id_replace, item));
+        for (id, item, diff) in persisted_items {
+            if diff > 0 {
+                self.input.borrow_mut().insert((id, item));
+            } else {
+                self.input.borrow_mut().remove((id, item));
+            }
         }
         self.input.borrow_mut().advance_to(self.dataflow_time);
 
@@ -142,13 +148,14 @@ mod tests {
 
         let mut forum_minimal = ForumMinimal::new(persisted_sender.clone(), query_result_sender);
 
-        let persisted_items = vec![Persisted::Post {
-            id: 0,
+        let post = Persisted::Post {
             title: "asdf".into(),
             body: "a".into(),
             user_id: 0,
             likes: 0,
-        }];
+        };
+
+        let persisted_items = vec![(44, post.clone(), 1), (44, post.clone(), 1)];
         persisted_sender.clone().send(persisted_items).unwrap();
 
         forum_minimal.advance_dataflow_computation_once().await;
@@ -158,7 +165,7 @@ mod tests {
                 query_result_receiver.recv().await.unwrap(),
                 // to check if the test works, change this to
                 // a wrong value to see if the closure even ran
-                vec![QueryResult::PostCount(1)]
+                vec![QueryResult::PostCount(2)]
             );
         });
 

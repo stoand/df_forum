@@ -1,4 +1,4 @@
-use df_forum_backend::forum_minimal::ForumMinimal;
+use df_forum_backend::forum_minimal::{ForumMinimal, PersistedItems};
 use std::{
     collections::HashMap,
     net::SocketAddr,
@@ -29,7 +29,7 @@ async fn handle_connection(
     _peer_map: PeerMap,
     raw_stream: TcpStream,
     _addr: SocketAddr,
-    persisted_sender: broadcast::Sender<Vec<Persisted>>,
+    persisted_sender: broadcast::Sender<PersistedItems>,
     query_result_sender: broadcast::Sender<Vec<QueryResult>>,
 ) -> Result<(), HandlerError> {
     let ws_stream = tokio_tungstenite::accept_async(raw_stream)
@@ -48,7 +48,7 @@ async fn handle_connection(
         while let Some(msg) = incoming_strings.next().await {
             println!("got msg: {}", msg);
 
-            let parsed_msg: Vec<Persisted> = serde_json::from_str(&msg).unwrap_or(Vec::new());
+            let parsed_msg: PersistedItems = serde_json::from_str(&msg).unwrap_or(Vec::new());
             persisted_sender.send(parsed_msg).unwrap();
 
         }
@@ -76,7 +76,7 @@ async fn handle_connection(
 
 async fn loop_check_for_connections(
     addr: String,
-    persisted_sender: broadcast::Sender<Vec<Persisted>>,
+    persisted_sender: broadcast::Sender<PersistedItems>,
     query_result_sender: broadcast::Sender<Vec<QueryResult>>,
 ) {
     let state = PeerMap::new(Mutex::new(HashMap::new()));
