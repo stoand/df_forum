@@ -16,7 +16,6 @@ use differential_dataflow::operators::Count;
 
 pub struct ForumMinimal {
     pub input: Rc<RefCell<InputSession<u64, (u64, Persisted), isize>>>,
-    pub output: Rc<RefCell<Vec<QueryResult>>>,
     pub worker: Rc<RefCell<Worker<timely::communication::allocator::Thread>>>,
     pub persisted_receiver: broadcast::Receiver<Vec<Persisted>>,
     pub dataflow_time: u64,
@@ -27,11 +26,9 @@ impl ForumMinimal {
         persisted_sender: broadcast::Sender<Vec<Persisted>>,
         query_result_sender: broadcast::Sender<Vec<QueryResult>>,
     ) -> Self {
-        let output0 = Rc::new(RefCell::new(Vec::new()));
-        let output2 = output0.clone();
-
         let query_result_sender0 = query_result_sender.clone();
         let query_result_sender1 = query_result_sender.clone();
+        let query_result_sender2 = query_result_sender.clone();
 
         let worker_fn = move |worker: &mut Worker<Thread>| {
             worker.dataflow(|scope| {
@@ -68,7 +65,7 @@ impl ForumMinimal {
                     {
                         println!("{:?}", ((id, persisted), _time, diff));
                         
-                        if *diff > 0 {
+                        // if *diff > 0 {
                             query_result_sender1
                                 .send(vec![QueryResult::Post {
                                     id: *id,
@@ -78,7 +75,13 @@ impl ForumMinimal {
                                     likes: *likes,
                                 }])
                                 .unwrap();
-                        }
+                        // }
+                    }
+                });
+
+                manages.inspect(move |((_id, persisted), _time, _diff)| {
+                    if let Persisted::PostDeleted { id } = persisted {
+                        query_result_sender2.send(vec![QueryResult::PostDeleted { id: *id }]).unwrap();
                     }
                 });
 
@@ -98,7 +101,6 @@ impl ForumMinimal {
 
         ForumMinimal {
             input: input1,
-            output: output0,
             worker: worker0,
             persisted_receiver: persisted_sender.subscribe(),
             dataflow_time: 1,
