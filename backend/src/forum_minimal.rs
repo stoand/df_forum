@@ -2,7 +2,7 @@ use df_forum_frontend::df_tuple_items::{Diff, Id, Time};
 pub use df_forum_frontend::persisted::{Persisted, PersistedItems};
 use df_forum_frontend::query_result::QueryResult;
 
-use crate::operators::only_latest::OnlyLatest;
+// use crate::operators::only_latest::OnlyLatest;
 
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -16,10 +16,10 @@ use differential_dataflow::input::InputSession;
 use differential_dataflow::operators::Count;
 
 use differential_dataflow::AsCollection;
-use differential_dataflow::{Collection, ExchangeData};
-use timely::dataflow::operators::Filter;
+// use differential_dataflow::{Collection, ExchangeData};
+// use timely::dataflow::operators::Filter;
 use timely::dataflow::operators::Map;
-use timely::dataflow::*;
+// use timely::dataflow::*;
 
 pub type PersistedInputSession = InputSession<Time, (Id, Persisted), Diff>;
 
@@ -63,7 +63,7 @@ impl ForumMinimal {
                     // .filter(|((_id, _persisted), time, diff)| *diff > 0)
                     // this de-dups multiple values, but sets the diff to
                     // to 2 or more if multiple duplicates are present
-                    .map(|((id, _persisted), time, diff)| (0, time, diff))
+                    .map(|((_id, _persisted), time, diff)| (0, time, diff))
                     .as_collection()
                     .count()
                     .inspect(move |((_one, count), _time, diff)| {
@@ -174,20 +174,6 @@ mod tests {
         let post1 = Persisted::Post {
             title: "b".into(),
             body: "b".into(),
-            user_id: 0,
-            likes: 0,
-        };
-
-        let post2 = Persisted::Post {
-            title: "c".into(),
-            body: "c".into(),
-            user_id: 0,
-            likes: 0,
-        };
-
-        let post3 = Persisted::Post {
-            title: "d".into(),
-            body: "d".into(),
             user_id: 0,
             likes: 0,
         };

@@ -12,7 +12,7 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::broadcast;
 use tokio_tungstenite::tungstenite::protocol::Message;
 
-use df_forum_frontend::persisted::Persisted;
+// use df_forum_frontend::persisted::Persisted;
 use df_forum_frontend::query_result::QueryResult;
 
 type Tx = UnboundedSender<Message>;
@@ -40,7 +40,7 @@ async fn handle_connection(
 
     let (outgoing, incoming) = ws_stream.split();
 
-    let mut incoming_strings = incoming.map(|msg| msg.unwrap().to_text().unwrap_or("").to_string());
+    let mut incoming_strings = incoming.map(|msg| msg.unwrap().to_text().expect("").to_string());
 
     let mut query_result_receiver = query_result_sender.subscribe();
 
