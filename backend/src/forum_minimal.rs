@@ -30,6 +30,9 @@ impl ForumMinimal {
         let output0 = Rc::new(RefCell::new(Vec::new()));
         let output2 = output0.clone();
 
+        let query_result_sender0 = query_result_sender.clone();
+        let query_result_sender1 = query_result_sender.clone();
+
         let worker_fn = move |worker: &mut Worker<Thread>| {
             worker.dataflow(|scope| {
                 let mut input: InputSession<u64, (u64, Persisted), isize> = InputSession::new();
@@ -49,13 +52,13 @@ impl ForumMinimal {
                         println!("{:?}", ((_one, count), _time, diff));
 
                         if *diff > 0 {
-                            query_result_sender
+                            query_result_sender0
                                 .send(vec![QueryResult::PostCount(*count as u64)])
                                 .unwrap();
                         }
                     });
 
-                manages.inspect(move |((id, persisted), _time, _diff)| {
+                manages.inspect(move |((id, persisted), _time, diff)| {
                     if let Persisted::Post {
                         title,
                         body,
@@ -63,13 +66,19 @@ impl ForumMinimal {
                         likes,
                     } = persisted
                     {
-                        output2.borrow_mut().push(QueryResult::Post {
-                            id: *id,
-                            title: title.clone(),
-                            body: body.clone(),
-                            user_id: *user_id,
-                            likes: *likes,
-                        })
+                        println!("{:?}", ((id, persisted), _time, diff));
+                        
+                        if *diff > 0 {
+                            query_result_sender1
+                                .send(vec![QueryResult::Post {
+                                    id: *id,
+                                    title: title.clone(),
+                                    body: body.clone(),
+                                    user_id: *user_id,
+                                    likes: *likes,
+                                }])
+                                .unwrap();
+                        }
                     }
                 });
 

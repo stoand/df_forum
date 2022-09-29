@@ -51,6 +51,11 @@ async fn handle_connection(
             let parsed_msg: Vec<Persisted> = serde_json::from_str(&msg).unwrap_or(Vec::new());
             persisted_sender.send(parsed_msg).unwrap();
 
+        }
+    });
+
+    tokio::spawn(async move {
+        loop {
             let query_results = query_result_receiver.recv().await.unwrap();
             println!("query_results: {:?}", query_results);
 
@@ -59,6 +64,8 @@ async fn handle_connection(
             tx.unbounded_send(Message::Text(output_payload)).unwrap();
         }
     });
+    
+    
     let recieve_from_others = rx.map(Ok).forward(outgoing);
 
     pin_mut!(broadcast_incoming, recieve_from_others);
