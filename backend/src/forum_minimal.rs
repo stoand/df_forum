@@ -15,6 +15,11 @@ use tokio::sync::broadcast;
 use differential_dataflow::input::InputSession;
 use differential_dataflow::operators::Count;
 
+use timely::dataflow::operators::Map;
+use timely::dataflow::*;
+use differential_dataflow::AsCollection;
+use differential_dataflow::{Collection, ExchangeData};
+
 pub type PersistedInputSession = InputSession<Time, (Id, Persisted), Diff>;
 
 pub struct ForumMinimal {
@@ -30,7 +35,7 @@ impl ForumMinimal {
         query_result_sender: broadcast::Sender<Vec<QueryResult>>,
     ) -> Self {
         let query_result_sender0 = query_result_sender.clone();
-        let query_result_sender1 = query_result_sender.clone();
+        // let query_result_sender1 = query_result_sender.clone();
         // let query_result_sender2 = query_result_sender.clone();
 
         let worker_fn = move |worker: &mut Worker<Thread>| {
@@ -46,8 +51,13 @@ impl ForumMinimal {
                             false
                         }
                     })
+                    // this de-dups multiple values, but sets the diff to
+                    // to 2 or more if multiple duplicates are present
                     .only_latest()
-                    .map(|(_id, _persisted)| 1)
+                    .inner
+                    // set the diff to 1 
+                    .map(|((_id, _persisted), time, _diff)| (1, time, 1))
+                    .as_collection()
                     .count()
                     .inspect(move |((_one, count), _time, diff)| {
                         println!("{:?}", ((_one, count), _time, diff));
@@ -165,7 +175,7 @@ mod tests {
                 query_result_receiver.recv().await.unwrap(),
                 // to check if the test works, change this to
                 // a wrong value to see if the closure even ran
-                vec![QueryResult::PostCount(2)]
+                vec![QueryResult::PostCount(1)]
             );
         });
 
