@@ -30,8 +30,6 @@ cargo watch -x 'test -- --nocapture'
 
 # Backend
 
-Install `cargo watch` command: `cargo install cargo-watch`
-
 ## Run Server
 
 `cargo watch -x run`
