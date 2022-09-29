@@ -116,8 +116,8 @@ impl ForumMinimal {
 
         self.dataflow_time += 1;
 
-        for (id, item, diff) in persisted_items {
-            if diff > 0 {
+        for (id, item) in persisted_items {
+            if item != Persisted::Deleted {
                 self.input.borrow_mut().insert((id, item));
             } else {
                 self.input.borrow_mut().remove((id, item));
@@ -162,7 +162,7 @@ mod tests {
             likes: 0,
         };
 
-        let persisted_items = vec![(44, post0.clone(), 1), (45, post1, 1)];
+        let persisted_items = vec![(44, post0.clone()), (45, post1)];
         persisted_sender.clone().send(persisted_items).unwrap();
 
         forum_minimal.advance_dataflow_computation_once().await;
@@ -172,7 +172,7 @@ mod tests {
             vec![QueryResult::Aggregate(QueryResultAggregate::PostCount(2))]
         );
 
-        let remove_persisted_item = vec![(44, post0.clone(), -1)];
+        let remove_persisted_item = vec![(44, Persisted::Deleted)];
         persisted_sender
             .clone()
             .send(remove_persisted_item)

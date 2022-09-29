@@ -1,4 +1,4 @@
-pub use crate::df_tuple_items::{Id, Diff};
+pub use crate::df_tuple_items::Id;
 
 #[derive(Hash, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Persisted {
@@ -18,4 +18,4 @@ pub enum Persisted {
     Deleted,
 }
 
-pub type PersistedItems = Vec<(Id, Persisted, Diff)>;
+pub type PersistedItems = Vec<(Id, Persisted)>;

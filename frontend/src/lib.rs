@@ -168,7 +168,7 @@ pub fn render_page_posts(
                 body,
                 user_id: 0,
                 likes: 0,
-            }, 1)]);
+            })]);
         }
     });
 
@@ -297,7 +297,7 @@ pub fn render_page_posts(
                     let connection2 = connection1.clone();
 
                     let post_remove_click = Closure::<dyn FnMut()>::new(move || {
-                        connection2.borrow().send_transaction(vec![(id, Persisted::Deleted, -1)]);
+                        connection2.borrow().send_transaction(vec![(id, Persisted::Deleted)]);
                     });
 
                     let post_remove_el = post_remove.dyn_ref::<HtmlElement>().unwrap();
