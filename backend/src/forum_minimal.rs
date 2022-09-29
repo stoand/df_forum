@@ -47,10 +47,12 @@ impl ForumMinimal {
                 // QueryResultAggregate::PostCount
                 manages
                     .filter(move |(_id, persisted)| {
-                        if let Persisted::Post { .. } = persisted {
-                            true
-                        } else {
-                            false
+                        match persisted {
+                            Persisted::Post { .. } => true,
+                            // WRONG
+                            // TODO: do an antijoin on Delete elements with the id of a post
+                            Persisted::Deleted => true,
+                            _ => false,
                         }
                     })
                     // .inspect(move |((_one, count), _time, diff)| {
@@ -68,7 +70,7 @@ impl ForumMinimal {
                     .as_collection()
                     .count()
                     .inspect(move |((_discarded_zero, count), _time, diff)| {
-                        // println!("{:?}", ((_one, count), _time, diff));
+                        println!("inspect -- {:?}", ((0, count), _time, diff));
 
                         if *diff > 0 {
                             query_result_sender0
