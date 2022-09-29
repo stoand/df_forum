@@ -37,3 +37,5 @@ cargo watch -x 'test -- --nocapture'
 ## Run Tests
 
 `cargo watch -x 'test -- --nocapture'`
+
+The `--nocapture` is important: tests that fail inside `tokio::spawn` are just printed text
