@@ -113,7 +113,7 @@ pub fn render_page_posts(
     root.set_inner_html("");
 
     let connection0 = connection.clone();
-    let connection1 = connection.clone();
+    // let connection1 = connection.clone();
 
     let username_label = document.create_element("div").unwrap();
     username_label.set_text_content(Some(&("Username: ".to_owned() + &username)));
@@ -245,7 +245,6 @@ pub fn render_page_posts(
     username_label.set_text_content(Some("Next"));
     page_ops.append_child(&username_label).unwrap();
     let on_parsed_message = move |items: Vec<QueryResult>| {
-        let connection2 = connection1.clone();
         let window = web_sys::window().unwrap();
         let document = window.document().unwrap();
         for item in items {
