@@ -8,7 +8,8 @@ pub enum QueryResult {
         user_id: u64,
         likes: u64,
     },
-    RemovePost {
+    PostDeleted {
         id: u64,
     },
+    
 }

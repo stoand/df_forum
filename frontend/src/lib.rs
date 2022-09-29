@@ -8,6 +8,7 @@ extern crate serde;
 extern crate serde_derive;
 // extern crate timely;
 extern crate wasm_bindgen_test;
+extern crate getrandom;
 use wasm_bindgen_test::*;
 
 wasm_bindgen_test_configure!(run_in_browser);
@@ -37,6 +38,12 @@ extern "C" {
 
 pub fn get_local_storage() -> Storage {
     web_sys::window().unwrap().local_storage().unwrap().unwrap()
+}
+
+pub fn get_random_u64() -> u64 {
+    let mut dst = [0u8; 8];
+    getrandom::getrandom(&mut dst).unwrap();
+    u64::from_be_bytes(dst)
 }
 
 #[wasm_bindgen]
@@ -156,6 +163,7 @@ pub fn render_page_posts(
         let body = post_body.dyn_ref::<HtmlInputElement>().unwrap().value();
         if !title.is_empty() && !body.is_empty() {
             connection0.borrow().send_transaction(vec![Persisted::Post {
+                // id: get_random_u64(),
                 title,
                 body,
                 user_id: 0,
