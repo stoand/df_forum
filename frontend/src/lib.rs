@@ -7,16 +7,16 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 // extern crate timely;
-extern crate wasm_bindgen_test;
 extern crate getrandom;
+extern crate wasm_bindgen_test;
 use wasm_bindgen_test::*;
 
 wasm_bindgen_test_configure!(run_in_browser);
 
 pub mod connection;
+pub mod df_tuple_items;
 pub mod persisted;
 pub mod query_result;
-pub mod df_tuple_items;
 
 use persisted::{Persisted, Post};
 use query_result::QueryResult;
@@ -163,12 +163,16 @@ pub fn render_page_posts(
 
         let body = post_body.dyn_ref::<HtmlInputElement>().unwrap().value();
         if !title.is_empty() && !body.is_empty() {
-            connection0.borrow().send_transaction(vec![(get_random_u64(), Persisted::Post(Post {
-                title,
-                body,
-                user_id: 0,
-                likes: 0,
-            }))]);
+            connection0.borrow().send_transaction(vec![(
+                get_random_u64(),
+                Persisted::Post(Post {
+                    title,
+                    body,
+                    user_id: 0,
+                    likes: 0,
+                }),
+                1
+            )]);
         }
     });
 
@@ -255,12 +259,14 @@ pub fn render_page_posts(
                         .unwrap()
                         .set_text_content(Some(&count.to_string()));
                 }
-                QueryResult::AddPost(id, Post {
-                    title,
-                    body,
-                    user_id,
-                    likes,
-                }) => {
+                QueryResult::AddPost(id, post) => {
+                    let Post {
+                        title,
+                        body,
+                        user_id,
+                        likes,
+                    } = post.clone();
+
                     let posts_container = document
                         .query_selector("#posts-container")
                         .unwrap()
@@ -295,19 +301,26 @@ pub fn render_page_posts(
                     let post_remove = new_post.query_selector("#post-remove").unwrap().unwrap();
 
                     let connection2 = connection1.clone();
+                    let post0 = post.clone();
 
                     let post_remove_click = Closure::<dyn FnMut()>::new(move || {
-                        connection2.borrow().send_transaction(vec![(id, Persisted::Deleted)]);
+                        
+                        connection2
+                            .borrow()
+                            .send_transaction(vec![(id, Persisted::Post(post0.clone()), -1)]);
                     });
 
                     let post_remove_el = post_remove.dyn_ref::<HtmlElement>().unwrap();
                     post_remove_el.set_onclick(Some(post_remove_click.as_ref().unchecked_ref()));
 
                     post_remove_click.forget();
-                },
+                }
                 QueryResult::DeletePersisted(id) => {
-                    document.get_element_by_id(&id.to_string()).unwrap().remove();
-                },
+                    document
+                        .get_element_by_id(&id.to_string())
+                        .unwrap()
+                        .remove();
+                }
             }
         }
     };

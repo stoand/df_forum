@@ -54,7 +54,8 @@ impl ForumMinimal {
                     }
                 });
 
-                let non_deleted = manages.filter(|(_id, persisted)| persisted.clone() != Persisted::Deleted);
+                let non_deleted =
+                    manages.filter(|(_id, persisted)| persisted.clone() != Persisted::Deleted);
 
                 let filter_out_deleted = non_deleted
                     .inspect(move |((_one, count), _time, diff)| {
@@ -167,6 +168,18 @@ impl ForumMinimal {
 mod tests {
     use super::*;
 
+    fn try_recv_contains<T: PartialEq + Clone>(reciever: &mut broadcast::Receiver<T>, values: T) -> bool {
+        let mut success = false;
+
+        while let Ok(val) = reciever.try_recv() {
+            if val == values {
+                success = true
+            }
+        }
+
+        success
+    }
+
     #[tokio::test]
     pub async fn test_basic() {
         let (query_result_sender, mut query_result_receiver) = broadcast::channel(16);
@@ -193,10 +206,7 @@ mod tests {
 
         forum_minimal.advance_dataflow_computation_once().await;
 
-        assert_eq!(
-            query_result_receiver.recv().await.unwrap(),
-            vec![QueryResult::PostCount(2)]
-        );
+        assert_eq!(try_recv_contains(&mut query_result_receiver, vec![QueryResult::PostCount(2)]), true);
 
         let remove_persisted_item = vec![(44, Persisted::Deleted)];
         persisted_sender
@@ -205,9 +215,6 @@ mod tests {
             .unwrap();
         forum_minimal.advance_dataflow_computation_once().await;
 
-        assert_eq!(
-            query_result_receiver.recv().await.unwrap(),
-            vec![QueryResult::PostCount(1)]
-        );
+        assert_eq!(try_recv_contains(&mut query_result_receiver, vec![QueryResult::PostCount(1)]), true);
     }
 }
