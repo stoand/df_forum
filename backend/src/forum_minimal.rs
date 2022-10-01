@@ -14,13 +14,6 @@ use tokio::sync::broadcast;
 
 use differential_dataflow::input::InputSession;
 use differential_dataflow::operators::Count;
-use differential_dataflow::operators::Reduce;
-
-use differential_dataflow::AsCollection;
-// use differential_dataflow::{Collection, ExchangeData};
-// use timely::dataflow::operators::Filter;
-use timely::dataflow::operators::Map;
-// use timely::dataflow::*;
 
 pub type PersistedInputSession = InputSession<Time, (Id, Persisted), Diff>;
 
@@ -45,35 +38,12 @@ impl ForumMinimal {
                 let mut input: PersistedInputSession = InputSession::new();
                 let manages = input.to_collection(scope);
 
-                // let deleted_ids = manages.flat_map(|(id, persisted)| {
-                //     if Persisted::Deleted == persisted {
-                //         vec![id]
-                //     } else {
-                //         vec![]
-                //     }
-                // });
-
-                // let non_deleted =
-                //     manages.filter(|(_id, persisted)| persisted.clone() != Persisted::Deleted);
-
-                // let filter_out_deleted = non_deleted
-                //     .inspect(move |((_one, count), _time, diff)| {
-                //         println!("0. {:?}", ((_one, count), _time, diff));
-                //     })
-                //     .antijoin(&deleted_ids)
-                //     // TODO: remove
-                //     .distinct()
-                //     .inspect(move |((_one, count), _time, diff)| {
-                //         println!("1. {:?}", ((_one, count), _time, diff));
-                //     });
-
                 let posts = manages.flat_map(move |(id, persisted)| match persisted {
                     Persisted::Post(post) => vec![(id, post)],
-                    _ => vec![],
+                    // _ => vec![],
                 });
 
                 posts
-                    // QueryResultAggregate::PostCount
                     .inspect(move |((id, persisted), _time, diff)| {
                         if *diff > 0 {
                             query_result_sender2
@@ -83,33 +53,20 @@ impl ForumMinimal {
                     });
 
                 posts
-                    // .inspect(move |((_one, count), _time, diff)| {
-                    //     println!("0. {:?}", ((_one, count), _time, diff));
-                    // })
-                    // .only_latest()
-                    // .inspect(move |((_one, count), _time, diff)| {
-                    //     println!("1. {:?}", ((_one, count), _time, diff));
-                    // })
-                    .inner
-                    // .filter(|((_id, _persisted), time, diff)| *diff > 0)
-                    // this de-dups multiple values, but sets the diff to
-                    // to 2 or more if multiple duplicates are present
-                    .map(|((_id, _persisted), time, diff)| (0, time, diff))
-                    .as_collection()
+                    .map(|(_id, _persisted)| 0)
                     .count()
-                    .reduce(|_keys, inputs, outputs| {
-                        for output in outputs {
-                        }
-                        outputs.push((1333, 1));
-                    })
-                    .inspect(move |((_discarded_zero, count), _time, diff)| {
-                        println!("inspect -- {:?}", ((0, count), _time, diff));
+                    .inspect_batch(move |_time, items| {
+                        let mut final_count = 0;
 
-                        if *diff > 0 {
-                            query_result_sender0
-                                .send(vec![QueryResult::PostCount(*count as u64)])
-                                .unwrap();
+                        for ((_discarded_zero, count), _time, diff) in items {
+                            if *diff > 0 {
+                                final_count = *count as u64;
+                            }
                         }
+                        
+                        query_result_sender0
+                            .send(vec![QueryResult::PostCount(final_count)])
+                            .unwrap();
                     });
 
                 manages.inspect(move |((id, _persisted), _time, diff)| {
@@ -172,7 +129,10 @@ impl ForumMinimal {
 mod tests {
     use super::*;
 
-    fn try_recv_contains<T: PartialEq + Clone>(reciever: &mut broadcast::Receiver<T>, values: T) -> bool {
+    fn try_recv_contains<T: PartialEq + Clone>(
+        reciever: &mut broadcast::Receiver<T>,
+        values: T,
+    ) -> bool {
         let mut success = false;
 
         while let Ok(val) = reciever.try_recv() {
@@ -205,20 +165,26 @@ mod tests {
             likes: 0,
         });
 
-        let persisted_items = vec![(44, post0.clone(), 1), (45, post1, 1)];
+        let persisted_items = vec![(44, post0.clone(), 1), (45, post1.clone(), 1)];
         persisted_sender.clone().send(persisted_items).unwrap();
 
         forum_minimal.advance_dataflow_computation_once().await;
 
-        assert_eq!(try_recv_contains(&mut query_result_receiver, vec![QueryResult::PostCount(2)]), true);
+        assert_eq!(
+            try_recv_contains(&mut query_result_receiver, vec![QueryResult::PostCount(2)]),
+            true
+        );
 
-        let remove_persisted_item = vec![(44, post0.clone(), -1)];
+        let remove_persisted_item = vec![(44, post0.clone(), -1), (45, post1.clone(), -1)];
         persisted_sender
             .clone()
             .send(remove_persisted_item)
             .unwrap();
         forum_minimal.advance_dataflow_computation_once().await;
 
-        assert_eq!(try_recv_contains(&mut query_result_receiver, vec![QueryResult::PostCount(1)]), true);
+        assert_eq!(
+            try_recv_contains(&mut query_result_receiver, vec![QueryResult::PostCount(0)]),
+            true
+        );
     }
 }
