@@ -15,6 +15,16 @@ use tokio::sync::broadcast;
 use differential_dataflow::input::InputSession;
 use differential_dataflow::operators::Count;
 
+use std::sync::{Arc, Mutex};
+use timely::dataflow::operators::capture::{EventLink, Extract, Replay, EventWriter};
+use timely::dataflow::operators::{Capture, Inspect, ToStream};
+use timely::dataflow::Scope;
+
+
+use std::fs::File;
+use std::io::prelude::*;
+use std::path::Path;
+
 pub type PersistedInputSession = InputSession<Time, (Id, Persisted), Diff>;
 
 pub struct ForumMinimal {
@@ -38,19 +48,24 @@ impl ForumMinimal {
                 let mut input: PersistedInputSession = InputSession::new();
                 let manages = input.to_collection(scope);
 
+                let path = Path::new("/tmp/asdf");
+
+                let mut file = File::create(&path).unwrap();
+                
+                manages.inner.capture_into(EventWriter::new(file));
+
                 let posts = manages.flat_map(move |(id, persisted)| match persisted {
                     Persisted::Post(post) => vec![(id, post)],
                     // _ => vec![],
                 });
 
-                posts
-                    .inspect(move |((id, persisted), _time, diff)| {
-                        if *diff > 0 {
-                            query_result_sender2
-                                .send(vec![QueryResult::AddPost(*id, persisted.clone())])
-                                .unwrap();
-                        }
-                    });
+                posts.inspect(move |((id, persisted), _time, diff)| {
+                    if *diff > 0 {
+                        query_result_sender2
+                            .send(vec![QueryResult::AddPost(*id, persisted.clone())])
+                            .unwrap();
+                    }
+                });
 
                 posts
                     .map(|(_id, _persisted)| 0)
@@ -63,7 +78,6 @@ impl ForumMinimal {
                                 final_count = *count as u64;
                             }
                         }
-                        
                         query_result_sender0
                             .send(vec![QueryResult::PostCount(final_count)])
                             .unwrap();
@@ -170,10 +184,10 @@ mod tests {
 
         forum_minimal.advance_dataflow_computation_once().await;
 
-        assert_eq!(
-            try_recv_contains(&mut query_result_receiver, vec![QueryResult::PostCount(2)]),
-            true
-        );
+        assert!(try_recv_contains(
+            &mut query_result_receiver,
+            vec![QueryResult::PostCount(2)]
+        ),);
 
         let remove_persisted_item = vec![(44, post0.clone(), -1), (45, post1.clone(), -1)];
         persisted_sender
@@ -182,9 +196,37 @@ mod tests {
             .unwrap();
         forum_minimal.advance_dataflow_computation_once().await;
 
-        assert_eq!(
-            try_recv_contains(&mut query_result_receiver, vec![QueryResult::PostCount(0)]),
-            true
-        );
+        assert!(try_recv_contains(
+            &mut query_result_receiver,
+            vec![QueryResult::PostCount(0)]
+        ));
+    }
+
+    #[tokio::test]
+    pub async fn test_capture() {
+        let (query_result_sender, mut query_result_receiver) = broadcast::channel(16);
+        let (persisted_sender, _persisted_receiver) = broadcast::channel(16);
+
+        let mut forum_minimal = ForumMinimal::new(persisted_sender.clone(), query_result_sender);
+
+        let post0 = Persisted::Post(Post {
+            title: "a".into(),
+            body: "a".into(),
+            user_id: 0,
+            likes: 0,
+        });
+
+        let persisted_items = vec![(44, post0.clone(), 1)];
+        persisted_sender.clone().send(persisted_items).unwrap();
+
+        forum_minimal.advance_dataflow_computation_once().await;
+
+
+        // let handle = forum_minimal.handle0.borrow();
+
+        // loop {
+        //     if let Some(event_link) = handle.next {
+        //     }
+        // }
     }
 }

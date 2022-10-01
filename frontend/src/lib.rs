@@ -1,5 +1,6 @@
 // #SPC-forum_minimal
 extern crate abomonation;
+#[macro_use]
 extern crate abomonation_derive;
 extern crate console_error_panic_hook;
 // extern crate differential_dataflow;

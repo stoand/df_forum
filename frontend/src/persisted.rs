@@ -1,6 +1,6 @@
 pub use crate::df_tuple_items::{Id, Diff};
 
-#[derive(Hash, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Abomonation, Hash, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Post {
     pub title: String,
     pub body: String,
@@ -8,7 +8,7 @@ pub struct Post {
     pub likes: u64,
 }
 
-#[derive(Hash, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Abomonation, Hash, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Persisted {
     // Session { token: String, user_id: u64 },
     // User { name: String },
