@@ -14,6 +14,7 @@ use tokio::sync::broadcast;
 
 use differential_dataflow::input::InputSession;
 use differential_dataflow::operators::Count;
+use differential_dataflow::operators::Join;
 
 use differential_dataflow::AsCollection;
 // use differential_dataflow::{Collection, ExchangeData};
@@ -44,16 +45,26 @@ impl ForumMinimal {
                 let mut input: PersistedInputSession = InputSession::new();
                 let manages = input.to_collection(scope);
 
-                // TODO: filter out deleted items
-                let filter_out_deleted = manages.inspect(|_| {});
-
-                let posts = filter_out_deleted.flat_map(move |(id, persisted)| {
-                    match persisted {
-                        Persisted::Post(post) => vec![(id, post)],
-                        // WRONG
-                        // TODO: do an antijoin on Delete elements with the id of a post
-                        _ => vec![],
+                let deleted_ids = manages.flat_map(|(id, persisted)| {
+                    if Persisted::Deleted == persisted {
+                        vec![id]
+                    } else {
+                        vec![]
                     }
+                });
+
+                let filter_out_deleted = manages
+                    .inspect(move |((_one, count), _time, diff)| {
+                        println!("0. {:?}", ((_one, count), _time, diff));
+                    })
+                    .antijoin(&deleted_ids)
+                    .inspect(move |((_one, count), _time, diff)| {
+                        println!("1. {:?}", ((_one, count), _time, diff));
+                    });
+
+                let posts = filter_out_deleted.flat_map(move |(id, persisted)| match persisted {
+                    Persisted::Post(post) => vec![(id, post)],
+                    _ => vec![],
                 });
 
                 posts
