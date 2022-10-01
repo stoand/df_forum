@@ -14,8 +14,7 @@ use tokio::sync::broadcast;
 
 use differential_dataflow::input::InputSession;
 use differential_dataflow::operators::Count;
-use differential_dataflow::operators::Join;
-use differential_dataflow::operators::Threshold;
+use differential_dataflow::operators::Reduce;
 
 use differential_dataflow::AsCollection;
 // use differential_dataflow::{Collection, ExchangeData};
@@ -46,29 +45,29 @@ impl ForumMinimal {
                 let mut input: PersistedInputSession = InputSession::new();
                 let manages = input.to_collection(scope);
 
-                let deleted_ids = manages.flat_map(|(id, persisted)| {
-                    if Persisted::Deleted == persisted {
-                        vec![id]
-                    } else {
-                        vec![]
-                    }
-                });
+                // let deleted_ids = manages.flat_map(|(id, persisted)| {
+                //     if Persisted::Deleted == persisted {
+                //         vec![id]
+                //     } else {
+                //         vec![]
+                //     }
+                // });
 
-                let non_deleted =
-                    manages.filter(|(_id, persisted)| persisted.clone() != Persisted::Deleted);
+                // let non_deleted =
+                //     manages.filter(|(_id, persisted)| persisted.clone() != Persisted::Deleted);
 
-                let filter_out_deleted = non_deleted
-                    .inspect(move |((_one, count), _time, diff)| {
-                        println!("0. {:?}", ((_one, count), _time, diff));
-                    })
-                    .antijoin(&deleted_ids)
-                    // TODO: remove
-                    .distinct()
-                    .inspect(move |((_one, count), _time, diff)| {
-                        println!("1. {:?}", ((_one, count), _time, diff));
-                    });
+                // let filter_out_deleted = non_deleted
+                //     .inspect(move |((_one, count), _time, diff)| {
+                //         println!("0. {:?}", ((_one, count), _time, diff));
+                //     })
+                //     .antijoin(&deleted_ids)
+                //     // TODO: remove
+                //     .distinct()
+                //     .inspect(move |((_one, count), _time, diff)| {
+                //         println!("1. {:?}", ((_one, count), _time, diff));
+                //     });
 
-                let posts = filter_out_deleted.flat_map(move |(id, persisted)| match persisted {
+                let posts = manages.flat_map(move |(id, persisted)| match persisted {
                     Persisted::Post(post) => vec![(id, post)],
                     _ => vec![],
                 });
@@ -98,6 +97,11 @@ impl ForumMinimal {
                     .map(|((_id, _persisted), time, diff)| (0, time, diff))
                     .as_collection()
                     .count()
+                    .reduce(|_keys, inputs, outputs| {
+                        for output in outputs {
+                        }
+                        outputs.push((1333, 1));
+                    })
                     .inspect(move |((_discarded_zero, count), _time, diff)| {
                         println!("inspect -- {:?}", ((0, count), _time, diff));
 
@@ -143,8 +147,8 @@ impl ForumMinimal {
 
         self.dataflow_time += 1;
 
-        for (id, item) in persisted_items {
-            if item != Persisted::Deleted {
+        for (id, item, diff) in persisted_items {
+            if diff > 0 {
                 self.input.borrow_mut().insert((id, item));
             } else {
                 self.input.borrow_mut().remove((id, item));
@@ -201,14 +205,14 @@ mod tests {
             likes: 0,
         });
 
-        let persisted_items = vec![(44, post0.clone()), (45, post1)];
+        let persisted_items = vec![(44, post0.clone(), 1), (45, post1, 1)];
         persisted_sender.clone().send(persisted_items).unwrap();
 
         forum_minimal.advance_dataflow_computation_once().await;
 
         assert_eq!(try_recv_contains(&mut query_result_receiver, vec![QueryResult::PostCount(2)]), true);
 
-        let remove_persisted_item = vec![(44, Persisted::Deleted)];
+        let remove_persisted_item = vec![(44, post0.clone(), -1)];
         persisted_sender
             .clone()
             .send(remove_persisted_item)

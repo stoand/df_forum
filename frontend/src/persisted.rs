@@ -1,4 +1,4 @@
-pub use crate::df_tuple_items::Id;
+pub use crate::df_tuple_items::{Id, Diff};
 
 #[derive(Hash, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Post {
@@ -13,7 +13,6 @@ pub enum Persisted {
     // Session { token: String, user_id: u64 },
     // User { name: String },
     Post(Post),
-    Deleted,
 }
 
-pub type PersistedItems = Vec<(Id, Persisted)>;
+pub type PersistedItems = Vec<(Id, Persisted, Diff)>;
