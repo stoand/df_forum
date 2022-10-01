@@ -15,6 +15,7 @@ use tokio::sync::broadcast;
 use differential_dataflow::input::InputSession;
 use differential_dataflow::operators::Count;
 use differential_dataflow::operators::Join;
+use differential_dataflow::operators::Threshold;
 
 use differential_dataflow::AsCollection;
 // use differential_dataflow::{Collection, ExchangeData};
@@ -53,11 +54,15 @@ impl ForumMinimal {
                     }
                 });
 
-                let filter_out_deleted = manages
+                let non_deleted = manages.filter(|(_id, persisted)| persisted.clone() != Persisted::Deleted);
+
+                let filter_out_deleted = non_deleted
                     .inspect(move |((_one, count), _time, diff)| {
                         println!("0. {:?}", ((_one, count), _time, diff));
                     })
                     .antijoin(&deleted_ids)
+                    // TODO: remove
+                    .distinct()
                     .inspect(move |((_one, count), _time, diff)| {
                         println!("1. {:?}", ((_one, count), _time, diff));
                     });
