@@ -38,22 +38,22 @@ impl ForumMinimal {
                 let mut input: PersistedInputSession = InputSession::new();
                 let manages = input.to_collection(scope);
 
-                let posts = manages.flat_map(move |(id, persisted)| match persisted {
-                    Persisted::Post(post) => vec![(id, post)],
-                    // _ => vec![],
-                });
-
-                posts
-                    .inspect(move |((id, persisted), _time, diff)| {
+                manages.inspect(move |((id, persisted), _time, diff)| {
+                    if let Persisted::Post(post) = persisted {
                         if *diff > 0 {
                             query_result_sender2
-                                .send(vec![QueryResult::AddPost(*id, persisted.clone())])
+                                .send(vec![QueryResult::AddPost(*id, post.clone())])
                                 .unwrap();
                         }
-                    });
+                    }
+                });
 
-                posts
-                    .map(|(_id, _persisted)| 0)
+                manages
+                    .flat_map(|(_id, persisted)| match persisted {
+                        Persisted::Post(_) => vec![0],
+                        Persisted::PostDeleted => vec![0],
+                        _ => vec![],
+                    })
                     .count()
                     .inspect_batch(move |_time, items| {
                         let mut final_count = 0;
@@ -63,7 +63,6 @@ impl ForumMinimal {
                                 final_count = *count as u64;
                             }
                         }
-                        
                         query_result_sender0
                             .send(vec![QueryResult::PostCount(final_count)])
                             .unwrap();
@@ -175,7 +174,10 @@ mod tests {
             true
         );
 
-        let remove_persisted_item = vec![(44, post0.clone(), -1), (45, post1.clone(), -1)];
+        let remove_persisted_item = vec![
+            (44, Persisted::PostDeleted, -1),
+            (45, Persisted::PostDeleted, -1),
+        ];
         persisted_sender
             .clone()
             .send(remove_persisted_item)

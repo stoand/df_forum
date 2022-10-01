@@ -301,13 +301,12 @@ pub fn render_page_posts(
                     let post_remove = new_post.query_selector("#post-remove").unwrap().unwrap();
 
                     let connection2 = connection1.clone();
-                    let post0 = post.clone();
 
                     let post_remove_click = Closure::<dyn FnMut()>::new(move || {
                         
                         connection2
                             .borrow()
-                            .send_transaction(vec![(id, Persisted::Post(post0.clone()), -1)]);
+                            .send_transaction(vec![(id, Persisted::PostDeleted, -1)]);
                     });
 
                     let post_remove_el = post_remove.dyn_ref::<HtmlElement>().unwrap();
