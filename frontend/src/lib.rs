@@ -18,8 +18,8 @@ pub mod persisted;
 pub mod query_result;
 pub mod df_tuple_items;
 
-use persisted::Persisted;
-use query_result::{QueryResult, QueryResultAggregate};
+use persisted::{Persisted, Post};
+use query_result::QueryResult;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -163,12 +163,12 @@ pub fn render_page_posts(
 
         let body = post_body.dyn_ref::<HtmlInputElement>().unwrap().value();
         if !title.is_empty() && !body.is_empty() {
-            connection0.borrow().send_transaction(vec![(get_random_u64(), Persisted::Post {
+            connection0.borrow().send_transaction(vec![(get_random_u64(), Persisted::Post(Post {
                 title,
                 body,
                 user_id: 0,
                 likes: 0,
-            })]);
+            }))]);
         }
     });
 
@@ -248,14 +248,14 @@ pub fn render_page_posts(
         let document = window.document().unwrap();
         for item in items {
             match item {
-                QueryResult::Aggregate(QueryResultAggregate::PostCount(count)) => {
+                QueryResult::PostCount(count) => {
                     document
                         .query_selector("#posts-total")
                         .unwrap()
                         .unwrap()
                         .set_text_content(Some(&count.to_string()));
                 }
-                QueryResult::AddPersisted(id, Persisted::Post {
+                QueryResult::AddPost(id, Post {
                     title,
                     body,
                     user_id,
@@ -308,7 +308,6 @@ pub fn render_page_posts(
                 QueryResult::DeletePersisted(id) => {
                     document.get_element_by_id(&id.to_string()).unwrap().remove();
                 },
-                _ => {},
             }
         }
     };

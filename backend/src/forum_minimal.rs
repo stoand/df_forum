@@ -1,6 +1,6 @@
 use df_forum_frontend::df_tuple_items::{Diff, Id, Time};
-pub use df_forum_frontend::persisted::{Persisted, PersistedItems};
-use df_forum_frontend::query_result::{QueryResult, QueryResultAggregate};
+pub use df_forum_frontend::persisted::{Persisted, PersistedItems, Post};
+use df_forum_frontend::query_result::QueryResult;
 
 // use crate::operators::only_latest::OnlyLatest;
 
@@ -37,24 +37,36 @@ impl ForumMinimal {
     ) -> Self {
         let query_result_sender0 = query_result_sender.clone();
         let query_result_sender1 = query_result_sender.clone();
-        // let query_result_sender2 = query_result_sender.clone();
+        let query_result_sender2 = query_result_sender.clone();
 
         let worker_fn = move |worker: &mut Worker<Thread>| {
             worker.dataflow(|scope| {
                 let mut input: PersistedInputSession = InputSession::new();
                 let manages = input.to_collection(scope);
 
-                // QueryResultAggregate::PostCount
-                manages
-                    .filter(move |(_id, persisted)| {
-                        match persisted {
-                            Persisted::Post { .. } => true,
-                            // WRONG
-                            // TODO: do an antijoin on Delete elements with the id of a post
-                            Persisted::Deleted => true,
-                            _ => false,
+                // TODO: filter out deleted items
+                let filter_out_deleted = manages.inspect(|_| {});
+
+                let posts = filter_out_deleted.flat_map(move |(id, persisted)| {
+                    match persisted {
+                        Persisted::Post(post) => vec![(id, post)],
+                        // WRONG
+                        // TODO: do an antijoin on Delete elements with the id of a post
+                        _ => vec![],
+                    }
+                });
+
+                posts
+                    // QueryResultAggregate::PostCount
+                    .inspect(move |((id, persisted), _time, diff)| {
+                        if *diff > 0 {
+                            query_result_sender2
+                                .send(vec![QueryResult::AddPost(*id, persisted.clone())])
+                                .unwrap();
                         }
-                    })
+                    });
+
+                posts
                     // .inspect(move |((_one, count), _time, diff)| {
                     //     println!("0. {:?}", ((_one, count), _time, diff));
                     // })
@@ -74,21 +86,17 @@ impl ForumMinimal {
 
                         if *diff > 0 {
                             query_result_sender0
-                                .send(vec![QueryResult::Aggregate(
-                                    QueryResultAggregate::PostCount(*count as u64),
-                                )])
+                                .send(vec![QueryResult::PostCount(*count as u64)])
                                 .unwrap();
                         }
                     });
 
-                manages.inspect(move |((id, persisted), _time, diff)| {
-                    let result = if *diff > 0 {
-                        QueryResult::AddPersisted(*id, persisted.clone())
-                    } else {
-                        QueryResult::DeletePersisted(*id)
-                    };
-
-                    query_result_sender1.send(vec![result]).unwrap();
+                manages.inspect(move |((id, _persisted), _time, diff)| {
+                    if *diff < 0 {
+                        query_result_sender1
+                            .send(vec![QueryResult::DeletePersisted(*id)])
+                            .unwrap();
+                    }
                 });
 
                 input
@@ -150,19 +158,19 @@ mod tests {
 
         let mut forum_minimal = ForumMinimal::new(persisted_sender.clone(), query_result_sender);
 
-        let post0 = Persisted::Post {
+        let post0 = Persisted::Post(Post {
             title: "a".into(),
             body: "a".into(),
             user_id: 0,
             likes: 0,
-        };
+        });
 
-        let post1 = Persisted::Post {
+        let post1 = Persisted::Post(Post {
             title: "b".into(),
             body: "b".into(),
             user_id: 0,
             likes: 0,
-        };
+        });
 
         let persisted_items = vec![(44, post0.clone()), (45, post1)];
         persisted_sender.clone().send(persisted_items).unwrap();
@@ -171,7 +179,7 @@ mod tests {
 
         assert_eq!(
             query_result_receiver.recv().await.unwrap(),
-            vec![QueryResult::Aggregate(QueryResultAggregate::PostCount(2))]
+            vec![QueryResult::PostCount(2)]
         );
 
         let remove_persisted_item = vec![(44, Persisted::Deleted)];
@@ -183,7 +191,7 @@ mod tests {
 
         assert_eq!(
             query_result_receiver.recv().await.unwrap(),
-            vec![QueryResult::Aggregate(QueryResultAggregate::PostCount(1))]
+            vec![QueryResult::PostCount(1)]
         );
     }
 }
