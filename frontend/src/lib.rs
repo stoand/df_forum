@@ -327,11 +327,10 @@ pub fn render_page_posts(
                             likes: post1.likes + 1,
                             ..post1.clone()
                         };
-                        let new_id = get_random_u64();
 
                         connection3.borrow().send_transaction(vec![
-                            (new_id, Persisted::Post(post_increased_likes), 1),
                             (id, Persisted::Post(post1.clone()), -1),
+                            (id, Persisted::Post(post_increased_likes), 1),
                         ]);
                     });
 

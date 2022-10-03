@@ -49,7 +49,7 @@ impl ForumMinimal {
 
                 let path = Path::new("/tmp/asdf");
 
-                let mut file = File::create(&path).unwrap();
+                let file = File::create(&path).unwrap();
                 manages.inner.capture_into(EventWriter::new(file));
 
                 let posts = manages.flat_map(move |(id, persisted)| match persisted {
@@ -58,7 +58,7 @@ impl ForumMinimal {
                 });
 
                 posts.inspect_batch(move |_time, items| {
-                    let mut results : Vec<QueryResult> = Vec::new();
+                    let mut results: Vec<QueryResult> = Vec::new();
 
                     for ((id, persisted), _time, diff) in items {
                         if *diff > 0 {
