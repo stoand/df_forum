@@ -172,7 +172,7 @@ pub fn render_page_posts(
                     user_id: 0,
                     likes: 0,
                 }),
-                1
+                1,
             )]);
         }
     });
@@ -216,6 +216,7 @@ pub fn render_page_posts(
 
     let username_label = document.create_element("button").unwrap();
     username_label.set_inner_html("Like <span id='post-likes'></span>");
+    username_label.set_id("post-like");
     post_template.append_child(&username_label).unwrap();
 
     let username_label = document.create_element("button").unwrap();
@@ -305,16 +306,39 @@ pub fn render_page_posts(
                     let post0 = post.clone();
 
                     let post_remove_click = Closure::<dyn FnMut()>::new(move || {
-                        
-                        connection2
-                            .borrow()
-                            .send_transaction(vec![(id, Persisted::Post(post0.clone()), -1)]);
+                        connection2.borrow().send_transaction(vec![(
+                            id,
+                            Persisted::Post(post0.clone()),
+                            -1,
+                        )]);
                     });
 
                     let post_remove_el = post_remove.dyn_ref::<HtmlElement>().unwrap();
                     post_remove_el.set_onclick(Some(post_remove_click.as_ref().unchecked_ref()));
 
                     post_remove_click.forget();
+
+                    let post_like = new_post.query_selector("#post-like").unwrap().unwrap();
+                    let connection3 = connection1.clone();
+                    let post1 = post.clone();
+
+                    let post_like_click = Closure::<dyn FnMut()>::new(move || {
+                        let post_increased_likes = Post {
+                            likes: post1.likes + 1,
+                            ..post1.clone()
+                        };
+                        let new_id = get_random_u64();
+
+                        connection3.borrow().send_transaction(vec![
+                            (new_id, Persisted::Post(post_increased_likes), 1),
+                            (id, Persisted::Post(post1.clone()), -1),
+                        ]);
+                    });
+
+                    let post_like_el = post_like.dyn_ref::<HtmlElement>().unwrap();
+                    post_like_el.set_onclick(Some(post_like_click.as_ref().unchecked_ref()));
+
+                    post_like_click.forget();
                 }
                 QueryResult::DeletePersisted(id) => {
                     document
