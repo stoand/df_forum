@@ -13,6 +13,10 @@ pub enum Persisted {
     // Session { token: String, user_id: u64 },
     // User { name: String },
     Post(Post),
+    PostTitle(String),
+    PostBody(String),
+    PostUserId(u64),
+    PostLikes(u64),
 }
 
 pub type PersistedItems = Vec<(Id, Persisted, Diff)>;

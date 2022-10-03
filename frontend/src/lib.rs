@@ -164,6 +164,17 @@ pub fn render_page_posts(
 
         let body = post_body.dyn_ref::<HtmlInputElement>().unwrap().value();
         if !title.is_empty() && !body.is_empty() {
+            let id = get_random_u64();
+
+            // connection0
+            //     .borrow()
+            //     .send_transaction(vec![
+            //         (id, Persisted::PostTitle(title), 1),
+            //         (id, Persisted::PostBody(body), 1),
+            //         (id, Persisted::PostUserId(0), 1),
+            //         (id, Persisted::PostLikes(0), 1),
+            // ]);
+            
             connection0.borrow().send_transaction(vec![(
                 get_random_u64(),
                 Persisted::Post(Post {
@@ -323,14 +334,9 @@ pub fn render_page_posts(
                     let post1 = post.clone();
 
                     let post_like_click = Closure::<dyn FnMut()>::new(move || {
-                        let post_increased_likes = Post {
-                            likes: post1.likes + 1,
-                            ..post1.clone()
-                        };
-
                         connection3.borrow().send_transaction(vec![
-                            (id, Persisted::Post(post1.clone()), -1),
-                            (id, Persisted::Post(post_increased_likes), 1),
+                            (id, Persisted::PostLikes(post1.likes), -1),
+                            (id, Persisted::PostLikes(post1.likes + 1), 1),
                         ]);
                     });
 
@@ -345,6 +351,7 @@ pub fn render_page_posts(
                         .unwrap()
                         .remove();
                 }
+                _ => {}
             }
         }
     };

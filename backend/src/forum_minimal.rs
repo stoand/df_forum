@@ -54,7 +54,7 @@ impl ForumMinimal {
 
                 let posts = manages.flat_map(move |(id, persisted)| match persisted {
                     Persisted::Post(post) => vec![(id, post)],
-                    // _ => vec![],
+                    _ => vec![],
                 });
 
                 posts.inspect_batch(move |_time, items| {
@@ -205,15 +205,18 @@ mod tests {
 
         let mut forum_minimal = ForumMinimal::new(persisted_sender.clone(), query_result_sender);
 
-        let post0 = Persisted::Post(Post {
-            title: "a".into(),
-            body: "a".into(),
-            user_id: 0,
-            likes: 0,
-        });
+        let gen_post = |id, title: &str, body: &str| {
+            vec![
+                (id, Persisted::PostTitle(title.into()), 1),
+                (id, Persisted::PostBody(body.into()), 1),
+                (id, Persisted::PostUserId(0), 1),
+                (id, Persisted::PostLikes(0), 1),
+            ]
+        };
 
-        let persisted_items = vec![(44, post0.clone(), 1)];
-        persisted_sender.clone().send(persisted_items).unwrap();
+        let post0 = gen_post(10, "a", "b");
+
+        persisted_sender.clone().send(post0).unwrap();
 
         forum_minimal.advance_dataflow_computation_once().await;
 
@@ -223,5 +226,10 @@ mod tests {
         //     if let Some(event_link) = handle.next {
         //     }
         // }
+        
+        // assert!(try_recv_contains(
+        //     &mut query_result_receiver,
+        //     vec![QueryResult::PostCount(0)]
+        // ));
     }
 }
