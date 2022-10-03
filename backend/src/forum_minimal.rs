@@ -16,10 +16,9 @@ use differential_dataflow::input::InputSession;
 use differential_dataflow::operators::Count;
 
 use std::sync::{Arc, Mutex};
-use timely::dataflow::operators::capture::{EventLink, Extract, Replay, EventWriter};
+use timely::dataflow::operators::capture::{EventLink, EventWriter, Extract, Replay};
 use timely::dataflow::operators::{Capture, Inspect, ToStream};
 use timely::dataflow::Scope;
-
 
 use std::fs::File;
 use std::io::prelude::*;
@@ -51,7 +50,6 @@ impl ForumMinimal {
                 let path = Path::new("/tmp/asdf");
 
                 let mut file = File::create(&path).unwrap();
-                
                 manages.inner.capture_into(EventWriter::new(file));
 
                 let posts = manages.flat_map(move |(id, persisted)| match persisted {
@@ -59,12 +57,18 @@ impl ForumMinimal {
                     // _ => vec![],
                 });
 
-                posts.inspect(move |((id, persisted), _time, diff)| {
-                    if *diff > 0 {
-                        query_result_sender2
-                            .send(vec![QueryResult::AddPost(*id, persisted.clone())])
-                            .unwrap();
+                posts.inspect_batch(move |_time, items| {
+                    let mut results : Vec<QueryResult> = Vec::new();
+
+                    for ((id, persisted), _time, diff) in items {
+                        if *diff > 0 {
+                            results.push(QueryResult::AddPost(*id, persisted.clone()));
+                        } else {
+                            results.push(QueryResult::DeletePersisted(*id));
+                        }
                     }
+
+                    query_result_sender2.send(results).unwrap();
                 });
 
                 posts
@@ -82,14 +86,6 @@ impl ForumMinimal {
                             .send(vec![QueryResult::PostCount(final_count)])
                             .unwrap();
                     });
-
-                manages.inspect(move |((id, _persisted), _time, diff)| {
-                    if *diff < 0 {
-                        query_result_sender1
-                            .send(vec![QueryResult::DeletePersisted(*id)])
-                            .unwrap();
-                    }
-                });
 
                 input
             })
@@ -220,7 +216,6 @@ mod tests {
         persisted_sender.clone().send(persisted_items).unwrap();
 
         forum_minimal.advance_dataflow_computation_once().await;
-
 
         // let handle = forum_minimal.handle0.borrow();
 

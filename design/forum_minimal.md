@@ -8,6 +8,7 @@ partof: REQ-purpose
 * Make id's external instead of being inside Persisted items
 * Delete items using "remove" instead of using a delete event
 * Sort list items
+* Prevent flickering
 
 # Features
 
