@@ -95,10 +95,8 @@ impl ForumMinimal {
                                         .map(|((_time, id, _persisted), _diff)| *id)
                                         .collect();
 
-                                    outputs.push((
-                                        (query.clone(), QueryResult::PagePosts(page, items)),
-                                        1,
-                                    ));
+                                    outputs
+                                        .push(((query.clone(), QueryResult::PagePosts(items)), 1));
                                 })
                                 .map(|(_discarded_zero, query_result)| query_result)
                                 .inspect(move |(query_result, _time, _diff)| {
@@ -143,7 +141,7 @@ impl ForumMinimal {
                                             .clone()
                                             .send(vec![(
                                                 query.clone(),
-                                                QueryResult::PostTitle(*id, title.clone()),
+                                                QueryResult::PostTitle(title.clone()),
                                             )])
                                             .unwrap();
                                     }
@@ -288,7 +286,7 @@ mod tests {
                     &mut query_result_receiver,
                     vec![(
                         Query::PostsInPage(1),
-                        QueryResult::PagePosts(1, vec![500, 600, 700, 800, 900]),
+                        QueryResult::PagePosts(vec![500, 600, 700, 800, 900]),
                     )],
                 );
             }
@@ -310,10 +308,7 @@ mod tests {
         forum_minimal.advance_dataflow_computation_once().await;
         assert!(try_recv_contains(
             &mut query_result_receiver,
-            vec![(
-                Query::PostTitle(100),
-                QueryResult::PostTitle(100, "Zerg".into())
-            )]
+            vec![(Query::PostTitle(100), QueryResult::PostTitle("Zerg".into()))]
         ));
     }
 }

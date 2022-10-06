@@ -13,7 +13,7 @@ pub enum QueryResult {
     AddPost(Id, Post),
     PostCount(u64),
     DeletePersisted(Id),
-    PagePosts(usize, Vec<u64>),
+    PagePosts(Vec<u64>),
 
-    PostTitle(u64, String),
+    PostTitle(String),
 }
