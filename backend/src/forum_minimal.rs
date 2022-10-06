@@ -243,6 +243,8 @@ mod tests {
 
         let mut forum_minimal = ForumMinimal::new(persisted_sender.clone(), query_result_sender);
 
+        let mut found = false;
+
         for i in 0..10 {
             persisted_sender
                 .clone()
@@ -254,11 +256,15 @@ mod tests {
                 .unwrap();
 
             forum_minimal.advance_dataflow_computation_once().await;
+
+            if !found {
+                found = try_recv_contains(
+                    &mut query_result_receiver,
+                    vec![QueryResult::PagePosts(1, vec![500, 600, 700, 800, 900])],
+                );
+            }
         }
 
-        assert!(try_recv_contains(
-            &mut query_result_receiver,
-            vec![QueryResult::PagePosts(1, vec![500, 600, 700, 800, 900])]
-        ));
+        assert!(found);
     }
 }
