@@ -66,7 +66,7 @@ impl ForumMinimal {
                 let queries = vec![
                     Query::PostsInPage(1),
                     Query::PostCount,
-                    Query::PostTitle(100),
+                    Query::PostTitle(5),
                 ];
 
                 for query in queries {
