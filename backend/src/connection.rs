@@ -13,7 +13,7 @@ use tokio::sync::broadcast;
 use tokio_tungstenite::tungstenite::protocol::Message;
 
 // use df_forum_frontend::persisted::Persisted;
-use df_forum_frontend::query_result::QueryResult;
+use df_forum_frontend::query_result::{Query, QueryResult};
 
 type Tx = UnboundedSender<Message>;
 type PeerMap = Arc<Mutex<HashMap<SocketAddr, Tx>>>;
@@ -30,7 +30,7 @@ async fn handle_connection(
     raw_stream: TcpStream,
     _addr: SocketAddr,
     persisted_sender: broadcast::Sender<PersistedItems>,
-    query_result_sender: broadcast::Sender<Vec<QueryResult>>,
+    query_result_sender: broadcast::Sender<Vec<(Query, QueryResult)>>,
 ) -> Result<(), HandlerError> {
     let ws_stream = tokio_tungstenite::accept_async(raw_stream)
         .await
@@ -76,7 +76,7 @@ async fn handle_connection(
 async fn loop_check_for_connections(
     addr: String,
     persisted_sender: broadcast::Sender<PersistedItems>,
-    query_result_sender: broadcast::Sender<Vec<QueryResult>>,
+    query_result_sender: broadcast::Sender<Vec<(Query, QueryResult)>>,
 ) {
     let state = PeerMap::new(Mutex::new(HashMap::new()));
 

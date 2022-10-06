@@ -33,7 +33,7 @@ pub struct ForumMinimal {
 impl ForumMinimal {
     pub fn new(
         persisted_sender: broadcast::Sender<PersistedItems>,
-        query_result_sender: broadcast::Sender<Vec<QueryResult>>,
+        query_result_sender: broadcast::Sender<Vec<(Query, QueryResult)>>,
     ) -> Self {
         let query_result_sender0 = query_result_sender.clone();
         let query_result_sender1 = query_result_sender.clone();
@@ -44,48 +44,30 @@ impl ForumMinimal {
                 let mut input: PersistedInputSession = InputSession::new();
                 let manages = input.to_collection(scope);
 
-                let posts = manages.flat_map(move |(id, persisted)| match persisted {
-                    Persisted::Post(post) => vec![(id, post)],
-                    _ => vec![],
-                });
+                // let posts = manages.flat_map(move |(id, persisted)| match persisted {
+                //     Persisted::Post(post) => vec![(id, post)],
+                //     _ => vec![],
+                // });
 
-                posts.inspect_batch(move |_time, items| {
-                    let mut results: Vec<QueryResult> = Vec::new();
+                // posts.inspect_batch(move |_time, items| {
+                //     let mut results: Vec<QueryResult> = Vec::new();
 
-                    for ((id, persisted), _time, diff) in items {
-                        if *diff > 0 {
-                            results.push(QueryResult::AddPost(*id, persisted.clone()));
-                        } else {
-                            results.push(QueryResult::DeletePersisted(*id));
-                        }
-                    }
+                //     for ((id, persisted), _time, diff) in items {
+                //         if *diff > 0 {
+                //             results.push(QueryResult::AddPost(*id, persisted.clone()));
+                //         } else {
+                //             results.push(QueryResult::DeletePersisted(*id));
+                //         }
+                //     }
 
-                    query_result_sender2.send(results).unwrap();
-                });
+                //     query_result_sender2.send(results).unwrap();
+                // });
 
-                manages
-                    .flat_map(|(_id, persisted)| {
-                        if let Persisted::PostTitle(_) = persisted {
-                            vec![0]
-                        } else {
-                            vec![]
-                        }
-                    })
-                    .count()
-                    .inspect_batch(move |_time, items| {
-                        let mut final_count = 0;
-
-                        for ((_discarded_zero, count), _time, diff) in items {
-                            if *diff > 0 {
-                                final_count = *count as u64;
-                            }
-                        }
-                        query_result_sender0
-                            .send(vec![QueryResult::PostCount(final_count)])
-                            .unwrap();
-                    });
-
-                let queries = vec![Query::PostsInPage(1), Query::PostTitle(100)];
+                let queries = vec![
+                    Query::PostsInPage(1),
+                    Query::PostCount,
+                    Query::PostTitle(100),
+                ];
 
                 for query in queries {
                     let query_result_sender_loop = query_result_sender1.clone();
@@ -113,7 +95,10 @@ impl ForumMinimal {
                                         .map(|((_time, id, _persisted), _diff)| *id)
                                         .collect();
 
-                                    outputs.push((QueryResult::PagePosts(page, items), 1));
+                                    outputs.push((
+                                        (query.clone(), QueryResult::PagePosts(page, items)),
+                                        1,
+                                    ));
                                 })
                                 .map(|(_discarded_zero, query_result)| query_result)
                                 .inspect(move |(query_result, _time, _diff)| {
@@ -123,13 +108,43 @@ impl ForumMinimal {
                                         .unwrap();
                                 });
                         }
+                        Query::PostCount => {
+                            manages
+                                .flat_map(|(_id, persisted)| {
+                                    if let Persisted::PostTitle(_) = persisted {
+                                        vec![0]
+                                    } else {
+                                        vec![]
+                                    }
+                                })
+                                .count()
+                                .inspect_batch(move |_time, items| {
+                                    let mut final_count = 0;
+
+                                    for ((_discarded_zero, count), _time, diff) in items {
+                                        if *diff > 0 {
+                                            final_count = *count as u64;
+                                        }
+                                    }
+                                    query_result_sender_loop
+                                        .clone()
+                                        .send(vec![(
+                                            query.clone(),
+                                            QueryResult::PostCount(final_count),
+                                        )])
+                                        .unwrap();
+                                });
+                        }
                         Query::PostTitle(post_id) => {
                             manages.inspect(move |((id, persisted), _time, _diff)| {
                                 if *id == post_id {
                                     if let Persisted::PostTitle(title) = persisted {
                                         query_result_sender_loop
                                             .clone()
-                                            .send(vec![QueryResult::PostTitle(*id, title.clone())])
+                                            .send(vec![(
+                                                query.clone(),
+                                                QueryResult::PostTitle(*id, title.clone()),
+                                            )])
                                             .unwrap();
                                     }
                                 }
@@ -228,7 +243,7 @@ mod tests {
 
         assert!(try_recv_contains(
             &mut query_result_receiver,
-            vec![QueryResult::PostCount(2)]
+            vec![(Query::PostCount, QueryResult::PostCount(2))]
         ));
 
         let remove_post = vec![
@@ -243,7 +258,7 @@ mod tests {
 
         assert!(try_recv_contains(
             &mut query_result_receiver,
-            vec![QueryResult::PostCount(1)]
+            vec![(Query::PostCount, QueryResult::PostCount(1))]
         ));
     }
 
@@ -271,7 +286,10 @@ mod tests {
             if !found {
                 found = try_recv_contains(
                     &mut query_result_receiver,
-                    vec![QueryResult::PagePosts(1, vec![500, 600, 700, 800, 900])],
+                    vec![(
+                        Query::PostsInPage(1),
+                        QueryResult::PagePosts(1, vec![500, 600, 700, 800, 900]),
+                    )],
                 );
             }
         }
@@ -292,7 +310,10 @@ mod tests {
         forum_minimal.advance_dataflow_computation_once().await;
         assert!(try_recv_contains(
             &mut query_result_receiver,
-            vec![QueryResult::PostTitle(100, "Zerg".into())]
+            vec![(
+                Query::PostTitle(100),
+                QueryResult::PostTitle(100, "Zerg".into())
+            )]
         ));
     }
 }

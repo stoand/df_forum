@@ -20,7 +20,7 @@ pub mod persisted;
 pub mod query_result;
 
 use persisted::{Persisted, Post};
-use query_result::QueryResult;
+use query_result::{Query, QueryResult};
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -165,26 +165,13 @@ pub fn render_page_posts(
         let body = post_body.dyn_ref::<HtmlInputElement>().unwrap().value();
         if !title.is_empty() && !body.is_empty() {
             let id = get_random_u64();
-
-            // connection0
-            //     .borrow()
-            //     .send_transaction(vec![
-            //         (id, Persisted::PostTitle(title), 1),
-            //         (id, Persisted::PostBody(body), 1),
-            //         (id, Persisted::PostUserId(0), 1),
-            //         (id, Persisted::PostLikes(0), 1),
-            // ]);
             
-            connection0.borrow().send_transaction(vec![(
-                get_random_u64(),
-                Persisted::Post(Post {
-                    title,
-                    body,
-                    user_id: 0,
-                    likes: 0,
-                }),
-                1,
-            )]);
+            connection0.borrow().send_transaction(vec![
+                ( id, Persisted::PostTitle(title), 1),
+                ( id, Persisted::PostBody(body), 1),
+                ( id, Persisted::PostLikes(0), 1),
+                ( id, Persisted::PostUserId(0), 1),
+            ]);
         }
     });
 
@@ -260,97 +247,97 @@ pub fn render_page_posts(
     let username_label = document.create_element("button").unwrap();
     username_label.set_text_content(Some("Next"));
     page_ops.append_child(&username_label).unwrap();
-    let on_parsed_message = move |items: Vec<QueryResult>| {
+    let on_parsed_message = move |items: Vec<(Query, QueryResult)>| {
         let window = web_sys::window().unwrap();
         let document = window.document().unwrap();
         for item in items {
             match item {
-                QueryResult::PostCount(count) => {
+                (Query::PostCount, QueryResult::PostCount(count)) => {
                     document
                         .query_selector("#posts-total")
                         .unwrap()
                         .unwrap()
                         .set_text_content(Some(&count.to_string()));
                 }
-                QueryResult::AddPost(id, post) => {
-                    let Post {
-                        title,
-                        body,
-                        user_id,
-                        likes,
-                    } = post.clone();
+                // QueryResult::AddPost(id, post) => {
+                //     let Post {
+                //         title,
+                //         body,
+                //         user_id,
+                //         likes,
+                //     } = post.clone();
 
-                    let posts_container = document
-                        .query_selector("#posts-container")
-                        .unwrap()
-                        .unwrap();
-                    let post_template = document.query_selector("#post-template").unwrap().unwrap();
-                    let new_post = document.create_element("div").unwrap();
-                    new_post.set_inner_html(&post_template.inner_html());
-                    new_post.set_id(&id.to_string());
-                    posts_container.append_child(&new_post).unwrap();
+                //     let posts_container = document
+                //         .query_selector("#posts-container")
+                //         .unwrap()
+                //         .unwrap();
+                //     let post_template = document.query_selector("#post-template").unwrap().unwrap();
+                //     let new_post = document.create_element("div").unwrap();
+                //     new_post.set_inner_html(&post_template.inner_html());
+                //     new_post.set_id(&id.to_string());
+                //     posts_container.append_child(&new_post).unwrap();
 
-                    new_post
-                        .query_selector("#post-title")
-                        .unwrap()
-                        .unwrap()
-                        .set_text_content(Some(&title));
-                    new_post
-                        .query_selector("#post-body")
-                        .unwrap()
-                        .unwrap()
-                        .set_text_content(Some(&body));
-                    new_post
-                        .query_selector("#post-author")
-                        .unwrap()
-                        .unwrap()
-                        .set_text_content(Some(&user_id.to_string()));
-                    new_post
-                        .query_selector("#post-likes")
-                        .unwrap()
-                        .unwrap()
-                        .set_text_content(Some(&likes.to_string()));
+                //     new_post
+                //         .query_selector("#post-title")
+                //         .unwrap()
+                //         .unwrap()
+                //         .set_text_content(Some(&title));
+                //     new_post
+                //         .query_selector("#post-body")
+                //         .unwrap()
+                //         .unwrap()
+                //         .set_text_content(Some(&body));
+                //     new_post
+                //         .query_selector("#post-author")
+                //         .unwrap()
+                //         .unwrap()
+                //         .set_text_content(Some(&user_id.to_string()));
+                //     new_post
+                //         .query_selector("#post-likes")
+                //         .unwrap()
+                //         .unwrap()
+                //         .set_text_content(Some(&likes.to_string()));
 
-                    let post_remove = new_post.query_selector("#post-remove").unwrap().unwrap();
+                //     let post_remove = new_post.query_selector("#post-remove").unwrap().unwrap();
 
-                    let connection2 = connection1.clone();
-                    let post0 = post.clone();
+                //     let connection2 = connection1.clone();
+                //     let post0 = post.clone();
 
-                    let post_remove_click = Closure::<dyn FnMut()>::new(move || {
-                        connection2.borrow().send_transaction(vec![(
-                            id,
-                            Persisted::Post(post0.clone()),
-                            -1,
-                        )]);
-                    });
+                //     let post_remove_click = Closure::<dyn FnMut()>::new(move || {
+                //         connection2.borrow().send_transaction(vec![(
+                //             id,
+                //             Persisted::Post(post0.clone()),
+                //             -1,
+                //         )]);
+                //     });
 
-                    let post_remove_el = post_remove.dyn_ref::<HtmlElement>().unwrap();
-                    post_remove_el.set_onclick(Some(post_remove_click.as_ref().unchecked_ref()));
+                //     let post_remove_el = post_remove.dyn_ref::<HtmlElement>().unwrap();
+                //     post_remove_el.set_onclick(Some(post_remove_click.as_ref().unchecked_ref()));
 
-                    post_remove_click.forget();
+                //     post_remove_click.forget();
 
-                    let post_like = new_post.query_selector("#post-like").unwrap().unwrap();
-                    let connection3 = connection1.clone();
-                    let post1 = post.clone();
+                //     let post_like = new_post.query_selector("#post-like").unwrap().unwrap();
+                //     let connection3 = connection1.clone();
+                //     let post1 = post.clone();
 
-                    let post_like_click = Closure::<dyn FnMut()>::new(move || {
-                        connection3.borrow().send_transaction(vec![
-                            (id, Persisted::PostLikes(post1.likes), -1),
-                            (id, Persisted::PostLikes(post1.likes + 1), 1),
-                        ]);
-                    });
+                //     let post_like_click = Closure::<dyn FnMut()>::new(move || {
+                //         connection3.borrow().send_transaction(vec![
+                //             (id, Persisted::PostLikes(post1.likes), -1),
+                //             (id, Persisted::PostLikes(post1.likes + 1), 1),
+                //         ]);
+                //     });
 
-                    let post_like_el = post_like.dyn_ref::<HtmlElement>().unwrap();
-                    post_like_el.set_onclick(Some(post_like_click.as_ref().unchecked_ref()));
+                //     let post_like_el = post_like.dyn_ref::<HtmlElement>().unwrap();
+                //     post_like_el.set_onclick(Some(post_like_click.as_ref().unchecked_ref()));
 
-                    post_like_click.forget();
-                }
-                QueryResult::DeletePersisted(id) => {
-                    document
-                        .get_element_by_id(&id.to_string())
-                        .unwrap()
-                        .remove();
-                }
+                //     post_like_click.forget();
+                // }
+                // QueryResult::DeletePersisted(id) => {
+                //     document
+                //         .get_element_by_id(&id.to_string())
+                //         .unwrap()
+                //         .remove();
+                // }
                 _ => {}
             }
         }

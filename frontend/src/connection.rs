@@ -10,11 +10,11 @@ use wasm_bindgen::JsCast;
 
 use crate::log;
 use crate::persisted::PersistedItems;
-use crate::query_result::QueryResult;
+use crate::query_result::{Query, QueryResult};
 
 pub struct FrontendConnection {
     websocket: Rc<RefCell<WebSocket>>,
-    pub onmessage: Option<fn(Vec<QueryResult>) -> ()>,
+    pub onmessage: Option<fn(Vec<(Query, QueryResult)>) -> ()>,
 }
 
 impl FrontendConnection {
@@ -45,13 +45,16 @@ impl FrontendConnection {
         }
     }
 
-    pub fn init_on_parsed_message(&self, on_parsed_message: Box<dyn Fn(Vec<QueryResult>)>) {
+    pub fn init_on_parsed_message(
+        &self,
+        on_parsed_message: Box<dyn Fn(Vec<(Query, QueryResult)>)>,
+    ) {
         let onmessage = Closure::<dyn FnMut(WebSocketMessageEvent)>::new(
             move |message: WebSocketMessageEvent| {
                 let data = message.data().as_string().unwrap();
                 log(&format!("got websocket message: {:?}", data));
 
-                let parsed_data: Vec<QueryResult> =
+                let parsed_data: Vec<(Query, QueryResult)> =
                     serde_json::from_str(&data).expect("could not parse QueryResults");
 
                 on_parsed_message(parsed_data);
