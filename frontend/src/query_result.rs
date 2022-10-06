@@ -3,7 +3,7 @@ use crate::persisted::{Persisted, Post};
 
 #[derive(Hash, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Query {
-    PostsInPage(u64),
+    PostsInPage(usize),
 }
 
 #[derive(Hash, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
@@ -11,7 +11,7 @@ pub enum QueryResult {
     AddPost(Id, Post),
     PostCount(u64),
     DeletePersisted(Id),
-    PagePosts(u64, Vec<u64>),
+    PagePosts(usize, Vec<u64>),
 
     PersistedField(u64, Persisted),
 }

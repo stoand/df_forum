@@ -7,6 +7,7 @@ use df_forum_frontend::query_result::{Query, QueryResult};
 use std::cell::RefCell;
 use std::rc::Rc;
 use timely::communication::allocator::thread::Thread;
+use timely::dataflow::operators::Map;
 use timely::worker::Worker;
 use timely::WorkerConfig;
 
@@ -14,10 +15,13 @@ use tokio::sync::broadcast;
 
 use differential_dataflow::input::InputSession;
 use differential_dataflow::operators::Count;
+use differential_dataflow::operators::Reduce;
+use differential_dataflow::AsCollection;
+use differential_dataflow::{Collection, ExchangeData};
 
 pub type PersistedInputSession = InputSession<Time, (Id, Persisted), Diff>;
 
-pub const POSTS_PER_PAGE: u64 = 5;
+pub const POSTS_PER_PAGE: usize = 5;
 
 pub struct ForumMinimal {
     pub input: Rc<RefCell<PersistedInputSession>>,
@@ -32,6 +36,7 @@ impl ForumMinimal {
         query_result_sender: broadcast::Sender<Vec<QueryResult>>,
     ) -> Self {
         let query_result_sender0 = query_result_sender.clone();
+        let query_result_sender1 = query_result_sender.clone();
         let query_result_sender2 = query_result_sender.clone();
 
         let worker_fn = move |worker: &mut Worker<Thread>| {
@@ -83,8 +88,42 @@ impl ForumMinimal {
                 let queries = vec![Query::PostsInPage(1)];
 
                 for query in queries {
+                    let query_result_sender_loop = query_result_sender1.clone();
                     match query {
-                        Query::PostsInPage(page) => {}
+                        Query::PostsInPage(page) => {
+                            manages
+                                .inner
+                                .map(|((id, persisted), time, diff)| {
+                                    ((time, id, persisted), time, diff)
+                                })
+                                .as_collection()
+                                .flat_map(|(time, id, persisted)| match persisted {
+                                    Persisted::PostTitle(_) => vec![(0, (time, id, persisted))],
+                                    _ => vec![],
+                                })
+                                .reduce(move |_key_discarded_zero, inputs, outputs| {
+                                    let mut sorted = inputs.to_vec();
+                                    sorted.sort_by_key(|((time, _id, _persisted), _diff)| time);
+
+                                    let items: Vec<u64> = sorted
+                                        .iter()
+                                        .skip(page * POSTS_PER_PAGE)
+                                        .take(POSTS_PER_PAGE)
+                                        .filter(|((_time, _id, _persisted), diff)| *diff > 0)
+                                        .map(|((_time, id, _persisted), _diff)| *id)
+                                        .collect();
+
+                                    outputs.push((QueryResult::PagePosts(page, items), 1));
+                                })
+                                .map(|(_discarded_zero, query_result)| query_result)
+                                .inspect(move |(query_result, _time, _diff)| {
+                                    println!("{:?}", query_result);
+                                    query_result_sender_loop
+                                        .clone()
+                                        .send(vec![query_result.clone()])
+                                        .unwrap();
+                                });
+                        }
                     }
                 }
 
@@ -204,32 +243,22 @@ mod tests {
 
         let mut forum_minimal = ForumMinimal::new(persisted_sender.clone(), query_result_sender);
 
-        let mut add_posts = Vec::new();
-
-        for i in 0..20 {
-            add_posts.append(&mut vec![
-                (
-                    i,
+        for i in 0..10 {
+            persisted_sender
+                .clone()
+                .send(vec![(
+                    i * 100,
                     Persisted::PostTitle("PostNum".to_string() + &i.to_string()),
                     1,
-                ),
-                (
-                    i,
-                    Persisted::PostBody("PostBody".to_string() + &i.to_string()),
-                    1,
-                ),
-                (i, Persisted::PostUserId(0), 1),
-                (i, Persisted::PostLikes(0), 1),
-            ]);
+                )])
+                .unwrap();
+
+            forum_minimal.advance_dataflow_computation_once().await;
         }
-
-        persisted_sender.clone().send(add_posts).unwrap();
-
-        forum_minimal.advance_dataflow_computation_once().await;
 
         assert!(try_recv_contains(
             &mut query_result_receiver,
-            vec![QueryResult::PagePosts(1, vec![5, 6, 7, 8, 9])]
+            vec![QueryResult::PagePosts(1, vec![500, 600, 700, 800, 900])]
         ));
     }
 }
