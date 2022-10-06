@@ -4,6 +4,7 @@ use crate::persisted::{Persisted, Post};
 #[derive(Hash, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Query {
     PostsInPage(usize),
+    PostTitle(u64),
 }
 
 #[derive(Hash, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
@@ -13,5 +14,5 @@ pub enum QueryResult {
     DeletePersisted(Id),
     PagePosts(usize, Vec<u64>),
 
-    PersistedField(u64, Persisted),
+    PostTitle(u64, String),
 }

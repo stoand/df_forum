@@ -85,7 +85,7 @@ impl ForumMinimal {
                             .unwrap();
                     });
 
-                let queries = vec![Query::PostsInPage(1)];
+                let queries = vec![Query::PostsInPage(1), Query::PostTitle(100)];
 
                 for query in queries {
                     let query_result_sender_loop = query_result_sender1.clone();
@@ -117,12 +117,23 @@ impl ForumMinimal {
                                 })
                                 .map(|(_discarded_zero, query_result)| query_result)
                                 .inspect(move |(query_result, _time, _diff)| {
-                                    println!("{:?}", query_result);
                                     query_result_sender_loop
                                         .clone()
                                         .send(vec![query_result.clone()])
                                         .unwrap();
                                 });
+                        }
+                        Query::PostTitle(post_id) => {
+                            manages.inspect(move |((id, persisted), _time, _diff)| {
+                                if *id == post_id {
+                                    if let Persisted::PostTitle(title) = persisted {
+                                        query_result_sender_loop
+                                            .clone()
+                                            .send(vec![QueryResult::PostTitle(*id, title.clone())])
+                                            .unwrap();
+                                    }
+                                }
+                            });
                         }
                     }
                 }
@@ -266,5 +277,22 @@ mod tests {
         }
 
         assert!(found);
+    }
+    #[tokio::test]
+    pub async fn test_fields() {
+        let (query_result_sender, mut query_result_receiver) = broadcast::channel(16);
+        let (persisted_sender, _persisted_receiver) = broadcast::channel(16);
+
+        let mut forum_minimal = ForumMinimal::new(persisted_sender.clone(), query_result_sender);
+
+        persisted_sender
+            .send(vec![(100, Persisted::PostTitle("Zerg".into()), 1)])
+            .unwrap();
+
+        forum_minimal.advance_dataflow_computation_once().await;
+        assert!(try_recv_contains(
+            &mut query_result_receiver,
+            vec![QueryResult::PostTitle(100, "Zerg".into())]
+        ));
     }
 }
