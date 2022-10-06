@@ -1,6 +1,6 @@
 use df_forum_frontend::df_tuple_items::{Diff, Id, Time};
 pub use df_forum_frontend::persisted::{Persisted, PersistedItems, Post};
-use df_forum_frontend::query_result::QueryResult;
+use df_forum_frontend::query_result::{Query, QueryResult};
 
 // use crate::operators::only_latest::OnlyLatest;
 
@@ -17,6 +17,8 @@ use differential_dataflow::operators::Count;
 
 pub type PersistedInputSession = InputSession<Time, (Id, Persisted), Diff>;
 
+pub const POSTS_PER_PAGE: u64 = 5;
+
 pub struct ForumMinimal {
     pub input: Rc<RefCell<PersistedInputSession>>,
     pub worker: Rc<RefCell<Worker<timely::communication::allocator::Thread>>>,
@@ -30,7 +32,6 @@ impl ForumMinimal {
         query_result_sender: broadcast::Sender<Vec<QueryResult>>,
     ) -> Self {
         let query_result_sender0 = query_result_sender.clone();
-        let query_result_sender1 = query_result_sender.clone();
         let query_result_sender2 = query_result_sender.clone();
 
         let worker_fn = move |worker: &mut Worker<Thread>| {
@@ -78,6 +79,14 @@ impl ForumMinimal {
                             .send(vec![QueryResult::PostCount(final_count)])
                             .unwrap();
                     });
+
+                let queries = vec![Query::PostsInPage(1)];
+
+                for query in queries {
+                    match query {
+                        Query::PostsInPage(page) => {}
+                    }
+                }
 
                 input
             })
@@ -188,37 +197,39 @@ mod tests {
         ));
     }
 
-    // #[tokio::test]
-    // pub async fn test_capture() {
-    //     let (query_result_sender, mut query_result_receiver) = broadcast::channel(16);
-    //     let (persisted_sender, _persisted_receiver) = broadcast::channel(16);
+    #[tokio::test]
+    pub async fn test_pagination() {
+        let (query_result_sender, mut query_result_receiver) = broadcast::channel(16);
+        let (persisted_sender, _persisted_receiver) = broadcast::channel(16);
 
-    //     let mut forum_minimal = ForumMinimal::new(persisted_sender.clone(), query_result_sender);
+        let mut forum_minimal = ForumMinimal::new(persisted_sender.clone(), query_result_sender);
 
-    //     let gen_post = |id, title: &str, body: &str| {
-    //         vec![
-    //             (id, Persisted::PostTitle(title.into()), 1),
-    //             (id, Persisted::PostBody(body.into()), 1),
-    //             (id, Persisted::PostUserId(0), 1),
-    //             (id, Persisted::PostLikes(0), 1),
-    //         ]
-    //     };
+        let mut add_posts = Vec::new();
 
-    //     let post0 = gen_post(10, "a", "b");
+        for i in 0..20 {
+            add_posts.append(&mut vec![
+                (
+                    i,
+                    Persisted::PostTitle("PostNum".to_string() + &i.to_string()),
+                    1,
+                ),
+                (
+                    i,
+                    Persisted::PostBody("PostBody".to_string() + &i.to_string()),
+                    1,
+                ),
+                (i, Persisted::PostUserId(0), 1),
+                (i, Persisted::PostLikes(0), 1),
+            ]);
+        }
 
-    //     persisted_sender.clone().send(post0).unwrap();
+        persisted_sender.clone().send(add_posts).unwrap();
 
-    //     forum_minimal.advance_dataflow_computation_once().await;
+        forum_minimal.advance_dataflow_computation_once().await;
 
-    //     // let handle = forum_minimal.handle0.borrow();
-
-    //     // loop {
-    //     //     if let Some(event_link) = handle.next {
-    //     //     }
-    //     // }
-    //     // assert!(try_recv_contains(
-    //     //     &mut query_result_receiver,
-    //     //     vec![QueryResult::PostCount(0)]
-    //     // ));
-    // }
+        assert!(try_recv_contains(
+            &mut query_result_receiver,
+            vec![QueryResult::PagePosts(1, vec![5, 6, 7, 8, 9])]
+        ));
+    }
 }
