@@ -50,7 +50,8 @@ async fn handle_connection(
             println!("got msg: {}", msg);
 
             let parsed_msg: PersistedItems = serde_json::from_str(&msg)
-                .expect("Could not parse PersistedItems from Websocket Message");
+                .unwrap_or(vec![]);
+                // .expect("Could not parse PersistedItems from Websocket Message");
             persisted_sender.send(parsed_msg).unwrap();
         }
     });

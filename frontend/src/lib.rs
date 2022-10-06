@@ -165,12 +165,11 @@ pub fn render_page_posts(
         let body = post_body.dyn_ref::<HtmlInputElement>().unwrap().value();
         if !title.is_empty() && !body.is_empty() {
             let id = get_random_u64();
-            
             connection0.borrow().send_transaction(vec![
-                ( id, Persisted::PostTitle(title), 1),
-                ( id, Persisted::PostBody(body), 1),
-                ( id, Persisted::PostLikes(0), 1),
-                ( id, Persisted::PostUserId(0), 1),
+                (id, Persisted::PostTitle(title), 1),
+                (id, Persisted::PostBody(body), 1),
+                (id, Persisted::PostLikes(0), 1),
+                (id, Persisted::PostUserId(0), 1),
             ]);
         }
     });
@@ -199,27 +198,27 @@ pub fn render_page_posts(
     posts_container.append_child(&post_template).unwrap();
     let username_label = document.create_element("h3").unwrap();
     username_label.set_text_content(Some("Post Title"));
-    username_label.set_id("post-title");
+    username_label.set_class_name("post-title");
     post_template.append_child(&username_label).unwrap();
 
     let username_label = document.create_element("h6").unwrap();
     username_label.set_text_content(Some("Post Author"));
-    username_label.set_id("post-author");
+    username_label.set_class_name("post-author");
     post_template.append_child(&username_label).unwrap();
 
     let username_label = document.create_element("p").unwrap();
     username_label.set_text_content(Some("Post Body"));
-    username_label.set_id("post-body");
+    username_label.set_class_name("post-body");
     post_template.append_child(&username_label).unwrap();
 
     let username_label = document.create_element("button").unwrap();
     username_label.set_inner_html("Like <span id='post-likes'></span>");
-    username_label.set_id("post-like");
+    username_label.set_class_name("post-like");
     post_template.append_child(&username_label).unwrap();
 
     let username_label = document.create_element("button").unwrap();
     username_label.set_text_content(Some("Delete"));
-    username_label.set_id("post-remove");
+    username_label.set_class_name("post-remove");
     post_template.append_child(&username_label).unwrap();
 
     let username_label = document.create_element("button").unwrap();
@@ -258,6 +257,25 @@ pub fn render_page_posts(
                         .unwrap()
                         .unwrap()
                         .set_text_content(Some(&count.to_string()));
+                }
+                (Query::PostsInPage(page), QueryResult::PagePosts(post_ids)) => {
+                    for post_id in post_ids {
+                        let posts_container = document
+                            .query_selector("#posts-container")
+                            .unwrap()
+                            .unwrap();
+                        let post_template =
+                            document.query_selector("#post-template").unwrap().unwrap();
+                        let new_post = document.create_element("div").unwrap();
+                        new_post.set_inner_html(&post_template.inner_html());
+                        new_post.set_id(&post_id.to_string());
+                        posts_container.append_child(&new_post).unwrap();
+                    }
+                }
+                (Query::PostTitle(post_id), QueryResult::PostTitle(title_text)) => {
+                    let post = document.get_element_by_id(&post_id.to_string()).unwrap();
+                    let title = post.query_selector(".post-title").unwrap().unwrap();
+                    title.set_text_content(Some(&title_text));
                 }
                 // QueryResult::AddPost(id, post) => {
                 //     let Post {

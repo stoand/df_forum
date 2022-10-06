@@ -100,6 +100,9 @@ impl ForumMinimal {
                                 })
                                 .map(|(_discarded_zero, query_result)| query_result)
                                 .inspect(move |(query_result, _time, _diff)| {
+
+                                    // TODO: add post fields to queries
+                                    
                                     query_result_sender_loop
                                         .clone()
                                         .send(vec![query_result.clone()])
