@@ -15,15 +15,6 @@ use tokio::sync::broadcast;
 use differential_dataflow::input::InputSession;
 use differential_dataflow::operators::Count;
 
-use std::sync::{Arc, Mutex};
-use timely::dataflow::operators::capture::{EventLink, EventWriter, Extract, Replay};
-use timely::dataflow::operators::{Capture, Inspect, ToStream};
-use timely::dataflow::Scope;
-
-use std::fs::File;
-use std::io::prelude::*;
-use std::path::Path;
-
 pub type PersistedInputSession = InputSession<Time, (Id, Persisted), Diff>;
 
 pub struct ForumMinimal {
@@ -47,11 +38,6 @@ impl ForumMinimal {
                 let mut input: PersistedInputSession = InputSession::new();
                 let manages = input.to_collection(scope);
 
-                let path = Path::new("/tmp/asdf");
-
-                let file = File::create(&path).unwrap();
-                manages.inner.capture_into(EventWriter::new(file));
-
                 let posts = manages.flat_map(move |(id, persisted)| match persisted {
                     Persisted::Post(post) => vec![(id, post)],
                     _ => vec![],
@@ -71,8 +57,14 @@ impl ForumMinimal {
                     query_result_sender2.send(results).unwrap();
                 });
 
-                posts
-                    .map(|(_id, _persisted)| 0)
+                manages
+                    .flat_map(|(_id, persisted)| {
+                        if let Persisted::PostTitle(_) = persisted {
+                            vec![0]
+                        } else {
+                            vec![]
+                        }
+                    })
                     .count()
                     .inspect_batch(move |_time, items| {
                         let mut final_count = 0;
@@ -161,75 +153,72 @@ mod tests {
 
         let mut forum_minimal = ForumMinimal::new(persisted_sender.clone(), query_result_sender);
 
-        let post0 = Persisted::Post(Post {
-            title: "a".into(),
-            body: "a".into(),
-            user_id: 0,
-            likes: 0,
-        });
-
-        let post1 = Persisted::Post(Post {
-            title: "b".into(),
-            body: "b".into(),
-            user_id: 0,
-            likes: 0,
-        });
-
-        let persisted_items = vec![(44, post0.clone(), 1), (45, post1.clone(), 1)];
-        persisted_sender.clone().send(persisted_items).unwrap();
+        let add_posts = vec![
+            (10, Persisted::PostTitle("Zerg".into()), 1),
+            (10, Persisted::PostBody("info about zerg".into()), 1),
+            (10, Persisted::PostUserId(0), 1),
+            (10, Persisted::PostLikes(0), 1),
+            (20, Persisted::PostTitle("Terran".into()), 1),
+            (20, Persisted::PostBody("info about terran".into()), 1),
+            (20, Persisted::PostUserId(0), 1),
+            (20, Persisted::PostLikes(0), 1),
+        ];
+        persisted_sender.clone().send(add_posts).unwrap();
 
         forum_minimal.advance_dataflow_computation_once().await;
 
         assert!(try_recv_contains(
             &mut query_result_receiver,
             vec![QueryResult::PostCount(2)]
-        ),);
+        ));
 
-        let remove_persisted_item = vec![(44, post0.clone(), -1), (45, post1.clone(), -1)];
-        persisted_sender
-            .clone()
-            .send(remove_persisted_item)
-            .unwrap();
+        let remove_post = vec![
+            (10, Persisted::PostTitle("Zerg".into()), -1),
+            (10, Persisted::PostBody("info about zerg".into()), -1),
+            (10, Persisted::PostUserId(0), -1),
+            (10, Persisted::PostLikes(0), -1),
+        ];
+
+        persisted_sender.clone().send(remove_post).unwrap();
         forum_minimal.advance_dataflow_computation_once().await;
 
         assert!(try_recv_contains(
             &mut query_result_receiver,
-            vec![QueryResult::PostCount(0)]
+            vec![QueryResult::PostCount(1)]
         ));
     }
 
-    #[tokio::test]
-    pub async fn test_capture() {
-        let (query_result_sender, mut query_result_receiver) = broadcast::channel(16);
-        let (persisted_sender, _persisted_receiver) = broadcast::channel(16);
+    // #[tokio::test]
+    // pub async fn test_capture() {
+    //     let (query_result_sender, mut query_result_receiver) = broadcast::channel(16);
+    //     let (persisted_sender, _persisted_receiver) = broadcast::channel(16);
 
-        let mut forum_minimal = ForumMinimal::new(persisted_sender.clone(), query_result_sender);
+    //     let mut forum_minimal = ForumMinimal::new(persisted_sender.clone(), query_result_sender);
 
-        let gen_post = |id, title: &str, body: &str| {
-            vec![
-                (id, Persisted::PostTitle(title.into()), 1),
-                (id, Persisted::PostBody(body.into()), 1),
-                (id, Persisted::PostUserId(0), 1),
-                (id, Persisted::PostLikes(0), 1),
-            ]
-        };
+    //     let gen_post = |id, title: &str, body: &str| {
+    //         vec![
+    //             (id, Persisted::PostTitle(title.into()), 1),
+    //             (id, Persisted::PostBody(body.into()), 1),
+    //             (id, Persisted::PostUserId(0), 1),
+    //             (id, Persisted::PostLikes(0), 1),
+    //         ]
+    //     };
 
-        let post0 = gen_post(10, "a", "b");
+    //     let post0 = gen_post(10, "a", "b");
 
-        persisted_sender.clone().send(post0).unwrap();
+    //     persisted_sender.clone().send(post0).unwrap();
 
-        forum_minimal.advance_dataflow_computation_once().await;
+    //     forum_minimal.advance_dataflow_computation_once().await;
 
-        // let handle = forum_minimal.handle0.borrow();
+    //     // let handle = forum_minimal.handle0.borrow();
 
-        // loop {
-        //     if let Some(event_link) = handle.next {
-        //     }
-        // }
-        
-        // assert!(try_recv_contains(
-        //     &mut query_result_receiver,
-        //     vec![QueryResult::PostCount(0)]
-        // ));
-    }
+    //     // loop {
+    //     //     if let Some(event_link) = handle.next {
+    //     //     }
+    //     // }
+    //     // assert!(try_recv_contains(
+    //     //     &mut query_result_receiver,
+    //     //     vec![QueryResult::PostCount(0)]
+    //     // ));
+    // }
 }

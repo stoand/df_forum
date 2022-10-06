@@ -11,4 +11,6 @@ pub enum QueryResult {
     AddPost(Id, Post),
     PostCount(u64),
     DeletePersisted(Id),
+
+    PersistedField(u64, Persisted),
 }
