@@ -44,3 +44,7 @@ new posts will instantly appear when they are posted
 If the user is on a certain page, the id of the newest post
 at that time is saved and the entire pagination history
 will be frozen.
+
+## Dynamic Queries do not work
+
+Dataflow results have to be global
