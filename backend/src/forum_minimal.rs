@@ -305,13 +305,13 @@ mod tests {
         let mut forum_minimal = ForumMinimal::new(persisted_sender.clone(), query_result_sender);
 
         persisted_sender
-            .send(vec![(100, Persisted::PostTitle("Zerg".into()), 1)])
+            .send(vec![(5, Persisted::PostTitle("Zerg".into()), 1)])
             .unwrap();
 
         forum_minimal.advance_dataflow_computation_once().await;
         assert!(try_recv_contains(
             &mut query_result_receiver,
-            vec![(Query::PostTitle(100), QueryResult::PostTitle("Zerg".into()))]
+            vec![(Query::PostTitle(5), QueryResult::PostTitle("Zerg".into()))]
         ));
     }
 }
