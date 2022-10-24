@@ -81,22 +81,26 @@ impl ForumMinimal {
 
                 let sessions_current_page = sessions_view_posts
                     .concat(&sessions_view_posts_page)
-                    .reduce(|_key, inputs, outputs| {
-                        let final_page = None::<u64>;
+                    .reduce(|key, inputs, outputs| {
+                        let mut final_page = None::<u64>;
 
-                        for (sesssion_id, page) in inputs {
-                            // if let Some(page) = page {
-                            //     final_page = page;
-                            // }
+                        for (page, diff) in inputs {
+                            if *diff > 0 {
+                                if let Some(page0) = page {
+                                    final_page = Some(*page0);
+                                }
+                            }
                         }
-                        
                         println!(
                             "key = {:?}, input = {:?}, output = {:?}",
-                            _key, inputs, outputs
+                            key, inputs, outputs
                         );
 
-                        outputs.push((0, 1));
-                    });
+                        if let Some(page) = final_page {
+                            outputs.push((page, 1));
+                        }
+                    })
+                    .inspect(|v| println!("3 -- {:?}", v));
 
                 // let session_view_posts = manages.flat_map(|(_id, persisted)| {
                 //     if let Persisted::ViewPosts(session) = persisted {
@@ -335,6 +339,7 @@ mod tests {
                 (66, Persisted::ViewPostsPage(55, 333), 1),
             ])
             .unwrap();
+
         forum_minimal.advance_dataflow_computation_once().await;
 
         // for i in 0..10 {
