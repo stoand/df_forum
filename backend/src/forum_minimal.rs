@@ -83,12 +83,14 @@ impl ForumMinimal {
                     .concat(&sessions_view_posts_page)
                     .reduce(|key, inputs, outputs| {
                         let mut final_page = None::<u64>;
+                        let mut found : bool = false;
 
                         for (page, diff) in inputs {
                             if *diff > 0 {
                                 if let Some(page0) = page {
                                     final_page = Some(*page0);
                                 }
+                                found = true;
                             }
                         }
                         println!(
@@ -96,8 +98,8 @@ impl ForumMinimal {
                             key, inputs, outputs
                         );
 
-                        if let Some(page) = final_page {
-                            outputs.push((page, 1));
+                        if found {
+                            outputs.push((final_page.unwrap_or(0), 1));
                         }
                     })
                     .inspect(|v| println!("3 -- {:?}", v));
@@ -336,7 +338,7 @@ mod tests {
             .send(vec![
                 (55, Persisted::Session, 1),
                 (66, Persisted::ViewPosts(55), 1),
-                (66, Persisted::ViewPostsPage(55, 333), 1),
+                // (66, Persisted::ViewPostsPage(55, 333), 1),
             ])
             .unwrap();
 
