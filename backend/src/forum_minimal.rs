@@ -63,96 +63,84 @@ impl ForumMinimal {
                 //     query_result_sender2.send(results).unwrap();
                 // });
 
-                let queries = vec![
-                    Query::PostsInPage(1),
-                    Query::PostCount,
-                    Query::PostTitle(5),
-                ];
+                let query_result_sender_loop = query_result_sender1.clone();
+                // TODO: fix
+                let page = 0;
+                let query = Query::PostCount;
+                let query1 = Query::PostCount;
+                manages
+                    .inner
+                    .map(|((id, persisted), time, diff)| ((time, id, persisted), time, diff))
+                    .as_collection()
+                    .flat_map(|(time, id, persisted)| match persisted {
+                        Persisted::PostTitle(_) => vec![(0, (time, id, persisted))],
+                        _ => vec![],
+                    })
+                    .reduce(move |_key_discarded_zero, inputs, outputs| {
+                        let mut sorted = inputs.to_vec();
+                        sorted.sort_by_key(|((time, _id, _persisted), _diff)| time);
 
-                for query in queries {
-                    let query_result_sender_loop = query_result_sender1.clone();
-                    match query {
-                        Query::PostsInPage(page) => {
-                            manages
-                                .inner
-                                .map(|((id, persisted), time, diff)| {
-                                    ((time, id, persisted), time, diff)
-                                })
-                                .as_collection()
-                                .flat_map(|(time, id, persisted)| match persisted {
-                                    Persisted::PostTitle(_) => vec![(0, (time, id, persisted))],
-                                    _ => vec![],
-                                })
-                                .reduce(move |_key_discarded_zero, inputs, outputs| {
-                                    let mut sorted = inputs.to_vec();
-                                    sorted.sort_by_key(|((time, _id, _persisted), _diff)| time);
+                        let items: Vec<u64> = sorted
+                            .iter()
+                            .skip(page * POSTS_PER_PAGE)
+                            .take(POSTS_PER_PAGE)
+                            .filter(|((_time, _id, _persisted), diff)| *diff > 0)
+                            .map(|((_time, id, _persisted), _diff)| *id)
+                            .collect();
 
-                                    let items: Vec<u64> = sorted
-                                        .iter()
-                                        .skip(page * POSTS_PER_PAGE)
-                                        .take(POSTS_PER_PAGE)
-                                        .filter(|((_time, _id, _persisted), diff)| *diff > 0)
-                                        .map(|((_time, id, _persisted), _diff)| *id)
-                                        .collect();
+                        outputs.push(((query1.clone(), QueryResult::PagePosts(items)), 1));
+                    })
+                    .map(|(_discarded_zero, query_result)| query_result)
+                    .inspect(move |(query_result, _time, _diff)| {
+                        // TODO: add post fields to queries
+                        query_result_sender_loop
+                            .clone()
+                            .send(vec![query_result.clone()])
+                            .unwrap();
+                    });
 
-                                    outputs
-                                        .push(((query.clone(), QueryResult::PagePosts(items)), 1));
-                                })
-                                .map(|(_discarded_zero, query_result)| query_result)
-                                .inspect(move |(query_result, _time, _diff)| {
+                let query0 = query.clone();
+                let query_result_sender_loop = query_result_sender1.clone();
 
-                                    // TODO: add post fields to queries
-                                    
-                                    query_result_sender_loop
-                                        .clone()
-                                        .send(vec![query_result.clone()])
-                                        .unwrap();
-                                });
+                manages
+                    .flat_map(|(_id, persisted)| {
+                        if let Persisted::PostTitle(_) = persisted {
+                            vec![0]
+                        } else {
+                            vec![]
                         }
-                        Query::PostCount => {
-                            manages
-                                .flat_map(|(_id, persisted)| {
-                                    if let Persisted::PostTitle(_) = persisted {
-                                        vec![0]
-                                    } else {
-                                        vec![]
-                                    }
-                                })
-                                .count()
-                                .inspect_batch(move |_time, items| {
-                                    let mut final_count = 0;
+                    })
+                    .count()
+                    .inspect_batch(move |_time, items| {
+                        let mut final_count = 0;
 
-                                    for ((_discarded_zero, count), _time, diff) in items {
-                                        if *diff > 0 {
-                                            final_count = *count as u64;
-                                        }
-                                    }
-                                    query_result_sender_loop
-                                        .clone()
-                                        .send(vec![(
-                                            query.clone(),
-                                            QueryResult::PostCount(final_count),
-                                        )])
-                                        .unwrap();
-                                });
+                        for ((_discarded_zero, count), _time, diff) in items {
+                            if *diff > 0 {
+                                final_count = *count as u64;
+                            }
                         }
-                        Query::PostTitle(post_id) => {
-                            manages.inspect(move |((id, persisted), _time, _diff)| {
-                                if *id == post_id {
-                                    if let Persisted::PostTitle(title) = persisted {
-                                        query_result_sender_loop
-                                            .clone()
-                                            .send(vec![(
-                                                query.clone(),
-                                                QueryResult::PostTitle(title.clone()),
-                                            )])
-                                            .unwrap();
-                                    }
-                                }
-                            });
+                        query_result_sender_loop
+                            .clone()
+                            .send(vec![(query0.clone(), QueryResult::PostCount(final_count))])
+                            .unwrap();
+                    });
+
+                let post_id = 55;
+                let query2 = query.clone();
+
+                manages.inspect(move |((id, persisted), _time, _diff)| {
+                    if *id == post_id {
+                        if let Persisted::PostTitle(title) = persisted {
+                            query_result_sender2
+                                .clone()
+                                .send(vec![(
+                                    query2.clone(),
+                                    QueryResult::PostTitle(title.clone()),
+                                )])
+                                .unwrap();
                         }
                     }
-                }
+                });
 
                 input
             })
