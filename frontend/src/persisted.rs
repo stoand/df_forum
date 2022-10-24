@@ -17,6 +17,15 @@ pub enum Persisted {
     PostBody(String),
     PostUserId(u64),
     PostLikes(u64),
+
+
+    // loads aggregations as well
+    ViewPosts(u64), // (session id)
+
+    // reloads only posts
+    ViewPostsPage(u64, u64), // (session id, page)
+    
+    Session,
 }
 
 pub type PersistedItems = Vec<(Id, Persisted, Diff)>;

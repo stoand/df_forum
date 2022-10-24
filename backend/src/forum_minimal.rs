@@ -15,6 +15,7 @@ use tokio::sync::broadcast;
 
 use differential_dataflow::input::InputSession;
 use differential_dataflow::operators::Count;
+use differential_dataflow::operators::Join;
 use differential_dataflow::operators::Reduce;
 use differential_dataflow::AsCollection;
 use differential_dataflow::{Collection, ExchangeData};
@@ -44,6 +45,69 @@ impl ForumMinimal {
                 let mut input: PersistedInputSession = InputSession::new();
                 let manages = input.to_collection(scope);
 
+                let sessions = manages.flat_map(|(id, persisted)| {
+                    if let Persisted::Session = persisted {
+                        vec![id]
+                    } else {
+                        vec![]
+                    }
+                });
+
+                let view_posts = manages.flat_map(|(id, persisted)| {
+                    if let Persisted::ViewPosts(session) = persisted {
+                        vec![(session, 0)]
+                    } else {
+                        vec![]
+                    }
+                });
+
+                let view_posts_page = manages.flat_map(|(id, persisted)| {
+                    if let Persisted::ViewPostsPage(session, page) = persisted {
+                        vec![(session, page)]
+                    } else {
+                        vec![]
+                    }
+                });
+
+                let sessions_view_posts = view_posts
+                    .join_map(&sessions.map(|v| (v, v)), |_key, &a, &b| (a, b))
+                    .map(|(v0, v1)| (v1, None::<u64>))
+                    .inspect(|v| println!("1 -- {:?}", v));
+
+                let sessions_view_posts_page = view_posts_page
+                    .join_map(&sessions.map(|v| (v, v)), |_key, &a, &b| (a, b))
+                    .map(|(v0, v1)| (v1, Some(v0)))
+                    .inspect(|v| println!("2 -- {:?}", v));
+
+                let sessions_current_page = sessions_view_posts
+                    .concat(&sessions_view_posts_page)
+                    .reduce(|_key, inputs, outputs| {
+                        let final_page = None::<u64>;
+
+                        for (sesssion_id, page) in inputs {
+                            // if let Some(page) = page {
+                            //     final_page = page;
+                            // }
+                        }
+                        
+                        println!(
+                            "key = {:?}, input = {:?}, output = {:?}",
+                            _key, inputs, outputs
+                        );
+
+                        outputs.push((0, 1));
+                    });
+
+                // let session_view_posts = manages.flat_map(|(_id, persisted)| {
+                //     if let Persisted::ViewPosts(session) = persisted {
+                //         vec![session]
+                //     } else {
+                //         vec![]
+                //     }
+                // });
+
+                // let view_session_posts = sessions
+
                 // let posts = manages.flat_map(move |(id, persisted)| match persisted {
                 //     Persisted::Post(post) => vec![(id, post)],
                 //     _ => vec![],
@@ -68,6 +132,8 @@ impl ForumMinimal {
                 let page = 0;
                 let query = Query::PostCount;
                 let query1 = Query::PostCount;
+
+                // inputs: Users, User -> Current Page
                 manages
                     .inner
                     .map(|((id, persisted), time, diff)| ((time, id, persisted), time, diff))
@@ -102,6 +168,7 @@ impl ForumMinimal {
                 let query0 = query.clone();
                 let query_result_sender_loop = query_result_sender1.clone();
 
+                // inputs - globally the same for everyone
                 manages
                     .flat_map(|(_id, persisted)| {
                         if let Persisted::PostTitle(_) = persisted {
@@ -128,6 +195,7 @@ impl ForumMinimal {
                 let post_id = 55;
                 let query2 = query.clone();
 
+                // inputs: User -> User Posts Page -> Posts -> Post
                 manages.inspect(move |((id, persisted), _time, _diff)| {
                     if *id == post_id {
                         if let Persisted::PostTitle(title) = persisted {
@@ -259,31 +327,40 @@ mod tests {
         let mut forum_minimal = ForumMinimal::new(persisted_sender.clone(), query_result_sender);
 
         let mut found = false;
+        persisted_sender
+            .clone()
+            .send(vec![
+                (55, Persisted::Session, 1),
+                (66, Persisted::ViewPosts(55), 1),
+                (66, Persisted::ViewPostsPage(55, 333), 1),
+            ])
+            .unwrap();
+        forum_minimal.advance_dataflow_computation_once().await;
 
-        for i in 0..10 {
-            persisted_sender
-                .clone()
-                .send(vec![(
-                    i * 100,
-                    Persisted::PostTitle("PostNum".to_string() + &i.to_string()),
-                    1,
-                )])
-                .unwrap();
+        // for i in 0..10 {
+        //     persisted_sender
+        //         .clone()
+        //         .send(vec![(
+        //             i * 100,
+        //             Persisted::PostTitle("PostNum".to_string() + &i.to_string()),
+        //             1,
+        //         )])
+        //         .unwrap();
 
-            forum_minimal.advance_dataflow_computation_once().await;
+        //     forum_minimal.advance_dataflow_computation_once().await;
 
-            if !found {
-                found = try_recv_contains(
-                    &mut query_result_receiver,
-                    vec![(
-                        Query::PostsInPage(1),
-                        QueryResult::PagePosts(vec![500, 600, 700, 800, 900]),
-                    )],
-                );
-            }
-        }
+        //     if !found {
+        //         found = try_recv_contains(
+        //             &mut query_result_receiver,
+        //             vec![(
+        //                 Query::PostsInPage(1),
+        //                 QueryResult::PagePosts(vec![500, 600, 700, 800, 900]),
+        //             )],
+        //         );
+        //     }
+        // }
 
-        assert!(found);
+        // assert!(found);
     }
     #[tokio::test]
     pub async fn test_fields() {
