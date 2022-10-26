@@ -127,15 +127,15 @@ impl ForumMinimal {
                     .consolidate()
                     .inspect(|v| println!("3 -- {:?}", v));
 
-                let page_ids_with_all_post_ids = pages_with_zero
-                    .join(&post_ids)
-                    .map(|(_discarded_zero, (page_id, (post_id, post_time)))| {
+                let page_ids_with_all_post_ids = pages_with_zero.join(&post_ids).map(
+                    |(_discarded_zero, (page_id, (post_id, post_time)))| {
                         (page_id, (post_id, post_time))
-                    })
-                    .inspect(|v| println!("4 -- {:?}", v));
+                    },
+                );
+                // .inspect(|v| println!("4 -- {:?}", v));
 
-                let page_ids_with_relevant_post_ids = page_ids_with_all_post_ids
-                    .reduce(move |page_id, inputs, outputs| {
+                let page_ids_with_relevant_post_ids =
+                    page_ids_with_all_post_ids.reduce(move |page_id, inputs, outputs| {
                         println!(
                             "key = {:?}, input = {:?}, output = {:?}",
                             page_id, inputs, outputs
@@ -152,41 +152,52 @@ impl ForumMinimal {
                             .collect();
 
                         outputs.push((items, 1));
-                    })
-                    .inspect(|v| println!("4.1 -- {:?}", v));
+                    });
+                // .inspect(|v| println!("4.1 -- {:?}", v));
 
-                // inputs: Users, User -> Current Page
-                manages
-                    .inner
-                    .map(|((id, persisted), time, diff)| ((time, id, persisted), time, diff))
-                    .as_collection()
-                    .flat_map(|(time, id, persisted)| match persisted {
-                        Persisted::PostTitle(_) => vec![(0, (time, id, persisted))],
-                        _ => vec![],
+                let page_ids_with_relevant_posts = page_ids_with_relevant_post_ids
+                    .flat_map(|(page_id, post_ids)| {
+                        post_ids.into_iter().map(move |post_id| (page_id, post_id))
                     })
-                    .reduce(move |_key_discarded_zero, inputs, outputs| {
-                        let mut sorted = inputs.to_vec();
-                        sorted.sort_by_key(|((time, _id, _persisted), _diff)| time);
+                    .map(|(page_id, post_id)| (post_id, page_id))
+                    .inspect(|v| println!("5.1 -- {:?}", v));
 
-                        let items: Vec<u64> = sorted
-                            .iter()
-                            .skip(page * POSTS_PER_PAGE)
-                            .take(POSTS_PER_PAGE)
-                            .filter(|((_time, _id, _persisted), diff)| *diff > 0)
-                            .map(|((_time, id, _persisted), _diff)| *id)
-                            .collect();
+                let post_titles = manages.flat_map(|(id, persisted)| {
+                    if let Persisted::PostTitle(title) = persisted {
+                        vec![(id, title)]
+                    } else {
+                        vec![]
+                    }
+                });
 
-                        outputs.push(((query1.clone(), QueryResult::PagePosts(items)), 1));
-                    })
-                    .map(|(_discarded_zero, query_result)| query_result)
-                    .inspect(move |(query_result, _time, _diff)| {
-                        // TODO: add post fields to queries
-                        query_result_sender_loop
-                            .clone()
-                            .send(vec![query_result.clone()])
-                            .unwrap();
-                    })
-                    .inspect(|v| println!("5 -- {:?}", v));
+                let post_bodies = manages.flat_map(|(id, persisted)| {
+                    if let Persisted::PostBody(body) = persisted {
+                        vec![(id, body)]
+                    } else {
+                        vec![]
+                    }
+                });
+
+                let posts = post_titles
+                    .join(&post_bodies)
+                    .inspect(|v| println!("5.2 -- {:?}", v));
+
+                let page_posts = page_ids_with_relevant_posts
+                    .join(&posts)
+                    .map(|(post_id, (page_id, post))| (page_id, (post_id, post)));
+
+                let user_posts = sessions_current_page
+                    .map(|(session, page_id)| (page_id, session))
+                    .join(&page_posts)
+                    .inspect(|v| println!("5.3 -- {:?}", v))
+                    .inspect(
+                        |((page_id, (session, (post_id, (post_title, post_body)))), _time, diff)| {
+                            // todo filter to current session
+                            if *diff > 0 {
+                            } else {
+                            }
+                        },
+                    );
 
                 let query0 = query.clone();
                 let query_result_sender_loop = query_result_sender1.clone();
@@ -361,7 +372,10 @@ mod tests {
 
         forum_minimal.advance_dataflow_computation_once().await;
         persisted_sender
-            .send(vec![(5, Persisted::PostTitle("Zerg".into()), 1)])
+            .send(vec![
+                (5, Persisted::PostTitle("Zerg".into()), 1),
+                (5, Persisted::PostBody("Info about the Zerg".into()), 1),
+            ])
             .unwrap();
 
         forum_minimal.advance_dataflow_computation_once().await;
@@ -369,7 +383,19 @@ mod tests {
         persisted_sender
             .send(vec![
                 (4, Persisted::PostTitle("Protoss".into()), 1),
+                (4, Persisted::PostBody("Info about the Protoss".into()), 1),
                 (6, Persisted::PostTitle("Terran".into()), 1),
+                (6, Persisted::PostBody("Info about the Terran".into()), 1),
+            ])
+            .unwrap();
+
+        forum_minimal.advance_dataflow_computation_once().await;
+
+        persisted_sender
+            .clone()
+            .send(vec![
+                (77, Persisted::ViewPostsPage(55, 1), -1),
+                (77, Persisted::ViewPostsPage(55, 0), 1),
             ])
             .unwrap();
 
