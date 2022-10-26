@@ -251,6 +251,12 @@ pub fn render_page_posts(
         let document = window.document().unwrap();
         for item in items {
             match item {
+                (Query::Posts, QueryResult::AddPost(post_id, post_title, post_body)) => {
+                   log("todo add post!"); 
+                },
+                (Query::Posts, QueryResult::DeletePost(post_id)) => {
+                   // log(("todo delete post!".to_string() + &post_id.to_string())); 
+                },
                 (Query::PostCount, QueryResult::PostCount(count)) => {
                     document
                         .query_selector("#posts-total")

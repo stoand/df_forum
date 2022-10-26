@@ -186,16 +186,25 @@ impl ForumMinimal {
                     .join(&posts)
                     .map(|(post_id, (page_id, post))| (page_id, (post_id, post)));
 
-                let user_posts = sessions_current_page
+                let _user_posts = sessions_current_page
                     .map(|(session, page_id)| (page_id, session))
                     .join(&page_posts)
                     .inspect(|v| println!("5.3 -- {:?}", v))
                     .inspect(
-                        |((page_id, (session, (post_id, (post_title, post_body)))), _time, diff)| {
-                            // todo filter to current session
-                            if *diff > 0 {
+                        move |((_page_id, (session, (post_id, (post_title, post_body)))), _time, diff)| {
+
+                            // Todo only send this to the relevant session
+                            let _todo = session;
+                            
+                            let query_result = if *diff > 0 {
+                                QueryResult::AddPost(*post_id, post_title.clone(), post_body.clone())
                             } else {
-                            }
+                                QueryResult::DeletePost(*post_id)
+                            };
+
+                            query_result_sender0.clone()
+                                .send(vec![(Query::Posts, query_result)])
+                                .unwrap();
                         },
                     );
 
@@ -226,23 +235,23 @@ impl ForumMinimal {
                             .unwrap();
                     });
 
-                let post_id = 55;
-                let query2 = query.clone();
+                // let post_id = 55;
+                // let query2 = query.clone();
 
                 // inputs: User -> User Posts Page -> Posts -> Post
-                manages.inspect(move |((id, persisted), _time, _diff)| {
-                    if *id == post_id {
-                        if let Persisted::PostTitle(title) = persisted {
-                            query_result_sender2
-                                .clone()
-                                .send(vec![(
-                                    query2.clone(),
-                                    QueryResult::PostTitle(title.clone()),
-                                )])
-                                .unwrap();
-                        }
-                    }
-                });
+                // manages.inspect(move |((id, persisted), _time, _diff)| {
+                //     if *id == post_id {
+                //         if let Persisted::PostTitle(title) = persisted {
+                //             query_result_sender2
+                //                 .clone()
+                //                 .send(vec![(
+                //                     query2.clone(),
+                //                     QueryResult::PostTitle(title.clone()),
+                //                 )])
+                //                 .unwrap();
+                //         }
+                //     }
+                // });
 
                 input
             })

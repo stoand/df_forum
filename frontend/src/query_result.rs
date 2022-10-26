@@ -6,14 +6,19 @@ pub enum Query {
     PostsInPage(usize),
     PostCount,
     PostTitle(u64),
+    Posts,
 }
 
 #[derive(Hash, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub enum QueryResult {
-    AddPost(Id, Post),
+    // AddPost(Id, Post),
     PostCount(u64),
     DeletePersisted(Id),
     PagePosts(Vec<u64>),
 
     PostTitle(String),
+    
+    AddPost(u64, String, String),
+
+    DeletePost(u64),
 }
