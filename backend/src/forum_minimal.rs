@@ -14,6 +14,7 @@ use timely::WorkerConfig;
 use tokio::sync::broadcast;
 
 use differential_dataflow::input::InputSession;
+use differential_dataflow::operators::Consolidate;
 use differential_dataflow::operators::Count;
 use differential_dataflow::operators::Join;
 use differential_dataflow::operators::Reduce;
@@ -22,7 +23,7 @@ use differential_dataflow::{Collection, ExchangeData};
 
 pub type PersistedInputSession = InputSession<Time, (Id, Persisted), Diff>;
 
-pub const POSTS_PER_PAGE: usize = 5;
+pub const POSTS_PER_PAGE: usize = 2;
 
 pub struct ForumMinimal {
     pub input: Rc<RefCell<PersistedInputSession>>,
@@ -71,19 +72,19 @@ impl ForumMinimal {
 
                 let sessions_view_posts = view_posts
                     .join_map(&sessions.map(|v| (v, v)), |_key, &a, &b| (a, b))
-                    .map(|(v0, v1)| (v1, None::<u64>))
-                    .inspect(|v| println!("1 -- {:?}", v));
+                    .map(|(v0, v1)| (v1, None::<u64>));
+                // .inspect(|v| println!("1 -- {:?}", v));
 
                 let sessions_view_posts_page = view_posts_page
                     .join_map(&sessions.map(|v| (v, v)), |_key, &a, &b| (a, b))
-                    .map(|(v0, v1)| (v1, Some(v0)))
-                    .inspect(|v| println!("2 -- {:?}", v));
+                    .map(|(v0, v1)| (v1, Some(v0)));
+                // .inspect(|v| println!("2 -- {:?}", v));
 
                 let sessions_current_page = sessions_view_posts
                     .concat(&sessions_view_posts_page)
                     .reduce(|key, inputs, outputs| {
                         let mut final_page = None::<u64>;
-                        let mut found : bool = false;
+                        let mut found: bool = false;
 
                         for (page, diff) in inputs {
                             if *diff > 0 {
@@ -93,51 +94,66 @@ impl ForumMinimal {
                                 found = true;
                             }
                         }
-                        println!(
-                            "key = {:?}, input = {:?}, output = {:?}",
-                            key, inputs, outputs
-                        );
+                        // println!(
+                        //     "key = {:?}, input = {:?}, output = {:?}",
+                        //     key, inputs, outputs
+                        // );
 
                         if found {
                             outputs.push((final_page.unwrap_or(0), 1));
                         }
                     })
-                    .inspect(|v| println!("3 -- {:?}", v));
-
-                // let session_view_posts = manages.flat_map(|(_id, persisted)| {
-                //     if let Persisted::ViewPosts(session) = persisted {
-                //         vec![session]
-                //     } else {
-                //         vec![]
-                //     }
-                // });
-
-                // let view_session_posts = sessions
-
-                // let posts = manages.flat_map(move |(id, persisted)| match persisted {
-                //     Persisted::Post(post) => vec![(id, post)],
-                //     _ => vec![],
-                // });
-
-                // posts.inspect_batch(move |_time, items| {
-                //     let mut results: Vec<QueryResult> = Vec::new();
-
-                //     for ((id, persisted), _time, diff) in items {
-                //         if *diff > 0 {
-                //             results.push(QueryResult::AddPost(*id, persisted.clone()));
-                //         } else {
-                //             results.push(QueryResult::DeletePersisted(*id));
-                //         }
-                //     }
-
-                //     query_result_sender2.send(results).unwrap();
-                // });
+                    .inspect(|v| println!("1 -- {:?}", v));
 
                 let query_result_sender_loop = query_result_sender1.clone();
                 // TODO: fix
                 let page = 0;
                 let query = Query::PostCount;
                 let query1 = Query::PostCount;
+
+                let post_ids = manages
+                    .inner
+                    .map(|((id, persisted), time, diff)| ((time, id, persisted), time, diff))
+                    .as_collection()
+                    .flat_map(|(time, id, persisted)| match persisted {
+                        Persisted::PostTitle(_) => vec![(0, (id, time))],
+                        _ => vec![],
+                    })
+                    .inspect(|v| println!("2 -- {:?}", v));
+
+                // todo - join all posts for every user+current_page
+                let pages_with_zero = sessions_current_page
+                    .map(|(_user_id, page)| (0, page))
+                    .consolidate()
+                    .inspect(|v| println!("3 -- {:?}", v));
+
+                let page_ids_with_all_post_ids = pages_with_zero
+                    .join(&post_ids)
+                    .map(|(_discarded_zero, (page_id, (post_id, post_time)))| {
+                        (page_id, (post_id, post_time))
+                    })
+                    .inspect(|v| println!("4 -- {:?}", v));
+
+                let page_ids_with_relevant_post_ids = page_ids_with_all_post_ids
+                    .reduce(move |page_id, inputs, outputs| {
+                        println!(
+                            "key = {:?}, input = {:?}, output = {:?}",
+                            page_id, inputs, outputs
+                        );
+
+                        let mut sorted = inputs.to_vec();
+                        sorted.sort_by_key(|((_post_id, time), _diff)| time);
+                        let items: Vec<u64> = sorted
+                            .iter()
+                            .skip((*page_id) as usize * POSTS_PER_PAGE)
+                            .take(POSTS_PER_PAGE)
+                            .filter(|((_id, _time), diff)| *diff > 0)
+                            .map(|((id, _time), _diff)| *id)
+                            .collect();
+
+                        outputs.push((items, 1));
+                    })
+                    .inspect(|v| println!("4.1 -- {:?}", v));
 
                 // inputs: Users, User -> Current Page
                 manages
@@ -169,7 +185,8 @@ impl ForumMinimal {
                             .clone()
                             .send(vec![query_result.clone()])
                             .unwrap();
-                    });
+                    })
+                    .inspect(|v| println!("5 -- {:?}", v));
 
                 let query0 = query.clone();
                 let query_result_sender_loop = query_result_sender1.clone();
@@ -338,7 +355,21 @@ mod tests {
             .send(vec![
                 (55, Persisted::Session, 1),
                 (66, Persisted::ViewPosts(55), 1),
-                // (66, Persisted::ViewPostsPage(55, 333), 1),
+                (77, Persisted::ViewPostsPage(55, 1), 1),
+            ])
+            .unwrap();
+
+        forum_minimal.advance_dataflow_computation_once().await;
+        persisted_sender
+            .send(vec![(5, Persisted::PostTitle("Zerg".into()), 1)])
+            .unwrap();
+
+        forum_minimal.advance_dataflow_computation_once().await;
+
+        persisted_sender
+            .send(vec![
+                (4, Persisted::PostTitle("Protoss".into()), 1),
+                (6, Persisted::PostTitle("Terran".into()), 1),
             ])
             .unwrap();
 
