@@ -142,7 +142,7 @@ impl ForumMinimal {
                         );
 
                         let mut sorted = inputs.to_vec();
-                        sorted.sort_by_key(|((_post_id, time), _diff)| time);
+                        sorted.sort_by_key(|((_post_id, time), _diff)| -(*time as isize));
                         let items: Vec<u64> = sorted
                             .iter()
                             .skip((*page_id) as usize * POSTS_PER_PAGE)

@@ -302,7 +302,10 @@ pub fn render_page_posts(
                     //     .set_text_content(Some(&likes.to_string()));
                 }
                 (Query::Posts, QueryResult::DeletePost(post_id)) => {
-                    // log(("todo delete post!".to_string() + &post_id.to_string()));
+                    document
+                        .get_element_by_id(&post_id.to_string())
+                        .unwrap()
+                        .remove();
                 }
                 (Query::PostCount, QueryResult::PostCount(count)) => {
                     document
