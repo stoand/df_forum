@@ -7,7 +7,7 @@ State management case study using [timely](https://github.com/TimelyDataflow/tim
 
 Differentiates between frontend and backend states and handles both.
 
-Ensure Rust and `cargo-watch` are installed, then:
+Ensure Rust and `cargo-watch` (`cargo install cargo-watch`) are installed, then:
 
 ```
 cargo watch -x 'test -- --nocapture' 
@@ -18,7 +18,7 @@ cargo watch -x 'test -- --nocapture'
 ## To run in browser
 
 * `cd frontend/`
-* `cargo install wasm-pack`
+* `curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh`
 * `nodemon -e rs -x 'wasm-pack build --target web'`
 * `python3 -m http.server`
 * Open [http://localhost:8000](http://localhost:8000)
