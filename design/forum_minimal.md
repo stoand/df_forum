@@ -5,6 +5,7 @@ partof: REQ-purpose
 # TODO's
 
 * TODO: split queries into fields ie. post title instead of entire posts
+* TODO: send list of post id's to ensure order
 * TODO: isolate sessions
 
 * [DONE] Make id's external instead of being inside Persisted items
