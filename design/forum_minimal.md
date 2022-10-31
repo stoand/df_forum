@@ -4,14 +4,16 @@ partof: REQ-purpose
 
 # TODO's
 
-* Maintain dataflows for every connection (prevent stale data on initial load)
+* TODO: split queries into fields ie. post title instead of entire posts
+* TODO: isolate sessions
+
 * [DONE] Make id's external instead of being inside Persisted items
 * [DONE] Delete items using "remove" instead of using a delete event
-* Sort list items
-* Pagination
+* [DONE] Sort list items
+* [DONE] Pagination
 * [DONE] Prevent flickering
-* Spilt documents into attributes
 * Add stateful queries (See PostsInPage)
+* Spilt documents into attributes
 
 # Features
 
