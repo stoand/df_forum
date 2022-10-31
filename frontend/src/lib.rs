@@ -20,7 +20,7 @@ pub mod persisted;
 pub mod query_result;
 
 use persisted::{Persisted, Post};
-use query_result::{Query, QueryResult};
+use query_result::QueryResult;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -339,11 +339,11 @@ pub fn render_page_posts(
 
     next_page_click.forget();
 
-    let on_parsed_message = move |items: Vec<(Query, QueryResult)>| {
+    let on_parsed_message = move |items: Vec<QueryResult>| {
         let (document, root) = document_and_root();
         for item in items {
             match item {
-                (Query::Posts, QueryResult::AddPost(post_id, post_title, post_body)) => {
+                QueryResult::AddPost(post_id, post_title, post_body) => {
                     let posts_container = document
                         .query_selector("#posts-container")
                         .unwrap()
@@ -375,13 +375,13 @@ pub fn render_page_posts(
                     //     .unwrap()
                     //     .set_text_content(Some(&likes.to_string()));
                 }
-                (Query::Posts, QueryResult::DeletePost(post_id)) => {
+                QueryResult::DeletePost(post_id) => {
                     document
                         .get_element_by_id(&post_id.to_string())
                         .unwrap()
                         .remove();
                 }
-                (Query::PostAggregates, QueryResult::PostAggregates(post_count, page_count)) => {
+                QueryResult::PostAggregates(post_count, page_count) => {
                     root.set_attribute("page_count", &page_count.to_string())
                         .unwrap();
                     update_page_label();

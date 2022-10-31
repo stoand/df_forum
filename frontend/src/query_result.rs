@@ -2,15 +2,6 @@ use crate::df_tuple_items::Id;
 use crate::persisted::{Persisted, Post};
 
 #[derive(Hash, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Query {
-    PostsInPage(usize),
-    PostCount,
-    PostTitle(u64),
-    Posts,
-    PostAggregates,
-}
-
-#[derive(Hash, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub enum QueryResult {
     // AddPost(Id, Post),
     PostCount(u64),

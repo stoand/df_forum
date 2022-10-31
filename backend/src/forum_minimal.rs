@@ -1,6 +1,6 @@
 use df_forum_frontend::df_tuple_items::{Diff, Id, Time};
 pub use df_forum_frontend::persisted::{Persisted, PersistedItems, Post};
-use df_forum_frontend::query_result::{Query, QueryResult};
+use df_forum_frontend::query_result::QueryResult;
 // use crate::operators::only_latest::OnlyLatest;
 
 use std::cell::RefCell;
@@ -34,7 +34,7 @@ pub struct ForumMinimal {
 impl ForumMinimal {
     pub fn new(
         persisted_sender: broadcast::Sender<PersistedItems>,
-        query_result_sender: broadcast::Sender<Vec<(Query, QueryResult)>>,
+        query_result_sender: broadcast::Sender<Vec<QueryResult>>,
     ) -> Self {
         let query_result_sender0 = query_result_sender.clone();
         let query_result_sender1 = query_result_sender.clone();
@@ -105,10 +105,6 @@ impl ForumMinimal {
                     .inspect(|v| println!("1 -- {:?}", v));
 
                 let query_result_sender_loop = query_result_sender1.clone();
-                // TODO: fix
-                let page = 0;
-                let query = Query::PostCount;
-                let query1 = Query::PostCount;
 
                 let post_ids = manages
                     .inner
@@ -190,26 +186,32 @@ impl ForumMinimal {
                     .join(&page_posts)
                     .inspect(|v| println!("5.3 -- {:?}", v))
                     .inspect(
-                        move |((_page_id, (session, (post_id, (post_title, post_body)))), _time, diff)| {
-
+                        move |(
+                            (_page_id, (session, (post_id, (post_title, post_body)))),
+                            _time,
+                            diff,
+                        )| {
                             // Todo only send this to the relevant session
                             let _todo = session;
-                            
                             let query_result = if *diff > 0 {
-                                QueryResult::AddPost(*post_id, post_title.clone(), post_body.clone())
+                                QueryResult::AddPost(
+                                    *post_id,
+                                    post_title.clone(),
+                                    post_body.clone(),
+                                )
                             } else {
                                 QueryResult::DeletePost(*post_id)
                             };
 
                             println!("send Query::Posts -- {:?}", query_result);
 
-                            query_result_sender0.clone()
-                                .send(vec![(Query::Posts, query_result)])
+                            query_result_sender0
+                                .clone()
+                                .send(vec![query_result])
                                 .unwrap();
                         },
                     );
 
-                let query0 = query.clone();
                 let query_result_sender_loop = query_result_sender1.clone();
 
                 // inputs - globally the same for everyone
@@ -231,11 +233,11 @@ impl ForumMinimal {
                             }
                         }
 
-                        let page_count = ((final_count as f64) / (POSTS_PER_PAGE as f64)).ceil() as u64;
-                        
+                        let page_count =
+                            ((final_count as f64) / (POSTS_PER_PAGE as f64)).ceil() as u64;
                         query_result_sender_loop
                             .clone()
-                            .send(vec![(Query::PostAggregates, QueryResult::PostAggregates(final_count, page_count))])
+                            .send(vec![QueryResult::PostAggregates(final_count, page_count)])
                             .unwrap();
                     });
 
@@ -347,7 +349,7 @@ mod tests {
 
         assert!(try_recv_contains(
             &mut query_result_receiver,
-            vec![(Query::PostCount, QueryResult::PostCount(2))]
+            vec![QueryResult::PostCount(2)]
         ));
 
         let remove_post = vec![
@@ -362,7 +364,7 @@ mod tests {
 
         assert!(try_recv_contains(
             &mut query_result_receiver,
-            vec![(Query::PostCount, QueryResult::PostCount(1))]
+            vec![QueryResult::PostCount(1)]
         ));
     }
 
@@ -453,7 +455,7 @@ mod tests {
         forum_minimal.advance_dataflow_computation_once().await;
         assert!(try_recv_contains(
             &mut query_result_receiver,
-            vec![(Query::PostTitle(5), QueryResult::PostTitle("Zerg".into()))]
+            vec![QueryResult::PostTitle("Zerg".into())]
         ));
     }
 }
