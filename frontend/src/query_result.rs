@@ -7,6 +7,7 @@ pub enum Query {
     PostCount,
     PostTitle(u64),
     Posts,
+    PostAggregates,
 }
 
 #[derive(Hash, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
@@ -15,6 +16,8 @@ pub enum QueryResult {
     PostCount(u64),
     DeletePersisted(Id),
     PagePosts(Vec<u64>),
+
+    PostAggregates(u64, u64),
 
     PostTitle(String),
     

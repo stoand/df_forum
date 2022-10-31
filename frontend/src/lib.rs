@@ -254,7 +254,17 @@ pub fn render_page_posts(
 
     let username_label = document.create_element("br").unwrap();
     page_ops.append_child(&username_label).unwrap();
-    // on (page_num) - activate or deactive
+
+    let page_label = document.create_element("span").unwrap();
+    page_label.set_id("page_label");
+
+    let update_page_label = || {
+        let (document, root) = document_and_root();
+        let page: u64 = root.get_attribute("page").unwrap().parse().unwrap();
+        let page_count: u64 = root.get_attribute("page_count").unwrap_or("1".to_string()).parse().unwrap();
+        let page_label = document.get_element_by_id("page_label").unwrap();
+        page_label.set_text_content(Some(&format!("Page {} of {}", page + 1, page_count)));
+    };
 
     let prev_page = document.create_element("button").unwrap();
     prev_page.set_text_content(Some("Prev"));
@@ -262,11 +272,11 @@ pub fn render_page_posts(
 
     let prev_page_click = Closure::<dyn FnMut()>::new(move || {
         let (_, root) = document_and_root();
-        
         let old_page: u64 = root.get_attribute("page").unwrap().parse().unwrap();
         if old_page > 0 {
             let page = old_page - 1;
             root.set_attribute("page", &(page.to_string())).unwrap();
+            update_page_label();
             connection2.borrow().send_transaction(vec![
                 (
                     view_posts_page_id,
@@ -289,10 +299,6 @@ pub fn render_page_posts(
 
     // on (page_num)
 
-    let page_label = document.create_element("span").unwrap();
-    // page_label.set_text_content(Some(&("Page ".to_string() + &(*page + 1).to_string())));
-    let page: u64 = root.get_attribute("page").unwrap().parse().unwrap();
-    page_label.set_text_content(Some(&("Page ".to_string() + &(page + 1).to_string())));
     page_ops.append_child(&page_label).unwrap();
     // on (page_num) - activate or deactive
 
@@ -302,12 +308,17 @@ pub fn render_page_posts(
 
     let next_page_click = Closure::<dyn FnMut()>::new(move || {
         let (_, root) = document_and_root();
-        
         let old_page: u64 = root.get_attribute("page").unwrap().parse().unwrap();
-        let total_pages = 10000; // TODO
-        if old_page < total_pages {
-            let page = old_page + 1;
+        let total_pages: u64 = root
+            .get_attribute("page_count")
+            .unwrap_or("0".to_string())
+            .parse()
+            .unwrap();
+        log(&total_pages.to_string());
+        let page = old_page + 1;
+        if page < total_pages {
             root.set_attribute("page", &(page.to_string())).unwrap();
+            update_page_label();
             connection3.borrow().send_transaction(vec![
                 (
                     view_posts_page_id,
@@ -329,8 +340,7 @@ pub fn render_page_posts(
     next_page_click.forget();
 
     let on_parsed_message = move |items: Vec<(Query, QueryResult)>| {
-        let window = web_sys::window().unwrap();
-        let document = window.document().unwrap();
+        let (document, root) = document_and_root();
         for item in items {
             match item {
                 (Query::Posts, QueryResult::AddPost(post_id, post_title, post_body)) => {
@@ -371,31 +381,15 @@ pub fn render_page_posts(
                         .unwrap()
                         .remove();
                 }
-                (Query::PostCount, QueryResult::PostCount(count)) => {
+                (Query::PostAggregates, QueryResult::PostAggregates(post_count, page_count)) => {
+                    root.set_attribute("page_count", &page_count.to_string())
+                        .unwrap();
+                    update_page_label();
                     document
                         .query_selector("#posts-total")
                         .unwrap()
                         .unwrap()
-                        .set_text_content(Some(&count.to_string()));
-                }
-                (Query::PostsInPage(page), QueryResult::PagePosts(post_ids)) => {
-                    for post_id in post_ids {
-                        let posts_container = document
-                            .query_selector("#posts-container")
-                            .unwrap()
-                            .unwrap();
-                        let post_template =
-                            document.query_selector("#post-template").unwrap().unwrap();
-                        let new_post = document.create_element("div").unwrap();
-                        new_post.set_inner_html(&post_template.inner_html());
-                        new_post.set_id(&post_id.to_string());
-                        posts_container.append_child(&new_post).unwrap();
-                    }
-                }
-                (Query::PostTitle(post_id), QueryResult::PostTitle(title_text)) => {
-                    let post = document.get_element_by_id(&post_id.to_string()).unwrap();
-                    let title = post.query_selector(".post-title").unwrap().unwrap();
-                    title.set_text_content(Some(&title_text));
+                        .set_text_content(Some(&post_count.to_string()));
                 }
                 // QueryResult::AddPost(id, post) => {
                 //     let Post {
@@ -469,12 +463,6 @@ pub fn render_page_posts(
                 //     post_like_el.set_onclick(Some(post_like_click.as_ref().unchecked_ref()));
 
                 //     post_like_click.forget();
-                // }
-                // QueryResult::DeletePersisted(id) => {
-                //     document
-                //         .get_element_by_id(&id.to_string())
-                //         .unwrap()
-                //         .remove();
                 // }
                 _ => {}
             }

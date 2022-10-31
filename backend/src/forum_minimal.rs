@@ -1,7 +1,6 @@
 use df_forum_frontend::df_tuple_items::{Diff, Id, Time};
 pub use df_forum_frontend::persisted::{Persisted, PersistedItems, Post};
 use df_forum_frontend::query_result::{Query, QueryResult};
-
 // use crate::operators::only_latest::OnlyLatest;
 
 use std::cell::RefCell;
@@ -214,28 +213,31 @@ impl ForumMinimal {
                 let query_result_sender_loop = query_result_sender1.clone();
 
                 // inputs - globally the same for everyone
-                // manages
-                //     .flat_map(|(_id, persisted)| {
-                //         if let Persisted::PostTitle(_) = persisted {
-                //             vec![0]
-                //         } else {
-                //             vec![]
-                //         }
-                //     })
-                //     .count()
-                //     .inspect_batch(move |_time, items| {
-                //         let mut final_count = 0;
+                let _post_aggregates = manages
+                    .flat_map(|(_id, persisted)| {
+                        if let Persisted::PostTitle(_) = persisted {
+                            vec![0]
+                        } else {
+                            vec![]
+                        }
+                    })
+                    .count()
+                    .inspect_batch(move |_time, items| {
+                        let mut final_count = 0;
 
-                //         for ((_discarded_zero, count), _time, diff) in items {
-                //             if *diff > 0 {
-                //                 final_count = *count as u64;
-                //             }
-                //         }
-                //         query_result_sender_loop
-                //             .clone()
-                //             .send(vec![(query0.clone(), QueryResult::PostCount(final_count))])
-                //             .unwrap();
-                //     });
+                        for ((_discarded_zero, count), _time, diff) in items {
+                            if *diff > 0 {
+                                final_count = *count as u64;
+                            }
+                        }
+
+                        let page_count = ((final_count as f64) / (POSTS_PER_PAGE as f64)).ceil() as u64;
+                        
+                        query_result_sender_loop
+                            .clone()
+                            .send(vec![(Query::PostAggregates, QueryResult::PostAggregates(final_count, page_count))])
+                            .unwrap();
+                    });
 
                 // let post_id = 55;
                 // let query2 = query.clone();
