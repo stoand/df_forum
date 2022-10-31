@@ -118,9 +118,10 @@ pub fn render_page_posts(
     let connection2 = connection.clone();
     let connection3 = connection.clone();
 
-    let mut page = Rc::new(RefCell::new(0));
     let session_id = get_random_u64();
     let view_posts_page_id = get_random_u64();
+
+    root.set_attribute("page", &(0.to_string())).unwrap();
 
     let username_label = document.create_element("div").unwrap();
     username_label.set_text_content(Some(&("Username: ".to_owned() + &username)));
@@ -258,29 +259,27 @@ pub fn render_page_posts(
     let prev_page = document.create_element("button").unwrap();
     prev_page.set_text_content(Some("Prev"));
     page_ops.append_child(&prev_page).unwrap();
-    
-    let page1 = page.clone();
 
     let prev_page_click = Closure::<dyn FnMut()>::new(move || {
-        let old_page = *page1.borrow();
-        log("go prev outer");
-        log(&page1.borrow().to_string());
-        // if *page > 0 {
-        //     log("go prev");
-        //     *page -= 1;
-        //     connection2.borrow().send_transaction(vec![
-        //         (
-        //             view_posts_page_id,
-        //             Persisted::ViewPostsPage(session_id, *page),
-        //             1,
-        //         ),
-        //         (
-        //             view_posts_page_id,
-        //             Persisted::ViewPostsPage(session_id, old_page),
-        //             -1,
-        //         ),
-        //     ]);
-        // }
+        let (_, root) = document_and_root();
+        
+        let old_page: u64 = root.get_attribute("page").unwrap().parse().unwrap();
+        if old_page > 0 {
+            let page = old_page - 1;
+            root.set_attribute("page", &(page.to_string())).unwrap();
+            connection2.borrow().send_transaction(vec![
+                (
+                    view_posts_page_id,
+                    Persisted::ViewPostsPage(session_id, page),
+                    1,
+                ),
+                (
+                    view_posts_page_id,
+                    Persisted::ViewPostsPage(session_id, old_page),
+                    -1,
+                ),
+            ]);
+        }
     });
 
     let prev_page_el = prev_page.dyn_ref::<HtmlElement>().unwrap();
@@ -292,7 +291,8 @@ pub fn render_page_posts(
 
     let page_label = document.create_element("span").unwrap();
     // page_label.set_text_content(Some(&("Page ".to_string() + &(*page + 1).to_string())));
-    page_label.set_text_content(Some(&("Page ".to_string() + &(1).to_string())));
+    let page: u64 = root.get_attribute("page").unwrap().parse().unwrap();
+    page_label.set_text_content(Some(&("Page ".to_string() + &(page + 1).to_string())));
     page_ops.append_child(&page_label).unwrap();
     // on (page_num) - activate or deactive
 
@@ -300,18 +300,18 @@ pub fn render_page_posts(
     next_page.set_text_content(Some("Next"));
     page_ops.append_child(&next_page).unwrap();
 
-    let page0 = page.clone();
-
     let next_page_click = Closure::<dyn FnMut()>::new(move || {
+        let (_, root) = document_and_root();
+        
+        let old_page: u64 = root.get_attribute("page").unwrap().parse().unwrap();
         let total_pages = 10000; // TODO
-        let old_page = *page0.borrow();
-        if *page0.borrow() < total_pages {
-            *page0.borrow_mut() += 1;
-            let view_posts_page_id = get_random_u64();
+        if old_page < total_pages {
+            let page = old_page + 1;
+            root.set_attribute("page", &(page.to_string())).unwrap();
             connection3.borrow().send_transaction(vec![
                 (
                     view_posts_page_id,
-                    Persisted::ViewPostsPage(session_id, *page0.borrow()),
+                    Persisted::ViewPostsPage(session_id, page),
                     1,
                 ),
                 (

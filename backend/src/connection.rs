@@ -105,6 +105,8 @@ pub async fn establish(addr: String) -> Result<(), HandlerError> {
     let mut forum_minimal =
         ForumMinimal::new(persisted_sender.clone(), query_result_sender.clone());
 
+    // persisted_sender.
+
     tokio::join!(
         loop_check_for_connections(addr, persisted_sender, query_result_sender),
         forum_minimal.loop_advance_dataflow_computation(),
