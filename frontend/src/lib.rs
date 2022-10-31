@@ -179,6 +179,24 @@ pub fn render_page_posts(
 
     submit_post_click.forget();
 
+    let start_session = document.create_element("button").unwrap();
+    start_session.set_text_content(Some("Start Session"));
+    root.append_child(&start_session).unwrap();
+
+    let start_session_click = Closure::<dyn FnMut()>::new(move || {
+        let session_id = get_random_u64();
+        let persisted_id = get_random_u64();
+        connection1.borrow().send_transaction(vec![
+            (session_id, Persisted::Session, 1),
+            (persisted_id, Persisted::ViewPosts(session_id), 1),
+        ]);
+    });
+
+    let start_session_el = start_session.dyn_ref::<HtmlElement>().unwrap();
+    start_session_el.set_onclick(Some(start_session_click.as_ref().unchecked_ref()));
+
+    start_session_click.forget();
+
     // on (user_id, Aggregations)
 
     let aggregates = document.create_element("div").unwrap();
@@ -252,11 +270,40 @@ pub fn render_page_posts(
         for item in items {
             match item {
                 (Query::Posts, QueryResult::AddPost(post_id, post_title, post_body)) => {
-                   log("todo add post!"); 
-                },
+                    let posts_container = document
+                        .query_selector("#posts-container")
+                        .unwrap()
+                        .unwrap();
+                    let post_template = document.query_selector("#post-template").unwrap().unwrap();
+                    let new_post = document.create_element("div").unwrap();
+                    new_post.set_inner_html(&post_template.inner_html());
+                    new_post.set_id(&post_id.to_string());
+                    posts_container.append_child(&new_post).unwrap();
+
+                    new_post
+                        .query_selector(".post-title")
+                        .unwrap()
+                        .unwrap()
+                        .set_text_content(Some(&post_title));
+                    new_post
+                        .query_selector(".post-body")
+                        .unwrap()
+                        .unwrap()
+                        .set_text_content(Some(&post_body));
+                    // new_post
+                    //     .query_selector("#post-author")
+                    //     .unwrap()
+                    //     .unwrap()
+                    //     .set_text_content(Some(&user_id.to_string()));
+                    // new_post
+                    //     .query_selector("#post-likes")
+                    //     .unwrap()
+                    //     .unwrap()
+                    //     .set_text_content(Some(&likes.to_string()));
+                }
                 (Query::Posts, QueryResult::DeletePost(post_id)) => {
-                   // log(("todo delete post!".to_string() + &post_id.to_string())); 
-                },
+                    // log(("todo delete post!".to_string() + &post_id.to_string()));
+                }
                 (Query::PostCount, QueryResult::PostCount(count)) => {
                     document
                         .query_selector("#posts-total")

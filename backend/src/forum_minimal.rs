@@ -202,6 +202,8 @@ impl ForumMinimal {
                                 QueryResult::DeletePost(*post_id)
                             };
 
+                            println!("send Query::Posts -- {:?}", query_result);
+
                             query_result_sender0.clone()
                                 .send(vec![(Query::Posts, query_result)])
                                 .unwrap();
@@ -212,28 +214,28 @@ impl ForumMinimal {
                 let query_result_sender_loop = query_result_sender1.clone();
 
                 // inputs - globally the same for everyone
-                manages
-                    .flat_map(|(_id, persisted)| {
-                        if let Persisted::PostTitle(_) = persisted {
-                            vec![0]
-                        } else {
-                            vec![]
-                        }
-                    })
-                    .count()
-                    .inspect_batch(move |_time, items| {
-                        let mut final_count = 0;
+                // manages
+                //     .flat_map(|(_id, persisted)| {
+                //         if let Persisted::PostTitle(_) = persisted {
+                //             vec![0]
+                //         } else {
+                //             vec![]
+                //         }
+                //     })
+                //     .count()
+                //     .inspect_batch(move |_time, items| {
+                //         let mut final_count = 0;
 
-                        for ((_discarded_zero, count), _time, diff) in items {
-                            if *diff > 0 {
-                                final_count = *count as u64;
-                            }
-                        }
-                        query_result_sender_loop
-                            .clone()
-                            .send(vec![(query0.clone(), QueryResult::PostCount(final_count))])
-                            .unwrap();
-                    });
+                //         for ((_discarded_zero, count), _time, diff) in items {
+                //             if *diff > 0 {
+                //                 final_count = *count as u64;
+                //             }
+                //         }
+                //         query_result_sender_loop
+                //             .clone()
+                //             .send(vec![(query0.clone(), QueryResult::PostCount(final_count))])
+                //             .unwrap();
+                //     });
 
                 // let post_id = 55;
                 // let query2 = query.clone();
