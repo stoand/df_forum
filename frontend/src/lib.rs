@@ -115,6 +115,12 @@ pub fn render_page_posts(
 
     let connection0 = connection.clone();
     let connection1 = connection.clone();
+    let connection2 = connection.clone();
+    let connection3 = connection.clone();
+
+    let mut page = Rc::new(RefCell::new(0));
+    let session_id = get_random_u64();
+    let view_posts_page_id = get_random_u64();
 
     let username_label = document.create_element("div").unwrap();
     username_label.set_text_content(Some(&("Username: ".to_owned() + &username)));
@@ -184,7 +190,6 @@ pub fn render_page_posts(
     root.append_child(&start_session).unwrap();
 
     let start_session_click = Closure::<dyn FnMut()>::new(move || {
-        let session_id = get_random_u64();
         let persisted_id = get_random_u64();
         connection1.borrow().send_transaction(vec![
             (session_id, Persisted::Session, 1),
@@ -250,20 +255,79 @@ pub fn render_page_posts(
     page_ops.append_child(&username_label).unwrap();
     // on (page_num) - activate or deactive
 
-    let username_label = document.create_element("button").unwrap();
-    username_label.set_text_content(Some("Prev"));
-    page_ops.append_child(&username_label).unwrap();
+    let prev_page = document.create_element("button").unwrap();
+    prev_page.set_text_content(Some("Prev"));
+    page_ops.append_child(&prev_page).unwrap();
+    
+    let page1 = page.clone();
+
+    let prev_page_click = Closure::<dyn FnMut()>::new(move || {
+        let old_page = *page1.borrow();
+        log("go prev outer");
+        log(&page1.borrow().to_string());
+        // if *page > 0 {
+        //     log("go prev");
+        //     *page -= 1;
+        //     connection2.borrow().send_transaction(vec![
+        //         (
+        //             view_posts_page_id,
+        //             Persisted::ViewPostsPage(session_id, *page),
+        //             1,
+        //         ),
+        //         (
+        //             view_posts_page_id,
+        //             Persisted::ViewPostsPage(session_id, old_page),
+        //             -1,
+        //         ),
+        //     ]);
+        // }
+    });
+
+    let prev_page_el = prev_page.dyn_ref::<HtmlElement>().unwrap();
+    prev_page_el.set_onclick(Some(prev_page_click.as_ref().unchecked_ref()));
+
+    prev_page_click.forget();
 
     // on (page_num)
 
-    let username_label = document.create_element("span").unwrap();
-    username_label.set_text_content(Some("Page ?"));
-    page_ops.append_child(&username_label).unwrap();
+    let page_label = document.create_element("span").unwrap();
+    // page_label.set_text_content(Some(&("Page ".to_string() + &(*page + 1).to_string())));
+    page_label.set_text_content(Some(&("Page ".to_string() + &(1).to_string())));
+    page_ops.append_child(&page_label).unwrap();
     // on (page_num) - activate or deactive
 
-    let username_label = document.create_element("button").unwrap();
-    username_label.set_text_content(Some("Next"));
-    page_ops.append_child(&username_label).unwrap();
+    let next_page = document.create_element("button").unwrap();
+    next_page.set_text_content(Some("Next"));
+    page_ops.append_child(&next_page).unwrap();
+
+    let page0 = page.clone();
+
+    let next_page_click = Closure::<dyn FnMut()>::new(move || {
+        let total_pages = 10000; // TODO
+        let old_page = *page0.borrow();
+        if *page0.borrow() < total_pages {
+            *page0.borrow_mut() += 1;
+            let view_posts_page_id = get_random_u64();
+            connection3.borrow().send_transaction(vec![
+                (
+                    view_posts_page_id,
+                    Persisted::ViewPostsPage(session_id, *page0.borrow()),
+                    1,
+                ),
+                (
+                    view_posts_page_id,
+                    Persisted::ViewPostsPage(session_id, old_page),
+                    -1,
+                ),
+            ]);
+        }
+    });
+
+    let next_page_el = next_page.dyn_ref::<HtmlElement>().unwrap();
+    next_page_el.set_onclick(Some(next_page_click.as_ref().unchecked_ref()));
+
+    next_page_click.forget();
+
     let on_parsed_message = move |items: Vec<(Query, QueryResult)>| {
         let window = web_sys::window().unwrap();
         let document = window.document().unwrap();
