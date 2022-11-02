@@ -49,6 +49,10 @@ async fn handle_connection(
 
     tokio::spawn(async move {
         loop {
+            // TODO: security risk
+            // an attacker can just connect to another port and hijack the session running there
+            // a security token is needed
+            
             let (viewer_addr, query_results) = query_result_receiver.recv().await.unwrap();
             if viewer_addr == addr {
                 println!(
