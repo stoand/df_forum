@@ -10,8 +10,8 @@ use timely::dataflow::operators::Map;
 use timely::worker::Worker;
 use timely::WorkerConfig;
 
-use tokio::sync::broadcast;
 use std::net::SocketAddr;
+use tokio::sync::broadcast;
 
 use differential_dataflow::input::InputSession;
 use differential_dataflow::operators::Consolidate;
@@ -21,7 +21,7 @@ use differential_dataflow::operators::Reduce;
 use differential_dataflow::AsCollection;
 use differential_dataflow::{Collection, ExchangeData};
 
-pub type PersistedInputSession = InputSession<Time, (Id, Persisted), Diff>;
+pub type PersistedInputSession = InputSession<Time, (SocketAddr, (Id, Persisted)), Diff>;
 
 pub const POSTS_PER_PAGE: usize = 2;
 
@@ -44,27 +44,24 @@ impl ForumMinimal {
         let worker_fn = move |worker: &mut Worker<Thread>| {
             worker.dataflow(|scope| {
                 let mut input: PersistedInputSession = InputSession::new();
-                let manages = input.to_collection(scope);
+                let manages_sess = input.to_collection(scope);
+                let manages = manages_sess.map(|(addr, (id, persisted))| (id, persisted));
 
-                let sessions = manages.flat_map(|(id, persisted)| {
-                    if let Persisted::Session = persisted {
-                        vec![id]
+                let sessions = manages_sess
+                    .map(|(addr, (id, persisted))| addr)
+                    .consolidate();
+
+                let view_posts = manages_sess.flat_map(|(addr, (id, persisted))| {
+                    if let Persisted::ViewPosts(_) = persisted {
+                        vec![(addr, 0)]
                     } else {
                         vec![]
                     }
                 });
 
-                let view_posts = manages.flat_map(|(id, persisted)| {
-                    if let Persisted::ViewPosts(session) = persisted {
-                        vec![(session, 0)]
-                    } else {
-                        vec![]
-                    }
-                });
-
-                let view_posts_page = manages.flat_map(|(id, persisted)| {
-                    if let Persisted::ViewPostsPage(session, page) = persisted {
-                        vec![(session, page)]
+                let view_posts_page = manages_sess.flat_map(|(addr, (id, persisted))| {
+                    if let Persisted::ViewPostsPage(_session, page) = persisted {
+                        vec![(addr, page)]
                     } else {
                         vec![]
                     }
@@ -183,17 +180,17 @@ impl ForumMinimal {
                     .map(|(post_id, (page_id, post))| (page_id, (post_id, post)));
 
                 let _user_posts = sessions_current_page
-                    .map(|(session, page_id)| (page_id, session))
+                    .map(|(addr, page_id)| (page_id, addr))
                     .join(&page_posts)
                     .inspect(|v| println!("5.3 -- {:?}", v))
                     .inspect(
                         move |(
-                            (_page_id, (session, (post_id, (post_title, post_body)))),
+                            (_page_id, (addr, (post_id, (post_title, post_body)))),
                             _time,
                             diff,
                         )| {
-                            // Todo only send this to the relevant session
-                            let _todo = session;
+                            // Todo only send this to the relevant addr
+                            let _todo = addr;
                             let query_result = if *diff > 0 {
                                 QueryResult::AddPost(
                                     *post_id,
@@ -208,57 +205,39 @@ impl ForumMinimal {
 
                             query_result_sender0
                                 .clone()
-                                .send(vec![query_result])
+                                .send(vec![(query_result)])
                                 .unwrap();
                         },
                     );
 
-                let query_result_sender_loop = query_result_sender1.clone();
-
-                // inputs - globally the same for everyone
-                let _post_aggregates = manages
-                    .flat_map(|(_id, persisted)| {
-                        if let Persisted::PostTitle(_) = persisted {
-                            vec![0]
-                        } else {
-                            vec![]
-                        }
-                    })
-                    .count()
-                    .inspect_batch(move |_time, items| {
-                        let mut final_count = 0;
-
-                        for ((_discarded_zero, count), _time, diff) in items {
-                            if *diff > 0 {
-                                final_count = *count as u64;
-                            }
-                        }
-
-                        let page_count =
-                            ((final_count as f64) / (POSTS_PER_PAGE as f64)).ceil() as u64;
-                        query_result_sender_loop
-                            .clone()
-                            .send(vec![QueryResult::PostAggregates(final_count, page_count)])
-                            .unwrap();
-                    });
-
-                // let post_id = 55;
-                // let query2 = query.clone();
-
-                // inputs: User -> User Posts Page -> Posts -> Post
-                // manages.inspect(move |((id, persisted), _time, _diff)| {
-                //     if *id == post_id {
-                //         if let Persisted::PostTitle(title) = persisted {
-                //             query_result_sender2
-                //                 .clone()
-                //                 .send(vec![(
-                //                     query2.clone(),
-                //                     QueryResult::PostTitle(title.clone()),
-                //                 )])
-                //                 .unwrap();
+                // TODO:
+                // let query_result_sender_loop = query_result_sender1.clone();
+                // 
+                // let _post_aggregates = manages
+                //     .flat_map(|(_id, persisted)| {
+                //         if let Persisted::PostTitle(_) = persisted {
+                //             vec![0]
+                //         } else {
+                //             vec![]
                 //         }
-                //     }
-                // });
+                //     })
+                //     .count()
+                //     .inspect_batch(move |_time, items| {
+                //         let mut final_count = 0;
+
+                //         for ((_discarded_zero, count), _time, diff) in items {
+                //             if *diff > 0 {
+                //                 final_count = *count as u64;
+                //             }
+                //         }
+
+                //         let page_count =
+                //             ((final_count as f64) / (POSTS_PER_PAGE as f64)).ceil() as u64;
+                //         query_result_sender_loop
+                //             .clone()
+                //             .send(vec![QueryResult::PostAggregates(final_count, page_count)])
+                //             .unwrap();
+                //     });
 
                 input
             })
@@ -270,7 +249,7 @@ impl ForumMinimal {
         let worker1 = worker0.clone();
         let input = worker_fn(&mut worker1.borrow_mut());
 
-        let input0: Rc<RefCell<InputSession<u64, (u64, Persisted), isize>>> =
+        let input0: Rc<RefCell<InputSession<u64, (SocketAddr, (u64, Persisted)), isize>>> =
             Rc::new(RefCell::new(input));
         let input1 = input0.clone();
 
@@ -290,9 +269,9 @@ impl ForumMinimal {
 
         for (id, item, diff) in persisted_items {
             if diff > 0 {
-                self.input.borrow_mut().insert((id, item));
+                self.input.borrow_mut().insert((addr, (id, item)));
             } else {
-                self.input.borrow_mut().remove((id, item));
+                self.input.borrow_mut().remove((addr, (id, item)));
             }
         }
         self.input.borrow_mut().advance_to(self.dataflow_time);
