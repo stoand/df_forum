@@ -19,7 +19,7 @@ pub mod df_tuple_items;
 pub mod persisted;
 pub mod query_result;
 
-use persisted::{Persisted, Post};
+use persisted::Persisted;
 use query_result::QueryResult;
 use std::cell::RefCell;
 use std::rc::Rc;

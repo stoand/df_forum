@@ -36,20 +36,18 @@ impl ForumMinimal {
         query_result_sender: broadcast::Sender<(SocketAddr, Vec<QueryResult>)>,
     ) -> Self {
         let query_result_sender0 = query_result_sender.clone();
-        let query_result_sender1 = query_result_sender.clone();
-        let query_result_sender2 = query_result_sender.clone();
 
         let worker_fn = move |worker: &mut Worker<Thread>| {
             worker.dataflow(|scope| {
                 let mut input: PersistedInputSession = InputSession::new();
                 let manages_sess = input.to_collection(scope);
-                let manages = manages_sess.map(|(addr, (id, persisted))| (id, persisted));
+                let manages = manages_sess.map(|(_addr, (id, persisted))| (id, persisted));
 
                 let sessions = manages_sess
-                    .map(|(addr, (id, persisted))| addr)
+                    .map(|(addr, (_id, _persisted))| addr)
                     .consolidate();
 
-                let view_posts = manages_sess.flat_map(|(addr, (id, persisted))| {
+                let view_posts = manages_sess.flat_map(|(addr, (_id, persisted))| {
                     if let Persisted::ViewPosts(_) = persisted {
                         vec![(addr, 0)]
                     } else {
@@ -57,7 +55,7 @@ impl ForumMinimal {
                     }
                 });
 
-                let view_posts_page = manages_sess.flat_map(|(addr, (id, persisted))| {
+                let view_posts_page = manages_sess.flat_map(|(addr, (_id, persisted))| {
                     if let Persisted::ViewPostsPage(_session, page) = persisted {
                         vec![(addr, page)]
                     } else {
@@ -67,7 +65,7 @@ impl ForumMinimal {
 
                 let sessions_view_posts = view_posts
                     .join_map(&sessions.map(|v| (v, v)), |_key, &a, &b| (a, b))
-                    .map(|(v0, v1)| (v1, None::<u64>));
+                    .map(|(_v0, v1)| (v1, None::<u64>));
                 // .inspect(|v| println!("1 -- {:?}", v));
 
                 let sessions_view_posts_page = view_posts_page
@@ -77,7 +75,7 @@ impl ForumMinimal {
 
                 let sessions_current_page = sessions_view_posts
                     .concat(&sessions_view_posts_page)
-                    .reduce(|key, inputs, outputs| {
+                    .reduce(|_key, inputs, outputs| {
                         let mut final_page = None::<u64>;
                         let mut found: bool = false;
 
@@ -99,8 +97,6 @@ impl ForumMinimal {
                         }
                     })
                     .inspect(|v| println!("1 -- {:?}", v));
-
-                let query_result_sender_loop = query_result_sender1.clone();
 
                 let post_ids = manages
                     .inner
