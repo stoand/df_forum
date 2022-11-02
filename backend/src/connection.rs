@@ -50,23 +50,29 @@ async fn handle_connection(
         while let Some(msg) = incoming_strings.next().await {
             println!("got msg: {}", msg);
 
-            let parsed_msg: PersistedItems = serde_json::from_str(&msg)
-                .unwrap_or(vec![]);
-                // .expect("Could not parse PersistedItems from Websocket Message");
+            let parsed_msg: PersistedItems = serde_json::from_str(&msg).unwrap_or(vec![]);
+            // .expect("Could not parse PersistedItems from Websocket Message");
             persisted_sender.send((addr, parsed_msg)).unwrap();
         }
     });
 
     tokio::spawn(async move {
         loop {
-            let (addr, query_results) = query_result_receiver.recv().await.unwrap();
-            println!("query_results: {:?}, (addr = {:?})", query_results, addr);
+            let (viewer_addr, query_results) = query_result_receiver.recv().await.unwrap();
+            if viewer_addr == addr {
+                println!(
+                    "query_results: {:?}, (viewer_addr = {:?})",
+                    query_results, viewer_addr
+                );
 
-            let output_payload = serde_json::to_string(&query_results.clone()).unwrap();
+                let output_payload = serde_json::to_string(&query_results.clone()).unwrap();
 
-            let peers = peer_map.lock().unwrap();
-            let tx = peers.get(&addr).expect(&format!("address not found: {:?}", addr));
-            tx.unbounded_send(Message::Text(output_payload)).unwrap();
+                let peers = peer_map.lock().unwrap();
+                let tx = peers
+                    .get(&viewer_addr)
+                    .expect(&format!("viewer_address not found: {:?}", viewer_addr));
+                tx.unbounded_send(Message::Text(output_payload)).unwrap();
+            }
         }
     });
     let recieve_from_others = rx.map(Ok).forward(outgoing);
