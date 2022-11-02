@@ -1,6 +1,6 @@
 use df_forum_frontend::df_tuple_items::{Diff, Id, Time};
 pub use df_forum_frontend::persisted::{Persisted, PersistedItems, Post};
-use df_forum_frontend::query_result::QueryResult;
+pub use df_forum_frontend::query_result::QueryResult;
 // use crate::operators::only_latest::OnlyLatest;
 
 use std::cell::RefCell;
@@ -20,7 +20,12 @@ use differential_dataflow::operators::Join;
 use differential_dataflow::operators::Reduce;
 use differential_dataflow::AsCollection;
 
-pub type PersistedInputSession = InputSession<Time, (SocketAddr, (Id, Persisted)), Diff>;
+use crate::dataflows::post_aggr::post_aggr_dataflow;
+use crate::dataflows::posts::posts_dataflow;
+
+pub type InputFormat = (SocketAddr, (Id, Persisted));
+
+pub type PersistedInputSession = InputSession<Time, InputFormat, Diff>;
 
 pub const POSTS_PER_PAGE: usize = 2;
 
@@ -31,225 +36,27 @@ pub struct ForumMinimal {
     pub dataflow_time: u64,
 }
 
+type ScopeThread = timely::communication::allocator::Thread;
+type ScopeWorker = timely::worker::Worker<ScopeThread>;
+type ScopeChild<'a> = timely::dataflow::scopes::Child<'a, ScopeWorker, u64>;
+pub type ScopeCollection<'a> =
+    differential_dataflow::Collection<ScopeChild<'a>, InputFormat>;
+
+pub type QueryResultSender = broadcast::Sender<(SocketAddr, Vec<QueryResult>)>;
+
 impl ForumMinimal {
-    pub fn new(
+    pub fn new<'a>(
         persisted_sender: broadcast::Sender<(SocketAddr, PersistedItems)>,
         query_result_sender: broadcast::Sender<(SocketAddr, Vec<QueryResult>)>,
     ) -> Self {
-        let query_result_sender0 = query_result_sender.clone();
-
         let worker_fn = move |worker: &mut Worker<Thread>| {
             worker.dataflow(|scope| {
                 let mut input: PersistedInputSession = InputSession::new();
-
-                // TODO: Handle Lists
                 let manages_sess = input.to_collection(scope);
-                let manages = manages_sess.map(|(_addr, (id, persisted))| (id, persisted));
 
-                let sessions = manages_sess
-                    .map(|(addr, (_id, _persisted))| addr)
-                    .consolidate();
+                posts_dataflow(&manages_sess, query_result_sender.clone());
 
-                let view_posts = manages_sess.flat_map(|(addr, (_id, persisted))| {
-                    if let Persisted::ViewPosts = persisted {
-                        vec![(addr, 0)]
-                    } else {
-                        vec![]
-                    }
-                });
-
-                let view_posts_page = manages_sess.flat_map(|(addr, (_id, persisted))| {
-                    if let Persisted::ViewPostsPage(page) = persisted {
-                        vec![(addr, page)]
-                    } else {
-                        vec![]
-                    }
-                });
-
-                let sessions_view_posts = view_posts
-                    .join_map(&sessions.map(|v| (v, v)), |_key, &a, &b| (a, b))
-                    .map(|(_v0, v1)| (v1, None::<u64>));
-                // .inspect(|v| println!("1 -- {:?}", v));
-
-                let sessions_view_posts_page = view_posts_page
-                    .join_map(&sessions.map(|v| (v, v)), |_key, &a, &b| (a, b))
-                    .map(|(v0, v1)| (v1, Some(v0)));
-                // .inspect(|v| println!("2 -- {:?}", v));
-
-                let sessions_current_page = sessions_view_posts
-                    .concat(&sessions_view_posts_page)
-                    .reduce(|_key, inputs, outputs| {
-                        let mut final_page = None::<u64>;
-                        let mut found: bool = false;
-
-                        for (page, diff) in inputs {
-                            if *diff > 0 {
-                                if let Some(page0) = page {
-                                    final_page = Some(*page0);
-                                }
-                                found = true;
-                            }
-                        }
-                        // println!(
-                        //     "key = {:?}, input = {:?}, output = {:?}",
-                        //     key, inputs, outputs
-                        // );
-
-                        if found {
-                            outputs.push((final_page.unwrap_or(0), 1));
-                        }
-                    })
-                    .inspect(|v| println!("1 -- {:?}", v));
-
-                let post_ids = manages
-                    .inner
-                    .map(|((id, persisted), time, diff)| ((time, id, persisted), time, diff))
-                    .as_collection()
-                    .flat_map(|(time, id, persisted)| match persisted {
-                        Persisted::PostTitle(_) => vec![(0, (id, time))],
-                        _ => vec![],
-                    })
-                    .inspect(|v| println!("2 -- {:?}", v));
-
-                // todo - join all posts for every user+current_page
-                let pages_with_zero = sessions_current_page
-                    .map(|(_user_id, page)| (0, page))
-                    .consolidate()
-                    .inspect(|v| println!("3 -- {:?}", v));
-
-                let page_ids_with_all_post_ids = pages_with_zero.join(&post_ids).map(
-                    |(_discarded_zero, (page_id, (post_id, post_time)))| {
-                        (page_id, (post_id, post_time))
-                    },
-                );
-                // .inspect(|v| println!("4 -- {:?}", v));
-
-                let page_ids_with_relevant_post_ids =
-                    page_ids_with_all_post_ids.reduce(move |page_id, inputs, outputs| {
-                        println!(
-                            "key = {:?}, input = {:?}, output = {:?}",
-                            page_id, inputs, outputs
-                        );
-
-                        let mut sorted = inputs.to_vec();
-                        sorted.sort_by_key(|((_post_id, time), _diff)| -(*time as isize));
-                        let items: Vec<u64> = sorted
-                            .iter()
-                            .skip((*page_id) as usize * POSTS_PER_PAGE)
-                            .take(POSTS_PER_PAGE)
-                            .filter(|((_id, _time), diff)| *diff > 0)
-                            .map(|((id, _time), _diff)| *id)
-                            .collect();
-
-                        outputs.push((items, 1));
-                    });
-                // .inspect(|v| println!("4.1 -- {:?}", v));
-
-                let page_ids_with_relevant_posts = page_ids_with_relevant_post_ids
-                    .flat_map(|(page_id, post_ids)| {
-                        post_ids.into_iter().map(move |post_id| (page_id, post_id))
-                    })
-                    .map(|(page_id, post_id)| (post_id, page_id))
-                    .inspect(|v| println!("5.1 -- {:?}", v));
-
-                let post_titles = manages
-                    .flat_map(|(id, persisted)| {
-                        if let Persisted::PostTitle(title) = persisted {
-                            vec![(id, title)]
-                        } else {
-                            vec![]
-                        }
-                    })
-                    .inspect(|v| println!("title -- {:?}", v));
-
-                let post_bodies = manages.flat_map(|(id, persisted)| {
-                    if let Persisted::PostBody(body) = persisted {
-                        vec![(id, body)]
-                    } else {
-                        vec![]
-                    }
-                });
-
-                let posts = post_titles
-                    .join(&post_bodies)
-                    .inspect(|v| println!("5.2 -- {:?}", v));
-
-                let page_posts = page_ids_with_relevant_posts
-                    .join(&posts)
-                    .map(|(post_id, (page_id, post))| (page_id, (post_id, post)));
-
-                let _user_posts = sessions_current_page
-                    .map(|(addr, page_id)| (page_id, addr))
-                    .join(&page_posts)
-                    .inspect(|v| println!("5.3 -- {:?}", v))
-                    .inspect(
-                        move |(
-                            (_page_id, (addr, (post_id, (post_title, post_body)))),
-                            _time,
-                            diff,
-                        )| {
-                            let query_result = if *diff > 0 {
-                                QueryResult::AddPost(
-                                    *post_id,
-                                    post_title.clone(),
-                                    post_body.clone(),
-                                )
-                            } else {
-                                QueryResult::DeletePost(*post_id)
-                            };
-
-                            println!(
-                                "send Query::Posts -- {:?} (addr = {:?})",
-                                query_result, addr
-                            );
-
-                            query_result_sender0
-                                .clone()
-                                .send((*addr, vec![query_result]))
-                                .unwrap();
-                        },
-                    );
-
-                let query_result_sender_loop = query_result_sender.clone();
-
-                let sessions_with_zero = manages_sess.map(|(addr, _)| (0, addr)).consolidate();
-                let _post_aggregates = manages
-                    .flat_map(|(_id, persisted)| {
-                        if let Persisted::PostTitle(_) = persisted {
-                            vec![0]
-                        } else {
-                            vec![]
-                        }
-                    })
-                    .count()
-                    .map(|v| (0, v))
-                    .join(&sessions_with_zero)
-                    .map(|(_zero, v)| v)
-                    .inspect_batch(move |_time, items| {
-                        let mut addrs = Vec::new();
-                        let mut final_count = 0;
-
-                        for (((_discarded_zero, count), viewer_addr), _time, diff) in items {
-                            println!("viewer_addr: {:?}", viewer_addr);
-                            addrs.push(viewer_addr);
-                            if *diff > 0 {
-                                final_count = *count as u64;
-                            }
-                        }
-
-                        let page_count =
-                            ((final_count as f64) / (POSTS_PER_PAGE as f64)).ceil() as u64;
-
-                        for addr in addrs {
-                            query_result_sender_loop
-                                .clone()
-                                .send((
-                                    *addr,
-                                    vec![QueryResult::PostAggregates(final_count, page_count)],
-                                ))
-                                .unwrap();
-                        }
-                    });
+                post_aggr_dataflow(&manages_sess, query_result_sender.clone());
 
                 input
             })

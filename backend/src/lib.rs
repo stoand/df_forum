@@ -7,3 +7,4 @@ extern crate df_forum_frontend;
 
 pub mod operators;
 pub mod forum_minimal;
+pub mod dataflows;
