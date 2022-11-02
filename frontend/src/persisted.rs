@@ -20,10 +20,11 @@ pub enum Persisted {
 
 
     // loads aggregations as well
-    ViewPosts(u64), // (session id)
+    ViewPosts, // (session id)
+    
 
     // reloads only posts
-    ViewPostsPage(u64, u64), // (session id, page)
+    ViewPostsPage(u64),
     
     Session,
 }

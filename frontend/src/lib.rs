@@ -118,7 +118,6 @@ pub fn render_page_posts(
     let connection2 = connection.clone();
     let connection3 = connection.clone();
 
-    let session_id = get_random_u64();
     let view_posts_page_id = get_random_u64();
 
     root.set_attribute("page", &(0.to_string())).unwrap();
@@ -193,8 +192,7 @@ pub fn render_page_posts(
     let start_session_click = Closure::<dyn FnMut()>::new(move || {
         let persisted_id = get_random_u64();
         connection1.borrow().send_transaction(vec![
-            (session_id, Persisted::Session, 1),
-            (persisted_id, Persisted::ViewPosts(session_id), 1),
+            (persisted_id, Persisted::ViewPosts, 1),
         ]);
     });
 
@@ -280,12 +278,12 @@ pub fn render_page_posts(
             connection2.borrow().send_transaction(vec![
                 (
                     view_posts_page_id,
-                    Persisted::ViewPostsPage(session_id, page),
+                    Persisted::ViewPostsPage(page),
                     1,
                 ),
                 (
                     view_posts_page_id,
-                    Persisted::ViewPostsPage(session_id, old_page),
+                    Persisted::ViewPostsPage(old_page),
                     -1,
                 ),
             ]);
@@ -322,12 +320,12 @@ pub fn render_page_posts(
             connection3.borrow().send_transaction(vec![
                 (
                     view_posts_page_id,
-                    Persisted::ViewPostsPage(session_id, page),
+                    Persisted::ViewPostsPage(page),
                     1,
                 ),
                 (
                     view_posts_page_id,
-                    Persisted::ViewPostsPage(session_id, old_page),
+                    Persisted::ViewPostsPage(old_page),
                     -1,
                 ),
             ]);
