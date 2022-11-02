@@ -35,7 +35,7 @@ pub struct ForumMinimal {
 impl ForumMinimal {
     pub fn new(
         persisted_sender: broadcast::Sender<(SocketAddr, PersistedItems)>,
-        query_result_sender: broadcast::Sender<Vec<QueryResult>>,
+        query_result_sender: broadcast::Sender<(SocketAddr, Vec<QueryResult>)>,
     ) -> Self {
         let query_result_sender0 = query_result_sender.clone();
         let query_result_sender1 = query_result_sender.clone();
@@ -205,7 +205,7 @@ impl ForumMinimal {
 
                             query_result_sender0
                                 .clone()
-                                .send(vec![(query_result)])
+                                .send((*addr, vec![query_result]))
                                 .unwrap();
                         },
                     );

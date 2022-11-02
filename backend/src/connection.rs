@@ -26,17 +26,18 @@ pub enum HandlerError {
 }
 
 async fn handle_connection(
-    _peer_map: PeerMap,
+    peer_map: PeerMap,
     raw_stream: TcpStream,
     addr: SocketAddr,
     persisted_sender: broadcast::Sender<(SocketAddr, PersistedItems)>,
-    query_result_sender: broadcast::Sender<Vec<QueryResult>>,
+    query_result_sender: broadcast::Sender<(SocketAddr, Vec<QueryResult>)>,
 ) -> Result<(), HandlerError> {
     let ws_stream = tokio_tungstenite::accept_async(raw_stream)
         .await
         .map_err(|_err| HandlerError::Handshake)?;
 
     let (tx, rx) = unbounded();
+    peer_map.lock().unwrap().insert(addr, tx);
 
     let (outgoing, incoming) = ws_stream.split();
 
@@ -58,11 +59,13 @@ async fn handle_connection(
 
     tokio::spawn(async move {
         loop {
-            let query_results = query_result_receiver.recv().await.unwrap();
-            println!("query_results: {:?}", query_results);
+            let (addr, query_results) = query_result_receiver.recv().await.unwrap();
+            println!("query_results: {:?}, (addr = {:?})", query_results, addr);
 
             let output_payload = serde_json::to_string(&query_results.clone()).unwrap();
 
+            let peers = peer_map.lock().unwrap();
+            let tx = peers.get(&addr).expect(&format!("address not found: {:?}", addr));
             tx.unbounded_send(Message::Text(output_payload)).unwrap();
         }
     });
@@ -77,9 +80,9 @@ async fn handle_connection(
 async fn loop_check_for_connections(
     addr: String,
     persisted_sender: broadcast::Sender<(SocketAddr, PersistedItems)>,
-    query_result_sender: broadcast::Sender<Vec<QueryResult>>,
+    query_result_sender: broadcast::Sender<(SocketAddr, Vec<QueryResult>)>,
 ) {
-    let state = PeerMap::new(Mutex::new(HashMap::new()));
+    let peer_map = PeerMap::new(Mutex::new(HashMap::new()));
 
     let try_socket = TcpListener::bind(&addr).await;
     let listener = try_socket.unwrap();
@@ -88,7 +91,7 @@ async fn loop_check_for_connections(
     loop {
         if let Ok((stream, addr)) = listener.accept().await {
             tokio::spawn(handle_connection(
-                state.clone(),
+                peer_map.clone(),
                 stream,
                 addr,
                 persisted_sender.clone(),
