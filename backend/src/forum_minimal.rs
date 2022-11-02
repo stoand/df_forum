@@ -17,6 +17,7 @@ use differential_dataflow::input::InputSession;
 use differential_dataflow::operators::Consolidate;
 use differential_dataflow::operators::Join;
 use differential_dataflow::operators::Reduce;
+use differential_dataflow::operators::Count;
 use differential_dataflow::AsCollection;
 
 pub type PersistedInputSession = InputSession<Time, (SocketAddr, (Id, Persisted)), Diff>;
@@ -40,22 +41,6 @@ impl ForumMinimal {
         let worker_fn = move |worker: &mut Worker<Thread>| {
             worker.dataflow(|scope| {
                 let mut input: PersistedInputSession = InputSession::new();
-                let manage_addr = input.to_collection(scope);
-
-                manage_addr.inspect(|v| println!("1 -- {:?}", v));
-
-                let addrs_with_zero = manage_addr.map(|(addr, _)| (0, addr)).consolidate();
-
-                // Handle Fields
-                // manage_addr
-                //     .map(|v| (0, v))
-                //     .join(&addrs_with_zero)
-                //     .map(|(_zero, v)| v)
-                //     .inspect(|v| println!("0 -- {:?}", v))
-                //     // .inspect(|(((source_addr, (id, persisted)), dest_addr), time, diff)| {});
-                //     .map(|((_post_creator_addr, (id, persisted)), viewer_addr)| (viewer_addr, (id, persisted)))
-                //     .consolidate()
-                //     .inspect(|v| println!("2 -- {:?}", v));
 
                 // TODO: Handle Lists
                 let manages_sess = input.to_collection(scope);
@@ -176,7 +161,7 @@ impl ForumMinimal {
                 })
                 .inspect(|v| println!("title -- {:?}", v));
 
-                let post_bodies = manages_sess.flat_map(|(addr, (id, persisted))| {
+                let post_bodies = manages.flat_map(|(id, persisted)| {
                     if let Persisted::PostBody(body) = persisted {
                         vec![(id, body)]
                     } else {
@@ -221,34 +206,40 @@ impl ForumMinimal {
                         },
                     );
 
-                // TODO:
-                // let query_result_sender_loop = query_result_sender1.clone();
-                //
-                // let _post_aggregates = manages
-                //     .flat_map(|(_id, persisted)| {
-                //         if let Persisted::PostTitle(_) = persisted {
-                //             vec![0]
-                //         } else {
-                //             vec![]
-                //         }
-                //     })
-                //     .count()
-                //     .inspect_batch(move |_time, items| {
-                //         let mut final_count = 0;
+                let query_result_sender_loop = query_result_sender.clone();
 
-                //         for ((_discarded_zero, count), _time, diff) in items {
-                //             if *diff > 0 {
-                //                 final_count = *count as u64;
-                //             }
-                //         }
+                let sessions_with_zero = manages_sess.map(|(addr, _)| (0, addr)).consolidate();
+                
+                let _post_aggregates = manages
+                    .flat_map(|(_id, persisted)| {
+                        if let Persisted::PostTitle(_) = persisted {
+                            vec![0]
+                        } else {
+                            vec![]
+                        }
+                    })
+                    .count()
+                    .map(|v| (0, v))
+                    .join(&sessions_with_zero)
+                    .map(|(_zero, v)| v)
+                    .inspect_batch(move |_time, items| {
+                        let mut addr = None;
+                        let mut final_count = 0;
 
-                //         let page_count =
-                //             ((final_count as f64) / (POSTS_PER_PAGE as f64)).ceil() as u64;
-                //         query_result_sender_loop
-                //             .clone()
-                //             .send(vec![QueryResult::PostAggregates(final_count, page_count)])
-                //             .unwrap();
-                //     });
+                        for (((_discarded_zero, count), viewer_addr), _time, diff) in items {
+                            addr = Some(viewer_addr);
+                            if *diff > 0 {
+                                final_count = *count as u64;
+                            }
+                        }
+
+                        let page_count =
+                            ((final_count as f64) / (POSTS_PER_PAGE as f64)).ceil() as u64;
+                        query_result_sender_loop
+                            .clone()
+                            .send((*addr.unwrap(), vec![QueryResult::PostAggregates(final_count, page_count)]))
+                            .unwrap();
+                    });
 
                 input
             })
@@ -450,35 +441,4 @@ mod tests {
     //     ));
     // }
     //
-    #[tokio::test]
-    pub async fn test_sessions() {
-        let socket0 = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
-        let socket1 = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8081); //     let (query_result_sender, mut query_result_receiver) = broadcast::channel(16);
-        let (query_result_sender, mut query_result_receiver) = broadcast::channel(16);
-        let (persisted_sender, _persisted_receiver) = broadcast::channel(16);
-
-        let mut forum_minimal = ForumMinimal::new(persisted_sender.clone(), query_result_sender);
-
-        persisted_sender
-            .send((socket0, vec![(66, Persisted::ViewPosts, 1)]))
-            .unwrap();
-
-        persisted_sender
-            .send((socket1, vec![(77, Persisted::ViewPosts, 1)]))
-            .unwrap();
-        forum_minimal.advance_dataflow_computation_once().await;
-
-        persisted_sender
-            .send((
-                socket0,
-                vec![
-                    (5, Persisted::PostTitle("Zerg".into()), 1),
-                    (5, Persisted::PostBody("Zerg Info".into()), 1),
-                ],
-            ))
-            .unwrap();
-
-        forum_minimal.advance_dataflow_computation_once().await;
-        forum_minimal.advance_dataflow_computation_once().await;
-    }
 }
