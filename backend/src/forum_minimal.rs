@@ -15,9 +15,9 @@ use tokio::sync::broadcast;
 
 use differential_dataflow::input::InputSession;
 use differential_dataflow::operators::Consolidate;
+use differential_dataflow::operators::Count;
 use differential_dataflow::operators::Join;
 use differential_dataflow::operators::Reduce;
-use differential_dataflow::operators::Count;
 use differential_dataflow::AsCollection;
 
 pub type PersistedInputSession = InputSession<Time, (SocketAddr, (Id, Persisted)), Diff>;
@@ -152,14 +152,15 @@ impl ForumMinimal {
                     .map(|(page_id, post_id)| (post_id, page_id))
                     .inspect(|v| println!("5.1 -- {:?}", v));
 
-                let post_titles = manages.flat_map(|(id, persisted)| {
-                    if let Persisted::PostTitle(title) = persisted {
-                        vec![(id, title)]
-                    } else {
-                        vec![]
-                    }
-                })
-                .inspect(|v| println!("title -- {:?}", v));
+                let post_titles = manages
+                    .flat_map(|(id, persisted)| {
+                        if let Persisted::PostTitle(title) = persisted {
+                            vec![(id, title)]
+                        } else {
+                            vec![]
+                        }
+                    })
+                    .inspect(|v| println!("title -- {:?}", v));
 
                 let post_bodies = manages.flat_map(|(id, persisted)| {
                     if let Persisted::PostBody(body) = persisted {
@@ -197,7 +198,10 @@ impl ForumMinimal {
                                 QueryResult::DeletePost(*post_id)
                             };
 
-                            println!("send Query::Posts -- {:?} (addr = {:?})", query_result, addr);
+                            println!(
+                                "send Query::Posts -- {:?} (addr = {:?})",
+                                query_result, addr
+                            );
 
                             query_result_sender0
                                 .clone()
@@ -209,7 +213,6 @@ impl ForumMinimal {
                 let query_result_sender_loop = query_result_sender.clone();
 
                 let sessions_with_zero = manages_sess.map(|(addr, _)| (0, addr)).consolidate();
-                
                 let _post_aggregates = manages
                     .flat_map(|(_id, persisted)| {
                         if let Persisted::PostTitle(_) = persisted {
@@ -223,11 +226,12 @@ impl ForumMinimal {
                     .join(&sessions_with_zero)
                     .map(|(_zero, v)| v)
                     .inspect_batch(move |_time, items| {
-                        let mut addr = None;
+                        let mut addrs = Vec::new();
                         let mut final_count = 0;
 
                         for (((_discarded_zero, count), viewer_addr), _time, diff) in items {
-                            addr = Some(viewer_addr);
+                            println!("viewer_addr: {:?}", viewer_addr);
+                            addrs.push(viewer_addr);
                             if *diff > 0 {
                                 final_count = *count as u64;
                             }
@@ -235,10 +239,16 @@ impl ForumMinimal {
 
                         let page_count =
                             ((final_count as f64) / (POSTS_PER_PAGE as f64)).ceil() as u64;
-                        query_result_sender_loop
-                            .clone()
-                            .send((*addr.unwrap(), vec![QueryResult::PostAggregates(final_count, page_count)]))
-                            .unwrap();
+
+                        for addr in addrs {
+                            query_result_sender_loop
+                                .clone()
+                                .send((
+                                    *addr,
+                                    vec![QueryResult::PostAggregates(final_count, page_count)],
+                                ))
+                                .unwrap();
+                        }
                     });
 
                 input
