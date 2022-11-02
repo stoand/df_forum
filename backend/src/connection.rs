@@ -1,11 +1,7 @@
 use df_forum_backend::forum_minimal::{ForumMinimal, PersistedItems};
-use std::{
-    collections::HashMap,
-    net::SocketAddr,
-    sync::{Arc, Mutex},
-};
+use std::net::SocketAddr;
 
-use futures_channel::mpsc::{unbounded, UnboundedSender};
+use futures_channel::mpsc::unbounded;
 use futures_util::{future, pin_mut, StreamExt};
 
 use tokio::net::{TcpListener, TcpStream};
@@ -15,9 +11,6 @@ use tokio_tungstenite::tungstenite::protocol::Message;
 // use df_forum_frontend::persisted::Persisted;
 use df_forum_frontend::query_result::QueryResult;
 
-type Tx = UnboundedSender<Message>;
-type PeerMap = Arc<Mutex<HashMap<SocketAddr, Tx>>>;
-
 #[derive(Debug)]
 pub enum HandlerError {
     Handshake,
@@ -26,7 +19,6 @@ pub enum HandlerError {
 }
 
 async fn handle_connection(
-    peer_map: PeerMap,
     raw_stream: TcpStream,
     addr: SocketAddr,
     persisted_sender: broadcast::Sender<(SocketAddr, PersistedItems)>,
@@ -37,7 +29,6 @@ async fn handle_connection(
         .map_err(|_err| HandlerError::Handshake)?;
 
     let (tx, rx) = unbounded();
-    peer_map.lock().unwrap().insert(addr, tx);
 
     let (outgoing, incoming) = ws_stream.split();
 
@@ -67,10 +58,6 @@ async fn handle_connection(
 
                 let output_payload = serde_json::to_string(&query_results.clone()).unwrap();
 
-                let peers = peer_map.lock().unwrap();
-                let tx = peers
-                    .get(&viewer_addr)
-                    .expect(&format!("viewer_address not found: {:?}", viewer_addr));
                 tx.unbounded_send(Message::Text(output_payload)).unwrap();
             }
         }
@@ -88,8 +75,6 @@ async fn loop_check_for_connections(
     persisted_sender: broadcast::Sender<(SocketAddr, PersistedItems)>,
     query_result_sender: broadcast::Sender<(SocketAddr, Vec<QueryResult>)>,
 ) {
-    let peer_map = PeerMap::new(Mutex::new(HashMap::new()));
-
     let try_socket = TcpListener::bind(&addr).await;
     let listener = try_socket.unwrap();
     println!("listening on: {}", addr);
@@ -97,7 +82,6 @@ async fn loop_check_for_connections(
     loop {
         if let Ok((stream, addr)) = listener.accept().await {
             tokio::spawn(handle_connection(
-                peer_map.clone(),
                 stream,
                 addr,
                 persisted_sender.clone(),
