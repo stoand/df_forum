@@ -52,7 +52,6 @@ async fn handle_connection(
             // TODO: security risk
             // an attacker can just connect to another port and hijack the session running there
             // a security token is needed
-            
             let (viewer_addr, query_results) = query_result_receiver.recv().await.unwrap();
             if viewer_addr == addr {
                 println!(
@@ -101,8 +100,6 @@ pub async fn establish(addr: String) -> Result<(), HandlerError> {
 
     let mut forum_minimal =
         ForumMinimal::new(persisted_sender.clone(), query_result_sender.clone());
-
-    // persisted_sender.
 
     tokio::join!(
         loop_check_for_connections(addr, persisted_sender, query_result_sender),

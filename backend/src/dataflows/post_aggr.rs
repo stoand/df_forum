@@ -10,8 +10,6 @@ pub fn post_aggr_dataflow<'a>(
     query_result_sender: QueryResultSender,
 ) {
     let manages = manages_sess.map(|(_addr, (id, persisted))| (id, persisted));
-
-    let manages = manages_sess.map(|(_addr, (id, persisted))| (id, persisted));
     let query_result_sender_loop = query_result_sender.clone();
 
     let sessions_with_zero = manages_sess.map(|(addr, _)| (0, addr)).consolidate();

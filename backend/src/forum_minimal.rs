@@ -1,12 +1,10 @@
 use df_forum_frontend::df_tuple_items::{Diff, Id, Time};
 pub use df_forum_frontend::persisted::{Persisted, PersistedItems, Post};
 pub use df_forum_frontend::query_result::QueryResult;
-// use crate::operators::only_latest::OnlyLatest;
 
 use std::cell::RefCell;
 use std::rc::Rc;
 use timely::communication::allocator::thread::Thread;
-use timely::dataflow::operators::Map;
 use timely::worker::Worker;
 use timely::WorkerConfig;
 
@@ -14,11 +12,6 @@ use std::net::SocketAddr;
 use tokio::sync::broadcast;
 
 use differential_dataflow::input::InputSession;
-use differential_dataflow::operators::Consolidate;
-use differential_dataflow::operators::Count;
-use differential_dataflow::operators::Join;
-use differential_dataflow::operators::Reduce;
-use differential_dataflow::AsCollection;
 
 use crate::dataflows::post_aggr::post_aggr_dataflow;
 use crate::dataflows::posts::posts_dataflow;
@@ -39,24 +32,38 @@ pub struct ForumMinimal {
 type ScopeThread = timely::communication::allocator::Thread;
 type ScopeWorker = timely::worker::Worker<ScopeThread>;
 type ScopeChild<'a> = timely::dataflow::scopes::Child<'a, ScopeWorker, u64>;
-pub type ScopeCollection<'a> =
-    differential_dataflow::Collection<ScopeChild<'a>, InputFormat>;
+pub type ScopeCollection<'a> = differential_dataflow::Collection<ScopeChild<'a>, InputFormat>;
 
 pub type QueryResultSender = broadcast::Sender<(SocketAddr, Vec<QueryResult>)>;
 
+pub fn default_dataflows<'a>(
+    collection: &ScopeCollection<'a>,
+    query_result_sender: QueryResultSender,
+) {
+    posts_dataflow(collection, query_result_sender.clone());
+    post_aggr_dataflow(collection, query_result_sender.clone());
+}
+
 impl ForumMinimal {
-    pub fn new<'a>(
+
+    pub fn new(
         persisted_sender: broadcast::Sender<(SocketAddr, PersistedItems)>,
         query_result_sender: broadcast::Sender<(SocketAddr, Vec<QueryResult>)>,
+    ) -> Self {
+        Self::new_with_dataflows(persisted_sender, query_result_sender, default_dataflows)
+    }
+
+    pub fn new_with_dataflows<F: for<'a> Fn(&ScopeCollection<'a>, QueryResultSender)>(
+        persisted_sender: broadcast::Sender<(SocketAddr, PersistedItems)>,
+        query_result_sender: broadcast::Sender<(SocketAddr, Vec<QueryResult>)>,
+        init_dataflows: F,
     ) -> Self {
         let worker_fn = move |worker: &mut Worker<Thread>| {
             worker.dataflow(|scope| {
                 let mut input: PersistedInputSession = InputSession::new();
-                let manages_sess = input.to_collection(scope);
+                let collection = input.to_collection(scope);
 
-                posts_dataflow(&manages_sess, query_result_sender.clone());
-
-                post_aggr_dataflow(&manages_sess, query_result_sender.clone());
+                init_dataflows(&collection, query_result_sender.clone());
 
                 input
             })
@@ -109,9 +116,9 @@ impl ForumMinimal {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+    // use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
-    fn try_recv_contains<T: PartialEq + Clone>(
+    fn _try_recv_contains<T: PartialEq + Clone>(
         reciever: &mut broadcast::Receiver<T>,
         values: T,
     ) -> bool {

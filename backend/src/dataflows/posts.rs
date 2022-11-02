@@ -4,7 +4,6 @@ use crate::forum_minimal::{
 
 use timely::dataflow::operators::Map;
 
-use differential_dataflow::input::InputSession;
 use differential_dataflow::operators::Consolidate;
 use differential_dataflow::operators::Join;
 use differential_dataflow::operators::Reduce;
