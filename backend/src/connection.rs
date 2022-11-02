@@ -28,8 +28,8 @@ pub enum HandlerError {
 async fn handle_connection(
     _peer_map: PeerMap,
     raw_stream: TcpStream,
-    _addr: SocketAddr,
-    persisted_sender: broadcast::Sender<PersistedItems>,
+    addr: SocketAddr,
+    persisted_sender: broadcast::Sender<(SocketAddr, PersistedItems)>,
     query_result_sender: broadcast::Sender<Vec<QueryResult>>,
 ) -> Result<(), HandlerError> {
     let ws_stream = tokio_tungstenite::accept_async(raw_stream)
@@ -52,7 +52,7 @@ async fn handle_connection(
             let parsed_msg: PersistedItems = serde_json::from_str(&msg)
                 .unwrap_or(vec![]);
                 // .expect("Could not parse PersistedItems from Websocket Message");
-            persisted_sender.send(parsed_msg).unwrap();
+            persisted_sender.send((addr, parsed_msg)).unwrap();
         }
     });
 
@@ -76,7 +76,7 @@ async fn handle_connection(
 
 async fn loop_check_for_connections(
     addr: String,
-    persisted_sender: broadcast::Sender<PersistedItems>,
+    persisted_sender: broadcast::Sender<(SocketAddr, PersistedItems)>,
     query_result_sender: broadcast::Sender<Vec<QueryResult>>,
 ) {
     let state = PeerMap::new(Mutex::new(HashMap::new()));

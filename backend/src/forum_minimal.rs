@@ -11,6 +11,7 @@ use timely::worker::Worker;
 use timely::WorkerConfig;
 
 use tokio::sync::broadcast;
+use std::net::SocketAddr;
 
 use differential_dataflow::input::InputSession;
 use differential_dataflow::operators::Consolidate;
@@ -27,13 +28,13 @@ pub const POSTS_PER_PAGE: usize = 2;
 pub struct ForumMinimal {
     pub input: Rc<RefCell<PersistedInputSession>>,
     pub worker: Rc<RefCell<Worker<timely::communication::allocator::Thread>>>,
-    pub persisted_receiver: broadcast::Receiver<PersistedItems>,
+    pub persisted_receiver: broadcast::Receiver<(SocketAddr, PersistedItems)>,
     pub dataflow_time: u64,
 }
 
 impl ForumMinimal {
     pub fn new(
-        persisted_sender: broadcast::Sender<PersistedItems>,
+        persisted_sender: broadcast::Sender<(SocketAddr, PersistedItems)>,
         query_result_sender: broadcast::Sender<Vec<QueryResult>>,
     ) -> Self {
         let query_result_sender0 = query_result_sender.clone();
@@ -282,7 +283,8 @@ impl ForumMinimal {
     }
 
     pub async fn advance_dataflow_computation_once(&mut self) {
-        let persisted_items = self.persisted_receiver.recv().await.unwrap();
+        // TODO:
+        let (addr, persisted_items) = self.persisted_receiver.recv().await.unwrap();
 
         self.dataflow_time += 1;
 
