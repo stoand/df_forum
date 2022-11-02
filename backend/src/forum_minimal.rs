@@ -51,8 +51,11 @@ impl ForumMinimal {
                     .map(|v| (0, v))
                     .join(&addrs_with_zero)
                     .map(|(_zero, v)| v)
-                    .inspect(|v| println!("0 -- {:?}", v));
-                // .inspect(|((addr, (id, persisted)), time, diff)| {});
+                    .inspect(|v| println!("0 -- {:?}", v))
+                    // .inspect(|(((source_addr, (id, persisted)), dest_addr), time, diff)| {});
+                    .map(|((_post_creator_addr, (id, persisted)), viewer_addr)| (viewer_addr, (id, persisted)))
+                    .consolidate()
+                    .inspect(|v| println!("2 -- {:?}", v));
 
                 // TODO: Handle Lists
                 // let manages_sess = input.to_collection(scope);
