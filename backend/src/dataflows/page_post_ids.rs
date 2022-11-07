@@ -48,6 +48,18 @@ pub fn posts_post_ids_dataflow<'a>(
             }
         })
         .inspect(|v| debug!("1 -- {:?}", v));
+
+    let post_ids = collection
+        .inner
+        .map(|((addr, (id, persisted)), time, diff)| ((time, addr, id, persisted), time, diff))
+        .as_collection()
+        .flat_map(|(addr, time, id, persisted)| match persisted {
+            Persisted::PostTitle(_) => vec![(0, (addr, id, time))],
+            _ => vec![],
+        })
+        .inspect(|v| debug!("post_ids -- {:?}", v));
+
+    // let post_ids_and_page_counts = session_pages
 }
 
 #[cfg(test)]
