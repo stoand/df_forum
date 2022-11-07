@@ -7,7 +7,7 @@ pub enum QueryResult {
     DeletePersisted(Id),
     PagePosts(Vec<u64>),
 
-    PostAggregates(u64, u64),
+    PostAggregates(u64, u64), // post count, page count
     
     AddPost(u64, String, String),
 

@@ -49,3 +49,47 @@ pub fn post_aggr_dataflow<'a>(
             }
         });
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::forum_minimal::{try_recv_contains, ForumMinimal};
+    use std::net::SocketAddr;
+    use tokio::sync::broadcast;
+
+    #[tokio::test]
+    pub async fn test_post_aggr() {
+        crate::init_logger();
+        let addr: SocketAddr = "127.0.0.1:8080".parse().unwrap();
+        let (query_result_sender, mut query_result_receiver) = broadcast::channel(16);
+        let (persisted_sender, _persisted_receiver) = broadcast::channel(16);
+
+        let mut forum_minimal = ForumMinimal::new_with_dataflows(
+            persisted_sender.clone(),
+            query_result_sender,
+            post_aggr_dataflow,
+        );
+
+        persisted_sender
+            .send((
+                addr,
+                vec![
+                    (55, Persisted::ViewPosts, 1),
+                    (5, Persisted::PostTitle("Zerg".into()), 1),
+                    (5, Persisted::PostBody("Zerg Info".into()), 1),
+                    (6, Persisted::PostTitle("Terran".into()), 1),
+                    (6, Persisted::PostBody("Terran Info".into()), 1),
+                    (7, Persisted::PostTitle("Protoss".into()), 1),
+                    (7, Persisted::PostBody("Protoss Info".into()), 1),
+                ],
+            ))
+            .unwrap();
+
+        forum_minimal.advance_dataflow_computation_once().await;
+
+        assert!(try_recv_contains(
+            &mut query_result_receiver,
+            (addr, vec![QueryResult::PostAggregates(3, 2)])
+        ));
+    }
+}
