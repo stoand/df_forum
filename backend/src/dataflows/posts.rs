@@ -157,7 +157,7 @@ pub fn posts_dataflow<'a>(
                 };
 
                 debug!(
-                    "send Query::Posts -- {:?} (addr = {:?})",
+                    "send -- {:?} (addr = {:?})",
                     query_result, addr
                 );
 
@@ -206,7 +206,7 @@ mod tests {
             &mut query_result_receiver,
             (
                 addr,
-                vec![QueryResult::AddPost(5, "Zerg".into(), "Zern Info".into())]
+                vec![QueryResult::AddPost(5, "Zerg".into(), "Zerg Info".into())]
             )
         ));
     }
