@@ -8,6 +8,8 @@ use timely::communication::allocator::thread::Thread;
 use timely::worker::Worker;
 use timely::WorkerConfig;
 
+use log::debug;
+use std::fmt::Debug;
 use std::net::SocketAddr;
 use tokio::sync::broadcast;
 
@@ -112,13 +114,14 @@ impl ForumMinimal {
     }
 }
 
-pub fn try_recv_contains<T: PartialEq + Clone>(
+pub fn try_recv_contains<T: PartialEq + Clone + Debug>(
     reciever: &mut broadcast::Receiver<T>,
     values: T,
 ) -> bool {
     let mut success = false;
 
     while let Ok(val) = reciever.try_recv() {
+        debug!("try recv got: {:?}", val);
         if val == values {
             success = true
         }

@@ -1,5 +1,5 @@
 use crate::forum_minimal::{
-    try_recv_contains, Persisted, QueryResult, QueryResultSender, ScopeCollection, POSTS_PER_PAGE,
+    Persisted, QueryResult, QueryResultSender, ScopeCollection, POSTS_PER_PAGE,
 };
 use log::debug;
 
@@ -156,10 +156,7 @@ pub fn posts_dataflow<'a>(
                     QueryResult::DeletePost(*post_id)
                 };
 
-                debug!(
-                    "send -- {:?} (addr = {:?})",
-                    query_result, addr
-                );
+                debug!("send -- {:?} (addr = {:?})", query_result, addr);
 
                 query_result_sender
                     .clone()
@@ -172,7 +169,7 @@ pub fn posts_dataflow<'a>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::forum_minimal::ForumMinimal;
+    use crate::forum_minimal::{try_recv_contains, ForumMinimal};
     use std::net::SocketAddr;
     use tokio::sync::broadcast;
 
