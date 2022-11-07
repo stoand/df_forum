@@ -1,5 +1,5 @@
 use crate::forum_minimal::{
-    Persisted, QueryResult, QueryResultSender, ScopeCollection, POSTS_PER_PAGE,
+    try_recv_contains, Persisted, QueryResult, QueryResultSender, ScopeCollection, POSTS_PER_PAGE,
 };
 
 use timely::dataflow::operators::Map;
@@ -9,7 +9,10 @@ use differential_dataflow::operators::Join;
 use differential_dataflow::operators::Reduce;
 use differential_dataflow::AsCollection;
 
-pub fn posts_dataflow<'a>(manages_sess: &ScopeCollection<'a>, query_result_sender: QueryResultSender) {
+pub fn posts_dataflow<'a>(
+    manages_sess: &ScopeCollection<'a>,
+    query_result_sender: QueryResultSender,
+) {
     let manages = manages_sess.map(|(_addr, (id, persisted))| (id, persisted));
 
     let sessions = manages_sess
@@ -161,4 +164,42 @@ pub fn posts_dataflow<'a>(manages_sess: &ScopeCollection<'a>, query_result_sende
                     .unwrap();
             },
         );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::forum_minimal::ForumMinimal;
+    use std::net::SocketAddr;
+    use tokio::sync::broadcast;
+
+    #[tokio::test]
+    pub async fn test_posts() {
+        let addr: SocketAddr = "127.0.0.1:8080".parse().unwrap();
+        let (query_result_sender, mut query_result_receiver) = broadcast::channel(16);
+        let (persisted_sender, _persisted_receiver) = broadcast::channel(16);
+
+        let mut forum_minimal = ForumMinimal::new_with_dataflows(
+            persisted_sender.clone(),
+            query_result_sender,
+            posts_dataflow,
+        );
+
+        persisted_sender
+            .send((
+                addr,
+                vec![
+                    (55, Persisted::ViewPosts, 1),
+                    (5, Persisted::PostTitle("Zerg".into()), 1),
+                    (5, Persisted::PostBody("Zerg Info".into()), 1),
+                ],
+            ))
+            .unwrap();
+
+        forum_minimal.advance_dataflow_computation_once().await;
+        assert!(try_recv_contains(
+            &mut query_result_receiver,
+            (addr, vec![QueryResult::PostTitle("Zerg".into())])
+        ));
+    }
 }

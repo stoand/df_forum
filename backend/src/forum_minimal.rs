@@ -45,7 +45,6 @@ pub fn default_dataflows<'a>(
 }
 
 impl ForumMinimal {
-
     pub fn new(
         persisted_sender: broadcast::Sender<(SocketAddr, PersistedItems)>,
         query_result_sender: broadcast::Sender<(SocketAddr, Vec<QueryResult>)>,
@@ -113,25 +112,25 @@ impl ForumMinimal {
     }
 }
 
+pub fn try_recv_contains<T: PartialEq + Clone>(
+    reciever: &mut broadcast::Receiver<T>,
+    values: T,
+) -> bool {
+    let mut success = false;
+
+    while let Ok(val) = reciever.try_recv() {
+        if val == values {
+            success = true
+        }
+    }
+
+    success
+}
+
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
     // use std::net::{IpAddr, Ipv4Addr, SocketAddr};
-
-    fn _try_recv_contains<T: PartialEq + Clone>(
-        reciever: &mut broadcast::Receiver<T>,
-        values: T,
-    ) -> bool {
-        let mut success = false;
-
-        while let Ok(val) = reciever.try_recv() {
-            if val == values {
-                success = true
-            }
-        }
-
-        success
-    }
 
     // #[tokio::test]
     // pub async fn test_basic() {
