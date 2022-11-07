@@ -1,6 +1,7 @@
 use crate::forum_minimal::{
     try_recv_contains, Persisted, QueryResult, QueryResultSender, ScopeCollection, POSTS_PER_PAGE,
 };
+use log::debug;
 
 use timely::dataflow::operators::Map;
 
@@ -37,13 +38,13 @@ pub fn posts_dataflow<'a>(
 
     let sessions_view_posts = view_posts
         .join_map(&sessions.map(|v| (v, v)), |_key, &a, &b| (a, b))
-        .map(|(_v0, v1)| (v1, None::<u64>));
-    // .inspect(|v| println!("1 -- {:?}", v));
+        .map(|(_v0, v1)| (v1, None::<u64>))
+        .inspect(|v| debug!("1 -- {:?}", v));
 
     let sessions_view_posts_page = view_posts_page
         .join_map(&sessions.map(|v| (v, v)), |_key, &a, &b| (a, b))
-        .map(|(v0, v1)| (v1, Some(v0)));
-    // .inspect(|v| println!("2 -- {:?}", v));
+        .map(|(v0, v1)| (v1, Some(v0)))
+        .inspect(|v| debug!("2 -- {:?}", v));
 
     let sessions_current_page = sessions_view_posts
         .concat(&sessions_view_posts_page)
@@ -59,16 +60,16 @@ pub fn posts_dataflow<'a>(
                     found = true;
                 }
             }
-            // println!(
-            //     "key = {:?}, input = {:?}, output = {:?}",
-            //     key, inputs, outputs
-            // );
+            debug!(
+                "key = {:?}, input = {:?}, output = {:?}",
+                _key, inputs, outputs
+            );
 
             if found {
                 outputs.push((final_page.unwrap_or(0), 1));
             }
-        });
-    // .inspect(|v| println!("1 -- {:?}", v));
+        })
+        .inspect(|v| debug!("1 -- {:?}", v));
 
     let post_ids = manages
         .inner
@@ -77,26 +78,26 @@ pub fn posts_dataflow<'a>(
         .flat_map(|(time, id, persisted)| match persisted {
             Persisted::PostTitle(_) => vec![(0, (id, time))],
             _ => vec![],
-        });
-    // .inspect(|v| println!("2 -- {:?}", v));
+        })
+        .inspect(|v| debug!("2 -- {:?}", v));
 
     // todo - join all posts for every user+current_page
     let pages_with_zero = sessions_current_page
         .map(|(_user_id, page)| (0, page))
-        .consolidate();
-    // .inspect(|v| println!("3 -- {:?}", v));
+        .consolidate()
+        .inspect(|v| debug!("3 -- {:?}", v));
 
     let page_ids_with_all_post_ids = pages_with_zero
         .join(&post_ids)
-        .map(|(_discarded_zero, (page_id, (post_id, post_time)))| (page_id, (post_id, post_time)));
-    // .inspect(|v| println!("4 -- {:?}", v));
+        .map(|(_discarded_zero, (page_id, (post_id, post_time)))| (page_id, (post_id, post_time)))
+        .inspect(|v| debug!("4 -- {:?}", v));
 
     let page_ids_with_relevant_post_ids =
         page_ids_with_all_post_ids.reduce(move |page_id, inputs, outputs| {
-            // println!(
-            //     "key = {:?}, input = {:?}, output = {:?}",
-            //     page_id, inputs, outputs
-            // );
+            debug!(
+                "key = {:?}, input = {:?}, output = {:?}",
+                page_id, inputs, outputs
+            );
 
             let mut sorted = inputs.to_vec();
             sorted.sort_by_key(|((_post_id, time), _diff)| -(*time as isize));
@@ -114,17 +115,18 @@ pub fn posts_dataflow<'a>(
 
     let page_ids_with_relevant_posts = page_ids_with_relevant_post_ids
         .flat_map(|(page_id, post_ids)| post_ids.into_iter().map(move |post_id| (page_id, post_id)))
-        .map(|(page_id, post_id)| (post_id, page_id));
-    // .inspect(|v| println!("5.1 -- {:?}", v));
+        .map(|(page_id, post_id)| (post_id, page_id))
+        .inspect(|v| debug!("5.1 -- {:?}", v));
 
-    let post_titles = manages.flat_map(|(id, persisted)| {
-        if let Persisted::PostTitle(title) = persisted {
-            vec![(id, title)]
-        } else {
-            vec![]
-        }
-    });
-    // .inspect(|v| println!("title -- {:?}", v));
+    let post_titles = manages
+        .flat_map(|(id, persisted)| {
+            if let Persisted::PostTitle(title) = persisted {
+                vec![(id, title)]
+            } else {
+                vec![]
+            }
+        })
+        .inspect(|v| debug!("title -- {:?}", v));
 
     let post_bodies = manages.flat_map(|(id, persisted)| {
         if let Persisted::PostBody(body) = persisted {
@@ -134,8 +136,9 @@ pub fn posts_dataflow<'a>(
         }
     });
 
-    let posts = post_titles.join(&post_bodies);
-    // .inspect(|v| println!("5.2 -- {:?}", v));
+    let posts = post_titles
+        .join(&post_bodies)
+        .inspect(|v| debug!("5.2 -- {:?}", v));
 
     let page_posts = page_ids_with_relevant_posts
         .join(&posts)
@@ -144,7 +147,7 @@ pub fn posts_dataflow<'a>(
     let _user_posts = sessions_current_page
         .map(|(addr, page_id)| (page_id, addr))
         .join(&page_posts)
-        // .inspect(|v| println!("5.3 -- {:?}", v))
+        .inspect(|v| debug!("5.3 -- {:?}", v))
         .inspect(
             move |((_page_id, (addr, (post_id, (post_title, post_body)))), _time, diff)| {
                 let query_result = if *diff > 0 {
@@ -153,10 +156,10 @@ pub fn posts_dataflow<'a>(
                     QueryResult::DeletePost(*post_id)
                 };
 
-                // println!(
-                //     "send Query::Posts -- {:?} (addr = {:?})",
-                //     query_result, addr
-                // );
+                debug!(
+                    "send Query::Posts -- {:?} (addr = {:?})",
+                    query_result, addr
+                );
 
                 query_result_sender
                     .clone()
@@ -175,6 +178,7 @@ mod tests {
 
     #[tokio::test]
     pub async fn test_posts() {
+        crate::init_logger();
         let addr: SocketAddr = "127.0.0.1:8080".parse().unwrap();
         let (query_result_sender, mut query_result_receiver) = broadcast::channel(16);
         let (persisted_sender, _persisted_receiver) = broadcast::channel(16);
@@ -197,9 +201,13 @@ mod tests {
             .unwrap();
 
         forum_minimal.advance_dataflow_computation_once().await;
+
         assert!(try_recv_contains(
             &mut query_result_receiver,
-            (addr, vec![QueryResult::PostTitle("Zerg".into())])
+            (
+                addr,
+                vec![QueryResult::AddPost(5, "Zerg".into(), "Zern Info".into())]
+            )
         ));
     }
 }

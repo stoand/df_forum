@@ -11,8 +11,10 @@ abomonation = "0.7.3"
 abomonation_derive = "0.5.0"
 df_forum_frontend = { path = "../frontend" }
 differential-dataflow = "0.12.0"
+env_logger = "0.9.1"
 futures-channel = "0.3.24"
 futures-util = { version = "0.3.24", features = ["io"] }
+log = "0.4.17"
 # differential-dataflow = { path = "../differential-dataflow", default-features = false }
 serde = { version = "1.0.144", features = ["serde_derive"] }
 serde_derive = "1.0.144"
