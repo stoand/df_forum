@@ -32,10 +32,10 @@ cargo watch -x 'test -- --nocapture'
 
 ## Run Server
 
-`cargo watch -x run`
+`RUST_LOG=debug cargo watch -x run`
 
 ## Run Tests
 
-`cargo watch -x 'test -- --nocapture'`
+`RUST_LOG=debug cargo watch -x 'test -- --nocapture'`
 
 The `--nocapture` is important: tests that fail inside `tokio::spawn` are just printed text
