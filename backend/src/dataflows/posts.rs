@@ -10,6 +10,8 @@ use differential_dataflow::operators::Join;
 use differential_dataflow::operators::Reduce;
 use differential_dataflow::AsCollection;
 
+// DEPRECATED - see page_post_ids
+
 pub fn posts_dataflow<'a>(
     manages_sess: &ScopeCollection<'a>,
     query_result_sender: QueryResultSender,

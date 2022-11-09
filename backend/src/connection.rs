@@ -1,5 +1,6 @@
 use df_forum_backend::forum_minimal::{ForumMinimal, PersistedItems};
 use std::net::SocketAddr;
+use log::debug;
 
 use futures_channel::mpsc::unbounded;
 use futures_util::{future, pin_mut, StreamExt};
@@ -39,7 +40,7 @@ async fn handle_connection(
 
     let broadcast_incoming = tokio::spawn(async move {
         while let Some(msg) = incoming_strings.next().await {
-            println!("got msg: {}", msg);
+            debug!("got msg: {}", msg);
 
             let parsed_msg: PersistedItems = serde_json::from_str(&msg).unwrap_or(vec![]);
             // .expect("Could not parse PersistedItems from Websocket Message");
@@ -54,7 +55,7 @@ async fn handle_connection(
             // a security token is needed
             let (viewer_addr, query_results) = query_result_receiver.recv().await.unwrap();
             if viewer_addr == addr {
-                println!(
+                debug!(
                     "query_results: {:?}, (viewer_addr = {:?})",
                     query_results, viewer_addr
                 );

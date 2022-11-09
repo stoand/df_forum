@@ -15,7 +15,7 @@ pub fn post_aggr_dataflow<'a>(
     let sessions_with_zero = manages_sess.map(|(addr, _)| (0, addr)).consolidate();
     let _post_aggregates = manages
         .flat_map(|(_id, persisted)| {
-            if let Persisted::PostTitle(_) = persisted {
+            if let Persisted::Post = persisted {
                 vec![0]
             } else {
                 vec![]

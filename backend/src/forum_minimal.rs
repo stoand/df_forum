@@ -16,7 +16,7 @@ use tokio::sync::broadcast;
 use differential_dataflow::input::InputSession;
 
 use crate::dataflows::post_aggr::post_aggr_dataflow;
-use crate::dataflows::posts::posts_dataflow;
+use crate::dataflows::page_post_ids::posts_post_ids_dataflow;
 
 pub type InputFormat = (SocketAddr, (Id, Persisted));
 
@@ -42,7 +42,7 @@ pub fn default_dataflows<'a>(
     collection: &ScopeCollection<'a>,
     query_result_sender: QueryResultSender,
 ) {
-    posts_dataflow(collection, query_result_sender.clone());
+    posts_post_ids_dataflow(collection, query_result_sender.clone());
     post_aggr_dataflow(collection, query_result_sender.clone());
 }
 

@@ -10,6 +10,7 @@ mod connection;
 
 #[tokio::main]
 async fn main() -> Result<(), connection::HandlerError> {
+    df_forum_backend::init_logger();
     let addr = "127.0.0.1:".to_owned() + &PORT.to_string();
 
     connection::establish(addr).await

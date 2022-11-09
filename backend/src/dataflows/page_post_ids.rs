@@ -70,7 +70,7 @@ pub fn posts_post_ids_dataflow<'a>(
             let mut page = 0;
 
             for ((addr, id, _time), _diff) in vals {
-                outputs.push(((*addr, *id, page, page_item_index), 1));
+                outputs.push(((*addr, *id, page), 1));
                 page_item_index += 1;
                 if page_item_index >= POSTS_PER_PAGE as u64 {
                     page_item_index = 0;
@@ -78,8 +78,8 @@ pub fn posts_post_ids_dataflow<'a>(
                 }
             }
         })
-        .map(|(_discarded_zero, (addr, id, page, page_item_index))| {
-            (page, (addr, id, page_item_index))
+        .map(|(_discarded_zero, (addr, id, page))| {
+            (page, (addr, id))
         })
         .inspect(|v| debug!("page posts -- {:?}", v));
 
@@ -89,9 +89,9 @@ pub fn posts_post_ids_dataflow<'a>(
         .map(|(addr, page)| (page, addr))
         .join::<_, isize>(&page_posts)
         .inspect(
-            move |((page, (session_addr, (_addr, id, page_item_index))), _time, diff)| {
+            move |((page, (session_addr, (_addr, id))), time, diff)| {
                 let query_result = if *diff > 0 {
-                    QueryResult::PagePost(*id, *page, *page_item_index)
+                    QueryResult::PagePost(*id, *page, *time)
                 } else {
                     QueryResult::DeletePost(*id)
                 };
@@ -105,7 +105,25 @@ pub fn posts_post_ids_dataflow<'a>(
         );
 
     let session_post_ids = session_posts
-        .map(|(_page, (session_addr, (_addr, id, _page_item_index)))| (id, session_addr));
+        .map(|(_page, (session_addr, (_addr, id)))| (id, session_addr));
+    
+    let deleted_posts = session_post_ids
+        .reduce(|_id, inputs, outputs| {
+            let mut all_inputs_remove = true;
+
+            for (addr, diff) in inputs {
+                if *diff > 0 {
+                    all_inputs_remove = false;
+                }
+            }
+
+            if all_inputs_remove {
+                for (&addr, _diff) in inputs {
+                    outputs.push((addr, -1));
+                }
+            }
+        })
+        .inspect(|v| debug!("deleted_posts -- {:?}", v));
 
     let query_result_sender1 = query_result_sender.clone();
 
@@ -201,9 +219,9 @@ mod tests {
 
         forum_minimal.advance_dataflow_computation_once().await;
 
-        assert_eq!(tr(), Ok((addr, vec![QueryResult::PagePost(5, 0, 0)])));
+        assert_eq!(tr(), Ok((addr, vec![QueryResult::PagePost(5, 0, 2)])));
 
-        assert_eq!(tr(), Ok((addr, vec![QueryResult::PagePost(6, 0, 1)])));
+        assert_eq!(tr(), Ok((addr, vec![QueryResult::PagePost(6, 0, 2)])));
 
         assert_eq!(tr(), Ok((addr, vec![QueryResult::DeletePost(7)])));
 

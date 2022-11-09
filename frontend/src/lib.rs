@@ -172,6 +172,7 @@ pub fn render_page_posts(
         if !title.is_empty() && !body.is_empty() {
             let id = get_random_u64();
             connection0.borrow().send_transaction(vec![
+                (id, Persisted::Post, 1),
                 (id, Persisted::PostTitle(title), 1),
                 (id, Persisted::PostBody(body), 1),
                 (id, Persisted::PostLikes(0), 1),
@@ -341,7 +342,7 @@ pub fn render_page_posts(
         let (document, root) = document_and_root();
         for item in items {
             match item {
-                QueryResult::AddPost(post_id, post_title, post_body) => {
+                QueryResult::PagePost(post_id, page, page_item_index) => {
                     let posts_container = document
                         .query_selector("#posts-container")
                         .unwrap()
@@ -350,33 +351,44 @@ pub fn render_page_posts(
                     let new_post = document.create_element("div").unwrap();
                     new_post.set_inner_html(&post_template.inner_html());
                     new_post.set_id(&post_id.to_string());
-                    posts_container.append_child(&new_post).unwrap();
 
                     new_post
+                        .query_selector(".post-author")
+                        .unwrap()
+                        .unwrap()
+                        .set_text_content(Some(&post_id.to_string()));
+                    
+                    posts_container.append_child(&new_post).unwrap();
+
+                    // new_post
+                    // new_post
+                    //     .query_selector(".post-body")
+                    //     .unwrap()
+                    //     .unwrap()
+                    //     .set_text_content(Some(&post_body));
+                }
+                QueryResult::PostTitle(post_id, title) => {
+                    document
+                        .get_element_by_id(&post_id.to_string())
+                        .expect("could not find post by id")
                         .query_selector(".post-title")
                         .unwrap()
                         .unwrap()
-                        .set_text_content(Some(&post_title));
-                    new_post
+                        .set_text_content(Some(&title));
+                }
+                QueryResult::PostBody(post_id, body) => {
+                    document
+                        .get_element_by_id(&post_id.to_string())
+                        .expect("could not find post by id")
                         .query_selector(".post-body")
                         .unwrap()
                         .unwrap()
-                        .set_text_content(Some(&post_body));
-                    // new_post
-                    //     .query_selector("#post-author")
-                    //     .unwrap()
-                    //     .unwrap()
-                    //     .set_text_content(Some(&user_id.to_string()));
-                    // new_post
-                    //     .query_selector("#post-likes")
-                    //     .unwrap()
-                    //     .unwrap()
-                    //     .set_text_content(Some(&likes.to_string()));
+                        .set_text_content(Some(&body));
                 }
                 QueryResult::DeletePost(post_id) => {
                     document
                         .get_element_by_id(&post_id.to_string())
-                        .unwrap()
+                        .expect("could not delete post by id")
                         .remove();
                 }
                 QueryResult::PostAggregates(post_count, page_count) => {
