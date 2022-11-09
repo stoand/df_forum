@@ -48,26 +48,6 @@ pub fn posts_post_ids_dataflow<'a>(
                 outputs.push((page, 1));
             }
         })
-        .map(|(_addr, page)| (0, page))
-        .reduce(|_discarded_zero, inputs, outputs| {
-            debug!(
-                "session pages - input = {:?}, output = {:?}",
-                inputs, outputs
-            );
-
-            let out = inputs
-                .iter()
-                .filter(|(_, diff)| *diff > 0)
-                .map(|(page, _diff)| **page)
-                .collect::<Vec<_>>();
-
-            let mut copy = Vec::new();
-            for item in out {
-                copy.push(item.clone());
-            }
-            outputs.push((copy, 1));
-        })
-        // .map(|(_discarded_zero, pages)| pages)
         .inspect(|v| debug!("session pages -- {:?}", v));
 
     let post_ids_with_time = collection
@@ -81,7 +61,6 @@ pub fn posts_post_ids_dataflow<'a>(
 
     // we don't care who created the posts
     let page_posts = post_ids_with_time
-        .join(&session_pages)
         .reduce(|_discarded_zero, inputs, outputs| {
             debug!("input = {:?}, output = {:?}", inputs, outputs);
 
@@ -95,22 +74,21 @@ pub fn posts_post_ids_dataflow<'a>(
                 .filter(|(_, diff)| *diff > 0)
                 .collect::<Vec<_>>();
             // .sort_by_key(|((addr, id, time), diff)| -(*time as isize));
-            vals.sort_by_key(|(((_addr, _id, time), _), _diff)| -(*time as isize));
+            vals.sort_by_key(|((_addr, _id, time), _diff)| -(*time as isize));
 
-            // for input in inputs {
-            //     if let ((addr, id, time), diff) = input {
-            //         if *diff > 0 {
-            //         }
-            //     }
-            // }
+            let mut page_item_counter = 0;
+            let mut page = 0;
 
-            let mut out = Vec::new();
-
-            for (((addr, id, time), pages), _diff) in inputs {
-                out.push((addr.clone(), id.clone(), time.clone()));
+            for ((addr, id, _time), _diff) in vals {
+                outputs.push(((*addr, *id, page, page_item_counter), 1));
+                
+                page_item_counter += 1;
+                if page_item_counter >= POSTS_PER_PAGE {
+                    page_item_counter = 0;
+                    page += 1;
+                }
             }
 
-            outputs.push((out, 1));
         })
         .map(|(_discarded_zero, items)| items)
         .inspect(|v| debug!("page posts -- {:?}", v));
