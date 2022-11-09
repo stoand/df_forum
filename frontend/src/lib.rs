@@ -27,7 +27,8 @@ use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 
 use wasm_bindgen::JsCast;
-use web_sys::{Document, Element, HtmlElement, HtmlInputElement, Storage};
+use web_sys::{
+    Document, Element, HtmlCollection, HtmlElement, HtmlInputElement, NodeList, Storage,};
 
 pub const USERNAME_LOCAL_STORAGE_KEY: &'static str = "df_forum_username";
 pub const WEBSOCKET_URL: &'static str = "ws://127.0.0.1:5050";
@@ -192,9 +193,9 @@ pub fn render_page_posts(
 
     let start_session_click = Closure::<dyn FnMut()>::new(move || {
         let persisted_id = get_random_u64();
-        connection1.borrow().send_transaction(vec![
-            (persisted_id, Persisted::ViewPosts, 1),
-        ]);
+        connection1
+            .borrow()
+            .send_transaction(vec![(persisted_id, Persisted::ViewPosts, 1)]);
     });
 
     let start_session_el = start_session.dyn_ref::<HtmlElement>().unwrap();
@@ -260,7 +261,11 @@ pub fn render_page_posts(
     let update_page_label = || {
         let (document, root) = document_and_root();
         let page: u64 = root.get_attribute("page").unwrap().parse().unwrap();
-        let page_count: u64 = root.get_attribute("page_count").unwrap_or("1".to_string()).parse().unwrap();
+        let page_count: u64 = root
+            .get_attribute("page_count")
+            .unwrap_or("1".to_string())
+            .parse()
+            .unwrap();
         let page_label = document.get_element_by_id("page_label").unwrap();
         page_label.set_text_content(Some(&format!("Page {} of {}", page + 1, page_count)));
     };
@@ -277,16 +282,8 @@ pub fn render_page_posts(
             root.set_attribute("page", &(page.to_string())).unwrap();
             update_page_label();
             connection2.borrow().send_transaction(vec![
-                (
-                    view_posts_page_id,
-                    Persisted::ViewPostsPage(page),
-                    1,
-                ),
-                (
-                    view_posts_page_id,
-                    Persisted::ViewPostsPage(old_page),
-                    -1,
-                ),
+                (view_posts_page_id, Persisted::ViewPostsPage(page), 1),
+                (view_posts_page_id, Persisted::ViewPostsPage(old_page), -1),
             ]);
         }
     });
@@ -319,16 +316,8 @@ pub fn render_page_posts(
             root.set_attribute("page", &(page.to_string())).unwrap();
             update_page_label();
             connection3.borrow().send_transaction(vec![
-                (
-                    view_posts_page_id,
-                    Persisted::ViewPostsPage(page),
-                    1,
-                ),
-                (
-                    view_posts_page_id,
-                    Persisted::ViewPostsPage(old_page),
-                    -1,
-                ),
+                (view_posts_page_id, Persisted::ViewPostsPage(page), 1),
+                (view_posts_page_id, Persisted::ViewPostsPage(old_page), -1),
             ]);
         }
     });
@@ -342,22 +331,45 @@ pub fn render_page_posts(
         let (document, root) = document_and_root();
         for item in items {
             match item {
-                QueryResult::PagePost(post_id, page, page_item_index) => {
+                QueryResult::PagePost(post_id, _page, time) => {
                     let posts_container = document
                         .query_selector("#posts-container")
                         .unwrap()
                         .unwrap();
+
                     let post_template = document.query_selector("#post-template").unwrap().unwrap();
                     let new_post = document.create_element("div").unwrap();
+                    new_post.set_attribute("time", &time.to_string()).unwrap();
                     new_post.set_inner_html(&post_template.inner_html());
                     new_post.set_id(&post_id.to_string());
+
+                    let mut insert_before = None;
+                    let posts = posts_container.children();
+
+                    // 1 not 0, we skip the post template
+                    for i in 1..posts.length() {
+                        let post = posts.item(i).unwrap();
+                        let other_time: u64 = post.get_attribute("time").unwrap().parse().unwrap();
+
+                        if time >= other_time {
+                            insert_before = Some(post);
+                        }
+
+                        log(&("found post -- ".to_string() + &time.to_string()));
+                    }
+
+                    if let Some(insert_before) = insert_before {
+                        insert_before.before_with_node_1(&new_post);
+                    } else {
+                        posts_container.append_child(&new_post);
+                    }
 
                     new_post
                         .query_selector(".post-author")
                         .unwrap()
                         .unwrap()
                         .set_text_content(Some(&post_id.to_string()));
-                    
+
                     posts_container.append_child(&new_post).unwrap();
 
                     // new_post
@@ -401,79 +413,7 @@ pub fn render_page_posts(
                         .unwrap()
                         .set_text_content(Some(&post_count.to_string()));
                 }
-                // QueryResult::AddPost(id, post) => {
-                //     let Post {
-                //         title,
-                //         body,
-                //         user_id,
-                //         likes,
-                //     } = post.clone();
 
-                //     let posts_container = document
-                //         .query_selector("#posts-container")
-                //         .unwrap()
-                //         .unwrap();
-                //     let post_template = document.query_selector("#post-template").unwrap().unwrap();
-                //     let new_post = document.create_element("div").unwrap();
-                //     new_post.set_inner_html(&post_template.inner_html());
-                //     new_post.set_id(&id.to_string());
-                //     posts_container.append_child(&new_post).unwrap();
-
-                //     new_post
-                //         .query_selector("#post-title")
-                //         .unwrap()
-                //         .unwrap()
-                //         .set_text_content(Some(&title));
-                //     new_post
-                //         .query_selector("#post-body")
-                //         .unwrap()
-                //         .unwrap()
-                //         .set_text_content(Some(&body));
-                //     new_post
-                //         .query_selector("#post-author")
-                //         .unwrap()
-                //         .unwrap()
-                //         .set_text_content(Some(&user_id.to_string()));
-                //     new_post
-                //         .query_selector("#post-likes")
-                //         .unwrap()
-                //         .unwrap()
-                //         .set_text_content(Some(&likes.to_string()));
-
-                //     let post_remove = new_post.query_selector("#post-remove").unwrap().unwrap();
-
-                //     let connection2 = connection1.clone();
-                //     let post0 = post.clone();
-
-                //     let post_remove_click = Closure::<dyn FnMut()>::new(move || {
-                //         connection2.borrow().send_transaction(vec![(
-                //             id,
-                //             Persisted::Post(post0.clone()),
-                //             -1,
-                //         )]);
-                //     });
-
-                //     let post_remove_el = post_remove.dyn_ref::<HtmlElement>().unwrap();
-                //     post_remove_el.set_onclick(Some(post_remove_click.as_ref().unchecked_ref()));
-
-                //     post_remove_click.forget();
-
-                //     let post_like = new_post.query_selector("#post-like").unwrap().unwrap();
-                //     let connection3 = connection1.clone();
-                //     let post1 = post.clone();
-
-                //     let post_like_click = Closure::<dyn FnMut()>::new(move || {
-                //         connection3.borrow().send_transaction(vec![
-                //             (id, Persisted::PostLikes(post1.likes), -1),
-                //             (id, Persisted::PostLikes(post1.likes + 1), 1),
-                //         ]);
-                //     });
-
-                //     let post_like_el = post_like.dyn_ref::<HtmlElement>().unwrap();
-                //     post_like_el.set_onclick(Some(post_like_click.as_ref().unchecked_ref()));
-
-                //     post_like_click.forget();
-                // }
                 _ => {}
             }
         }
