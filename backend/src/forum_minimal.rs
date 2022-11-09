@@ -122,6 +122,7 @@ pub fn try_recv_contains<T: PartialEq + Clone + Debug>(
 
     while let Ok(val) = reciever.try_recv() {
         debug!("try recv got: {:?}", val);
+        debug!("comparing\n{:?}\nto\n{:?}", val, values);
         if val == values {
             success = true
         }

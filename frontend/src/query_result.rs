@@ -11,7 +11,6 @@ pub enum QueryResult {
 
     DeletePost(u64),
 
-    PagePostIds { post_ids: Vec<u64>, page_count: u64 },
     PagePost(u64, u64, u64), // id, page, page_item_index
 
     PostTitle(u64, String),

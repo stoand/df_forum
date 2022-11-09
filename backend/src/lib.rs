@@ -15,6 +15,6 @@ use std::io::Write;
 
 pub fn init_logger() {
     env_logger::builder()
-        .format(|buf, record| writeln!(buf, "[{}]: {}", record.level(), record.args()))
+        .format(|buf, record| writeln!(buf, "[\x1b[93m{}\x1b[0m]: {}", record.level(), record.args()))
         .init();
 }

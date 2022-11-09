@@ -3,7 +3,6 @@ use crate::forum_minimal::{
 };
 use log::debug;
 
-use std::collections::HashMap;
 use timely::dataflow::operators::Map;
 
 use differential_dataflow::operators::Consolidate;
@@ -20,11 +19,11 @@ pub fn posts_post_ids_dataflow<'a>(
         .consolidate();
 
     let session_pages = collection
-        .reduce(|addr, inputs, outputs| {
-            debug!(
-                "addr(key) = {:?}, input = {:?}, output = {:?}",
-                addr, inputs, outputs
-            );
+        .reduce(|_addr, inputs, outputs| {
+            // debug!(
+            //     "addr(key) = {:?}, input = {:?}, output = {:?}",
+            //     addr, inputs, outputs
+            // );
 
             let mut page = None;
 
@@ -93,12 +92,14 @@ pub fn posts_post_ids_dataflow<'a>(
         })
         .inspect(|v| debug!("page posts -- {:?}", v));
 
+    let query_result_sender0 = query_result_sender.clone();
+
     let session_posts = session_pages
         .map(|(addr, page)| (page, addr))
-        .join(&page_posts)
+        .join::<_, isize>(&page_posts)
         .inspect(
             move |((page, (session_addr, (_addr, id, page_item_index))), _time, _diff)| {
-                query_result_sender
+                query_result_sender0
                     .clone()
                     .send((
                         *session_addr,
@@ -112,9 +113,11 @@ pub fn posts_post_ids_dataflow<'a>(
     let session_post_ids = session_posts
         .map(|(_page, (session_addr, (_addr, id, _page_item_index)))| (id, session_addr));
 
+    let query_result_sender1 = query_result_sender.clone();
+
     let session_post_fields = collection
         .map(|(creator_addr, (id, persisted))| (id, (creator_addr, persisted)))
-        .join(&session_post_ids)
+        .join::<_, isize>(&session_post_ids)
         .map(move |(id, ((creator_addr, persisted), session_addr))| {
             let query_result = match persisted {
                 Persisted::PostTitle(title) => Some(QueryResult::PostTitle(id, title)),
@@ -123,7 +126,7 @@ pub fn posts_post_ids_dataflow<'a>(
             };
 
             if let Some(query_result) = query_result {
-                query_result_sender
+                query_result_sender1
                     .clone()
                     .send((session_addr, vec![query_result]))
                     .unwrap();
@@ -175,13 +178,24 @@ mod tests {
             &mut query_result_receiver,
             (
                 addr,
-                vec![QueryResult::PagePostIds {
-                    post_ids: vec![7, 6],
-                    page_count: 2
-                }]
+                vec![
+                    QueryResult::PagePost(7, 1, 0),
+                    // QueryResult::PostTitle(7, "Protoss".into()),
+                    // QueryResult::PostBody(7, "Protoss Info".into()),
+                ]
             )
         ));
 
-        // TODO: ViewPostsPage
+        // persisted_sender
+        //     .send((
+        //         addr,
+        //         vec![
+        //             (55, Persisted::ViewPostsPage(1), -1),
+        //             (55, Persisted::ViewPostsPage(0), 1),
+        //         ],
+        //     ))
+        //     .unwrap();
+
+        // forum_minimal.advance_dataflow_computation_once().await;
     }
 }
