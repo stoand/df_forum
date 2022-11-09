@@ -106,24 +106,6 @@ pub fn posts_post_ids_dataflow<'a>(
 
     let session_post_ids = session_posts
         .map(|(_page, (session_addr, (_addr, id)))| (id, session_addr));
-    
-    let deleted_posts = session_post_ids
-        .reduce(|_id, inputs, outputs| {
-            let mut all_inputs_remove = true;
-
-            for (addr, diff) in inputs {
-                if *diff > 0 {
-                    all_inputs_remove = false;
-                }
-            }
-
-            if all_inputs_remove {
-                for (&addr, _diff) in inputs {
-                    outputs.push((addr, -1));
-                }
-            }
-        })
-        .inspect(|v| debug!("deleted_posts -- {:?}", v));
 
     let query_result_sender1 = query_result_sender.clone();
 
