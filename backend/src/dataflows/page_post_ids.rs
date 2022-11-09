@@ -76,22 +76,59 @@ pub fn posts_post_ids_dataflow<'a>(
             // .sort_by_key(|((addr, id, time), diff)| -(*time as isize));
             vals.sort_by_key(|((_addr, _id, time), _diff)| -(*time as isize));
 
-            let mut page_item_counter = 0;
+            let mut page_item_index: u64 = 0;
             let mut page = 0;
 
             for ((addr, id, _time), _diff) in vals {
-                outputs.push(((*addr, *id, page, page_item_counter), 1));
-                
-                page_item_counter += 1;
-                if page_item_counter >= POSTS_PER_PAGE {
-                    page_item_counter = 0;
+                outputs.push(((*addr, *id, page, page_item_index), 1));
+                page_item_index += 1;
+                if page_item_index >= POSTS_PER_PAGE as u64 {
+                    page_item_index = 0;
                     page += 1;
                 }
             }
-
         })
-        .map(|(_discarded_zero, items)| items)
+        .map(|(_discarded_zero, (addr, id, page, page_item_index))| {
+            (page, (addr, id, page_item_index))
+        })
         .inspect(|v| debug!("page posts -- {:?}", v));
+
+    let session_posts = session_pages
+        .map(|(addr, page)| (page, addr))
+        .join(&page_posts)
+        .inspect(
+            move |((page, (session_addr, (_addr, id, page_item_index))), _time, _diff)| {
+                query_result_sender
+                    .clone()
+                    .send((
+                        *session_addr,
+                        vec![QueryResult::PagePost(*id, *page, *page_item_index)],
+                    ))
+                    .unwrap();
+            },
+        )
+        .inspect(|v| debug!("session posts -- {:?}", v));
+
+    let session_post_ids = session_posts
+        .map(|(_page, (session_addr, (_addr, id, _page_item_index)))| (id, session_addr));
+
+    let session_post_fields = collection
+        .map(|(creator_addr, (id, persisted))| (id, (creator_addr, persisted)))
+        .join(&session_post_ids)
+        .map(move |(id, ((creator_addr, persisted), session_addr))| {
+            let query_result = match persisted {
+                Persisted::PostTitle(title) => Some(QueryResult::PostTitle(id, title)),
+                Persisted::PostBody(body) => Some(QueryResult::PostBody(id, body)),
+                _ => None,
+            };
+
+            if let Some(query_result) = query_result {
+                query_result_sender
+                    .clone()
+                    .send((session_addr, vec![query_result]))
+                    .unwrap();
+            }
+        });
 }
 
 #[cfg(test)]
