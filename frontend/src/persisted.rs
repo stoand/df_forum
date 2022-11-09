@@ -12,7 +12,7 @@ pub struct Post {
 pub enum Persisted {
     // Session { token: String, user_id: u64 },
     // User { name: String },
-    Post(Post),
+    Post,
     PostTitle(String),
     PostBody(String),
     PostUserId(u64),

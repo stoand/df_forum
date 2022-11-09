@@ -3,6 +3,7 @@ use crate::forum_minimal::{
 };
 use log::debug;
 
+use std::collections::HashMap;
 use timely::dataflow::operators::Map;
 
 use differential_dataflow::operators::Consolidate;
@@ -47,19 +48,72 @@ pub fn posts_post_ids_dataflow<'a>(
                 outputs.push((page, 1));
             }
         })
-        .inspect(|v| debug!("1 -- {:?}", v));
+        .map(|(_addr, page)| (0, page))
+        .reduce(|_discarded_zero, inputs, outputs| {
+            debug!(
+                "session pages - input = {:?}, output = {:?}",
+                inputs, outputs
+            );
 
-    let post_ids = collection
+            let out = inputs
+                .iter()
+                .filter(|(_, diff)| *diff > 0)
+                .map(|(page, _diff)| **page)
+                .collect::<Vec<_>>();
+
+            let mut copy = Vec::new();
+            for item in out {
+                copy.push(item.clone());
+            }
+            outputs.push((copy, 1));
+        })
+        // .map(|(_discarded_zero, pages)| pages)
+        .inspect(|v| debug!("session pages -- {:?}", v));
+
+    let post_ids_with_time = collection
         .inner
         .map(|((addr, (id, persisted)), time, diff)| ((time, addr, id, persisted), time, diff))
         .as_collection()
-        .flat_map(|(addr, time, id, persisted)| match persisted {
+        .flat_map(|(time, addr, id, persisted)| match persisted {
             Persisted::PostTitle(_) => vec![(0, (addr, id, time))],
             _ => vec![],
-        })
-        .inspect(|v| debug!("post_ids -- {:?}", v));
+        });
 
-    // let post_ids_and_page_counts = session_pages
+    // we don't care who created the posts
+    let page_posts = post_ids_with_time
+        .join(&session_pages)
+        .reduce(|_discarded_zero, inputs, outputs| {
+            debug!("input = {:?}, output = {:?}", inputs, outputs);
+
+            // let pages = HashMap::new();
+
+            let (_, pages) = inputs[0];
+
+            let mut vals = inputs
+                .to_vec()
+                .into_iter()
+                .filter(|(_, diff)| *diff > 0)
+                .collect::<Vec<_>>();
+            // .sort_by_key(|((addr, id, time), diff)| -(*time as isize));
+            vals.sort_by_key(|(((_addr, _id, time), _), _diff)| -(*time as isize));
+
+            // for input in inputs {
+            //     if let ((addr, id, time), diff) = input {
+            //         if *diff > 0 {
+            //         }
+            //     }
+            // }
+
+            let mut out = Vec::new();
+
+            for (((addr, id, time), pages), _diff) in inputs {
+                out.push((addr.clone(), id.clone(), time.clone()));
+            }
+
+            outputs.push((out, 1));
+        })
+        .map(|(_discarded_zero, items)| items)
+        .inspect(|v| debug!("page posts -- {:?}", v));
 }
 
 #[cfg(test)]
@@ -86,11 +140,14 @@ mod tests {
             .send((
                 addr,
                 vec![
-                    (55, Persisted::ViewPosts, 1),
+                    (55, Persisted::ViewPostsPage(1), 1),
+                    (5, Persisted::Post, 1),
                     (5, Persisted::PostTitle("Zerg".into()), 1),
                     (5, Persisted::PostBody("Zerg Info".into()), 1),
+                    (6, Persisted::Post, 1),
                     (6, Persisted::PostTitle("Terran".into()), 1),
                     (6, Persisted::PostBody("Terran Info".into()), 1),
+                    (7, Persisted::Post, 1),
                     (7, Persisted::PostTitle("Protoss".into()), 1),
                     (7, Persisted::PostBody("Protoss Info".into()), 1),
                 ],
