@@ -12,9 +12,21 @@ pub mod forum_minimal;
 pub mod operators;
 
 use std::io::Write;
+use std::sync::Once;
+
+static INIT: Once = Once::new();
 
 pub fn init_logger() {
-    env_logger::builder()
-        .format(|buf, record| writeln!(buf, "[\x1b[93m{}\x1b[0m]: {}", record.level(), record.args()))
-        .init();
+    INIT.call_once(|| {
+        env_logger::builder()
+            .format(|buf, record| {
+                writeln!(
+                    buf,
+                    "[\x1b[93m{}\x1b[0m]: {}",
+                    record.level(),
+                    record.args()
+                )
+            })
+            .init();
+    });
 }
