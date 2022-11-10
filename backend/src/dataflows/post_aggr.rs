@@ -36,7 +36,10 @@ pub fn post_aggr_dataflow<'a>(
                 }
             }
 
-            let page_count = ((final_count as f64) / (POSTS_PER_PAGE as f64)).ceil() as u64;
+            let mut page_count = ((final_count as f64) / (POSTS_PER_PAGE as f64)).ceil() as u64;
+            if page_count < 1 {
+                page_count = 1;
+            }
 
             for addr in addrs {
                 query_result_sender_loop
@@ -75,21 +78,36 @@ mod tests {
                 addr,
                 vec![
                     (55, Persisted::ViewPosts, 1),
-                    (5, Persisted::PostTitle("Zerg".into()), 1),
-                    (5, Persisted::PostBody("Zerg Info".into()), 1),
-                    (6, Persisted::PostTitle("Terran".into()), 1),
-                    (6, Persisted::PostBody("Terran Info".into()), 1),
-                    (7, Persisted::PostTitle("Protoss".into()), 1),
-                    (7, Persisted::PostBody("Protoss Info".into()), 1),
+                    (5, Persisted::Post, 1),
+                    (6, Persisted::Post, 1),
+                    (7, Persisted::Post, 1),
                 ],
             ))
             .unwrap();
 
         forum_minimal.advance_dataflow_computation_once().await;
 
-        assert!(try_recv_contains(
-            &mut query_result_receiver,
-            (addr, vec![QueryResult::PostAggregates(3, 2)])
-        ));
+        assert_eq!(
+            query_result_receiver.try_recv(),
+            Ok((addr, vec![QueryResult::PostAggregates(3, 2)]))
+        );
+
+        persisted_sender
+            .send((
+                addr,
+                vec![
+                    (5, Persisted::Post, -1),
+                    (6, Persisted::Post, -1),
+                    (7, Persisted::Post, -1),
+                ],
+            ))
+            .unwrap();
+
+        forum_minimal.advance_dataflow_computation_once().await;
+
+        assert_eq!(
+            query_result_receiver.try_recv(),
+            Ok((addr, vec![QueryResult::PostAggregates(0, 1)]))
+        );
     }
 }
