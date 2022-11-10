@@ -49,7 +49,7 @@ pub fn posts_post_ids_dataflow<'a>(
         .map(|((addr, (id, persisted)), time, diff)| ((time, addr, id, persisted), time, diff))
         .as_collection()
         .flat_map(|(time, addr, id, persisted)| match persisted {
-            Persisted::PostTitle(_) => vec![(0, (addr, id, time))],
+            Persisted::Post => vec![(0, (addr, id, time))],
             _ => vec![],
         });
 
@@ -69,8 +69,8 @@ pub fn posts_post_ids_dataflow<'a>(
             let mut page_item_index: u64 = 0;
             let mut page = 0;
 
-            for ((addr, id, _time), _diff) in vals {
-                outputs.push(((*addr, *id, page), 1));
+            for ((addr, id, creation_time), _diff) in vals {
+                outputs.push(((*addr, *id, page, *creation_time), 1));
                 page_item_index += 1;
                 if page_item_index >= POSTS_PER_PAGE as u64 {
                     page_item_index = 0;
@@ -78,8 +78,8 @@ pub fn posts_post_ids_dataflow<'a>(
                 }
             }
         })
-        .map(|(_discarded_zero, (addr, id, page))| {
-            (page, (addr, id))
+        .map(|(_discarded_zero, (addr, id, page, creation_time))| {
+            (page, (addr, id, creation_time))
         })
         .inspect(|v| debug!("page posts -- {:?}", v));
 
@@ -89,9 +89,9 @@ pub fn posts_post_ids_dataflow<'a>(
         .map(|(addr, page)| (page, addr))
         .join::<_, isize>(&page_posts)
         .inspect(
-            move |((page, (session_addr, (_addr, id))), time, diff)| {
+            move |((page, (session_addr, (_addr, id, creation_time))), _time, diff)| {
                 let query_result = if *diff > 0 {
-                    QueryResult::PagePost(*id, *page, *time)
+                    QueryResult::PagePost(*id, *page, *creation_time)
                 } else {
                     QueryResult::DeletePost(*id)
                 };
@@ -105,7 +105,7 @@ pub fn posts_post_ids_dataflow<'a>(
         );
 
     let session_post_ids = session_posts
-        .map(|(_page, (session_addr, (_addr, id)))| (id, session_addr));
+        .map(|(_page, (session_addr, (_addr, id, _time)))| (id, session_addr));
 
     let query_result_sender1 = query_result_sender.clone();
 
@@ -201,9 +201,9 @@ mod tests {
 
         forum_minimal.advance_dataflow_computation_once().await;
 
-        assert_eq!(tr(), Ok((addr, vec![QueryResult::PagePost(5, 0, 2)])));
+        assert_eq!(tr(), Ok((addr, vec![QueryResult::PagePost(5, 0, 0)])));
 
-        assert_eq!(tr(), Ok((addr, vec![QueryResult::PagePost(6, 0, 2)])));
+        assert_eq!(tr(), Ok((addr, vec![QueryResult::PagePost(6, 0, 0)])));
 
         assert_eq!(tr(), Ok((addr, vec![QueryResult::DeletePost(7)])));
 
