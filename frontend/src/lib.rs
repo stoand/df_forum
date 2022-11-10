@@ -383,13 +383,13 @@ pub fn render_page_posts(
                     let delete_button_click = Closure::<dyn FnMut()>::new(move || {
                         let mut persisted = vec![(post_id, Persisted::Post, -1)];
 
-                        let (_, root) = document_and_root();
-                        root.set_attribute("page", &((page - 1).to_string()))
-                            .unwrap();
-                        update_page_label();
-
                         // the current post, the post template
-                        if posts.length() == 2 {
+                        if posts.length() == 2 && page > 0 {
+                            let (_, root) = document_and_root();
+                            root.set_attribute("page", &((page - 1).to_string()))
+                                .unwrap();
+                            update_page_label();
+
                             persisted.push((
                                 view_posts_page_id,
                                 Persisted::ViewPostsPage(page),
