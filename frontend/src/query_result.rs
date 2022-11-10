@@ -1,6 +1,6 @@
 use crate::df_tuple_items::Id;
 
-#[derive(Hash, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Abomonation, Hash, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub enum QueryResult {
     // AddPost(Id, Post),
     PostCount(u64),

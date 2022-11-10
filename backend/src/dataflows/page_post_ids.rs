@@ -2,9 +2,12 @@ use crate::forum_minimal::{
     Persisted, QueryResult, QueryResultSender, ScopeCollection, POSTS_PER_PAGE,
 };
 use log::debug;
+use std::collections::HashMap;
+use std::net::SocketAddr;
 
 use timely::dataflow::operators::Map;
 
+use differential_dataflow::operators::Consolidate;
 use differential_dataflow::operators::Join;
 use differential_dataflow::operators::Reduce;
 use differential_dataflow::AsCollection;
@@ -78,61 +81,94 @@ pub fn posts_post_ids_dataflow<'a>(
                 }
             }
         })
-        .map(|(_discarded_zero, (addr, id, page, creation_time))| {
-            (page, (addr, id, creation_time))
-        })
+        .map(|(_discarded_zero, (addr, id, page, creation_time))| (page, (addr, id, creation_time)))
         .inspect(|v| debug!("page posts -- {:?}", v));
-
-    let query_result_sender0 = query_result_sender.clone();
 
     let session_posts = session_pages
         .map(|(addr, page)| (page, addr))
-        .join::<_, isize>(&page_posts)
-        .inspect(
-            move |((page, (session_addr, (_addr, id, creation_time))), _time, diff)| {
-                let query_result = if *diff > 0 {
-                    QueryResult::PagePost(*id, *page, *creation_time)
+        .join::<_, isize>(&page_posts);
+
+    let session_post_results = session_posts
+        .inner
+        .map(
+            move |((page, (session_addr, (_addr, id, creation_time))), time, diff)| {
+                let query_result = if diff > 0 {
+                    vec![(session_addr, QueryResult::PagePost(id, page, creation_time))]
                 } else {
-                    QueryResult::DeletePost(*id)
+                    vec![(session_addr, QueryResult::DeletePost(id))]
                 };
                 debug!("session posts -- {:?}", query_result);
 
-                query_result_sender0
-                    .clone()
-                    .send((*session_addr, vec![query_result]))
-                    .unwrap();
+                (query_result, time, diff)
             },
-        );
+        )
+        .as_collection();
 
-    let session_post_ids = session_posts
-        .map(|(_page, (session_addr, (_addr, id, _time)))| (id, session_addr));
+    let session_post_ids =
+        session_posts.map(|(_page, (session_addr, (_addr, id, _time)))| (id, session_addr));
 
-    let query_result_sender1 = query_result_sender.clone();
-
-    let _session_post_fields = collection
+    let session_post_field_results = collection
         .map(|(creator_addr, (id, persisted))| (id, (creator_addr, persisted)))
         .join::<_, isize>(&session_post_ids)
-        .inspect(
-            move |((id, ((_creator_addr, persisted), session_addr)), _time, diff)| {
-                if *diff > 0 {
+        .inner
+        .map(
+            move |((id, ((_creator_addr, persisted), session_addr)), time, diff)| {
+                if diff > 0 {
                     let query_result = match persisted {
                         Persisted::PostTitle(title) => {
-                            Some(QueryResult::PostTitle(*id, title.clone()))
+                            vec![(session_addr, QueryResult::PostTitle(id, title.clone()))]
                         }
-                        Persisted::PostBody(body) => Some(QueryResult::PostBody(*id, body.clone())),
-                        _ => None,
+                        Persisted::PostBody(body) => {
+                            vec![(session_addr, QueryResult::PostBody(id, body.clone()))]
+                        }
+                        _ => vec![],
                     };
 
-                    if let Some(query_result) = query_result {
-                        query_result_sender1
-                            .clone()
-                            .send((*session_addr, vec![query_result]))
-                            .unwrap();
-                    }
+                    (query_result, time, diff)
+
+                    // if let Some(query_result) = query_result {
+                    // }
+                } else {
+                    (vec![], time, diff)
                 }
             },
         )
+        .as_collection()
         .inspect(|v| debug!("session post fields -- {:?}", v));
+
+    // Send everything at once to prevent flickering (but still split by session)
+    let _batch_output = session_post_field_results
+        .concat(&session_post_results)
+        .consolidate()
+        .inspect_batch(move |_time, query_results_aug| {
+            let mut sessions: HashMap<SocketAddr, Vec<QueryResult>> = HashMap::new();
+
+            let query_results = query_results_aug
+                .to_vec()
+                .into_iter()
+                .map(|(qr, _time, _diff)| qr)
+                .flatten()
+                .collect::<Vec<_>>();
+
+            // Break apart query_results by session
+
+            for (session_addr, query_result) in query_results {
+                if None == sessions.get(&session_addr) {
+                    sessions.insert(session_addr, Vec::new());
+                }
+                sessions
+                    .get_mut(&session_addr)
+                    .expect("session not found")
+                    .push(query_result);
+            }
+
+            for (session_addr, query_results) in sessions.iter() {
+                query_result_sender
+                    .clone()
+                    .send((*session_addr, query_results.clone()))
+                    .unwrap();
+            }
+        });
 }
 
 #[cfg(test)]
@@ -175,18 +211,16 @@ mod tests {
 
         forum_minimal.advance_dataflow_computation_once().await;
 
-        let mut tr = || query_result_receiver.try_recv();
-
-        assert_eq!(tr(), Ok((addr, vec![QueryResult::PagePost(7, 1, 0)])));
-
         assert_eq!(
-            tr(),
-            Ok((addr, vec![QueryResult::PostTitle(7, "Protoss".into())]))
-        );
-
-        assert_eq!(
-            tr(),
-            Ok((addr, vec![QueryResult::PostBody(7, "Protoss Info".into())]))
+            query_result_receiver.try_recv(),
+            Ok((
+                addr,
+                vec![
+                    QueryResult::PagePost(7, 1, 0),
+                    QueryResult::PostTitle(7, "Protoss".into()),
+                    QueryResult::PostBody(7, "Protoss Info".into()),
+                ]
+            ))
         );
 
         persisted_sender
@@ -201,28 +235,20 @@ mod tests {
 
         forum_minimal.advance_dataflow_computation_once().await;
 
-        assert_eq!(tr(), Ok((addr, vec![QueryResult::PagePost(5, 0, 0)])));
-
-        assert_eq!(tr(), Ok((addr, vec![QueryResult::PagePost(6, 0, 0)])));
-
-        assert_eq!(tr(), Ok((addr, vec![QueryResult::DeletePost(7)])));
-
         assert_eq!(
-            tr(),
-            Ok((addr, vec![QueryResult::PostTitle(5, "Zerg".into())]))
-        );
-        assert_eq!(
-            tr(),
-            Ok((addr, vec![QueryResult::PostBody(5, "Zerg Info".into())]))
-        );
-
-        assert_eq!(
-            tr(),
-            Ok((addr, vec![QueryResult::PostTitle(6, "Terran".into())]))
-        );
-        assert_eq!(
-            tr(),
-            Ok((addr, vec![QueryResult::PostBody(6, "Terran Info".into())]))
+            query_result_receiver.try_recv(),
+            Ok((
+                addr,
+                vec![
+                    QueryResult::DeletePost(7),
+                    QueryResult::PagePost(5, 0, 0),
+                    QueryResult::PagePost(6, 0, 0),
+                    QueryResult::PostTitle(5, "Zerg".into()),
+                    QueryResult::PostTitle(6, "Terran".into()),
+                    QueryResult::PostBody(5, "Zerg Info".into()),
+                    QueryResult::PostBody(6, "Terran Info".into()),
+                ]
+            ))
         );
     }
 }

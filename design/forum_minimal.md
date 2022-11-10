@@ -13,7 +13,7 @@ partof: REQ-purpose
 * TODO: Delete items using "remove" instead of using a delete event
 * [DONE] Sort list items
 * [DONE] Pagination
-* TODO: Prevent flickering
+* [DONE] TODO: Prevent flickering
     Do this by sending multiple QueryResults at once -
     concat outputs then use inspect batch
 
