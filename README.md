@@ -39,3 +39,5 @@ cargo watch -x 'test -- --nocapture'
 `RUST_LOG=debug cargo watch -x 'test -- --nocapture'`
 
 The `--nocapture` is important: tests that fail inside `tokio::spawn` are just printed text
+
+[Cranelift](https://github.com/bjorn3/rustc_codegen_cranelift#building-and-testing) is recommended for faster compilation
