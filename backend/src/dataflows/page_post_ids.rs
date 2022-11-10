@@ -64,7 +64,7 @@ pub fn posts_post_ids_dataflow<'a>(
             let mut vals = inputs
                 .to_vec()
                 .into_iter()
-                .filter(|(_, diff)| *diff > 0)
+                // .filter(|(_, diff)| *diff > 0)
                 .collect::<Vec<_>>();
 
             vals.sort_by_key(|((_addr, _id, time), _diff)| -(*time as isize));
@@ -72,8 +72,8 @@ pub fn posts_post_ids_dataflow<'a>(
             let mut page_item_index: u64 = 0;
             let mut page = 0;
 
-            for ((addr, id, creation_time), _diff) in vals {
-                outputs.push(((*addr, *id, page, *creation_time), 1));
+            for ((addr, id, creation_time), diff) in vals {
+                outputs.push(((*addr, *id, page, *creation_time), diff));
                 page_item_index += 1;
                 if page_item_index >= POSTS_PER_PAGE as u64 {
                     page_item_index = 0;
@@ -177,6 +177,7 @@ mod tests {
     use crate::forum_minimal::ForumMinimal;
     use std::net::SocketAddr;
     use tokio::sync::broadcast;
+    use tokio::sync::broadcast::error::TryRecvError;
 
     #[tokio::test]
     pub async fn test_page_post_ids() {
@@ -250,5 +251,19 @@ mod tests {
                 ]
             ))
         );
+
+        persisted_sender
+            .send((
+                addr,
+                vec![
+                    (7, Persisted::Post, -1),
+                ],
+            ))
+            .unwrap();
+
+        forum_minimal.advance_dataflow_computation_once().await;
+
+        // when deleting a post that is not in view, nothing should happen
+        assert_eq!(query_result_receiver.try_recv(), Err(TryRecvError::Closed));
     }
 }
