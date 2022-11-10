@@ -56,7 +56,7 @@ pub fn post_aggr_dataflow<'a>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::forum_minimal::{try_recv_contains, ForumMinimal};
+    use crate::forum_minimal::ForumMinimal;
     use std::net::SocketAddr;
     use tokio::sync::broadcast;
 

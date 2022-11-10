@@ -73,7 +73,7 @@ pub fn posts_post_ids_dataflow<'a>(
                 outputs.push(((*addr, *id, page, *creation_time), 1));
                 if removed
                     .iter()
-                    .find(|((addr, other_id, _creation_time), _diff)| id == other_id)
+                    .find(|((_addr, other_id, _creation_time), _diff)| id == other_id)
                     != None
                 {
                     outputs.push(((*addr, *id, page, *creation_time), -1));
