@@ -71,7 +71,11 @@ pub fn posts_post_ids_dataflow<'a>(
 
             for ((addr, id, creation_time), _diff) in added {
                 outputs.push(((*addr, *id, page, *creation_time), 1));
-                if removed.iter().find(|((addr, other_id, _creation_time), _diff)| id == other_id) != None {
+                if removed
+                    .iter()
+                    .find(|((addr, other_id, _creation_time), _diff)| id == other_id)
+                    != None
+                {
                     outputs.push(((*addr, *id, page, *creation_time), -1));
                 } else {
                     outputs.push(((*addr, *id, page, *creation_time), 1));
@@ -274,6 +278,9 @@ mod tests {
         forum_minimal.advance_dataflow_computation_once().await;
 
         // when deleting a post that is not in view, nothing should happen
-        assert_eq!(query_result_receiver.try_recv(), Ok((addr, vec![(QueryResult::DeletePost(6))])));
+        assert_eq!(
+            query_result_receiver.try_recv(),
+            Ok((addr, vec![(QueryResult::DeletePost(6))]))
+        );
     }
 }
