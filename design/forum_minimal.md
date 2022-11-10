@@ -18,6 +18,7 @@ partof: REQ-purpose
     concat outputs then use inspect batch
 * TODO: replace unwrap and expect with error handling
 
+* Cranelift -- deleting is bugged when switching sessions
 
 # Features
 
