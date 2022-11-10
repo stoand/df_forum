@@ -61,19 +61,21 @@ pub fn posts_post_ids_dataflow<'a>(
         .reduce(|_discarded_zero, inputs, outputs| {
             debug!("input = {:?}, output = {:?}", inputs, outputs);
 
-            let mut vals = inputs
-                .to_vec()
-                .into_iter()
-                // .filter(|(_, diff)| *diff > 0)
-                .collect::<Vec<_>>();
+            let (mut added, removed): (Vec<_>, Vec<_>) =
+                inputs.to_vec().into_iter().partition(|(_, diff)| *diff > 0);
 
-            vals.sort_by_key(|((_addr, _id, time), _diff)| -(*time as isize));
+            added.sort_by_key(|((_addr, _id, time), _diff)| -(*time as isize));
 
             let mut page_item_index: u64 = 0;
             let mut page = 0;
 
-            for ((addr, id, creation_time), diff) in vals {
-                outputs.push(((*addr, *id, page, *creation_time), diff));
+            for ((addr, id, creation_time), _diff) in added {
+                outputs.push(((*addr, *id, page, *creation_time), 1));
+                if removed.iter().find(|((addr, other_id, _creation_time), _diff)| id == other_id) != None {
+                    outputs.push(((*addr, *id, page, *creation_time), -1));
+                } else {
+                    outputs.push(((*addr, *id, page, *creation_time), 1));
+                }
                 page_item_index += 1;
                 if page_item_index >= POSTS_PER_PAGE as u64 {
                     page_item_index = 0;
@@ -252,18 +254,26 @@ mod tests {
             ))
         );
 
+        debug!("TESTING DELETION (0) ------------");
+
         persisted_sender
-            .send((
-                addr,
-                vec![
-                    (7, Persisted::Post, -1),
-                ],
-            ))
+            .send((addr, vec![(7, Persisted::Post, -1)]))
             .unwrap();
 
         forum_minimal.advance_dataflow_computation_once().await;
 
         // when deleting a post that is not in view, nothing should happen
-        assert_eq!(query_result_receiver.try_recv(), Err(TryRecvError::Closed));
+        assert_eq!(query_result_receiver.try_recv(), Err(TryRecvError::Empty));
+
+        debug!("TESTING DELETION (1) ------------");
+
+        persisted_sender
+            .send((addr, vec![(6, Persisted::Post, -1)]))
+            .unwrap();
+
+        forum_minimal.advance_dataflow_computation_once().await;
+
+        // when deleting a post that is not in view, nothing should happen
+        assert_eq!(query_result_receiver.try_recv(), Ok((addr, vec![(QueryResult::DeletePost(6))])));
     }
 }
