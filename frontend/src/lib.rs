@@ -346,6 +346,8 @@ pub fn render_page_posts(
                     let mut insert_before = None;
                     let posts = posts_container.children();
 
+                    log(&format!("inserting time: {}", time));
+
                     // 1 not 0, we skip the post template
                     for i in 1..posts.length() {
                         let post = posts.item(i).unwrap();
@@ -355,7 +357,7 @@ pub fn render_page_posts(
                             insert_before = Some(post);
                         }
 
-                        log(&("found post -- ".to_string() + &time.to_string()));
+                        log(&("found post -- ".to_string() + &other_time.to_string()));
                     }
 
                     if let Some(insert_before) = insert_before {
@@ -369,8 +371,6 @@ pub fn render_page_posts(
                         .unwrap()
                         .unwrap()
                         .set_text_content(Some(&post_id.to_string()));
-
-                    posts_container.append_child(&new_post).unwrap();
 
                     // new_post
                     // new_post
