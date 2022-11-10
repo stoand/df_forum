@@ -331,7 +331,7 @@ pub fn render_page_posts(
         let (document, root) = document_and_root();
         for item in items {
             match item {
-                QueryResult::PagePost(post_id, _page, time) => {
+                QueryResult::PagePost(post_id, page, time) => {
                     let posts_container = document
                         .query_selector("#posts-container")
                         .unwrap()
@@ -381,12 +381,28 @@ pub fn render_page_posts(
 
                     let delete_button = new_post.query_selector(".post-remove").unwrap().unwrap();
                     let delete_button_click = Closure::<dyn FnMut()>::new(move || {
-                        log("try delete");
-                        connection5.clone().borrow().send_transaction(vec![(
-                            post_id,
-                            Persisted::Post,
-                            -1,
-                        )]);
+                        let mut persisted = vec![(post_id, Persisted::Post, -1)];
+
+                        let (_, root) = document_and_root();
+                        root.set_attribute("page", &((page - 1).to_string()))
+                            .unwrap();
+                        update_page_label();
+
+                        // the current post, the post template
+                        if posts.length() == 2 {
+                            persisted.push((
+                                view_posts_page_id,
+                                Persisted::ViewPostsPage(page),
+                                -1,
+                            ));
+                            persisted.push((
+                                view_posts_page_id,
+                                Persisted::ViewPostsPage(page - 1),
+                                1,
+                            ));
+                        }
+
+                        connection5.clone().borrow().send_transaction(persisted);
                     });
 
                     let delete_button_el = delete_button.dyn_ref::<HtmlElement>().unwrap();
