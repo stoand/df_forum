@@ -6,15 +6,17 @@ partof: REQ-purpose
 
 * TODO: split queries into fields ie. post title instead of entire posts
 * TODO: send list of post id's to ensure order
-* TODO: isolate sessions
+    * suboptimal - we send the post creation time instead
+* [DONE] TODO: isolate sessions
 
 * [DONE] Make id's external instead of being inside Persisted items
-* [DONE] Delete items using "remove" instead of using a delete event
+* TODO: Delete items using "remove" instead of using a delete event
 * [DONE] Sort list items
 * [DONE] Pagination
-* [DONE] Prevent flickering
-* Add stateful queries (See PostsInPage)
-* Spilt documents into attributes
+* TODO: Prevent flickering
+    Do this by sending multiple QueryResults at once -
+    concat outputs then use inspect batch
+
 
 # Features
 
