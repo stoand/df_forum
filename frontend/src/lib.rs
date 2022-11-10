@@ -27,8 +27,7 @@ use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 
 use wasm_bindgen::JsCast;
-use web_sys::{
-    Document, Element, HtmlCollection, HtmlElement, HtmlInputElement, NodeList, Storage,};
+use web_sys::{Document, Element, HtmlElement, HtmlInputElement, Storage};
 
 pub const USERNAME_LOCAL_STORAGE_KEY: &'static str = "df_forum_username";
 pub const WEBSOCKET_URL: &'static str = "ws://127.0.0.1:5050";
@@ -118,6 +117,7 @@ pub fn render_page_posts(
     let connection1 = connection.clone();
     let connection2 = connection.clone();
     let connection3 = connection.clone();
+    let connection4 = connection.clone();
 
     let view_posts_page_id = get_random_u64();
 
@@ -240,10 +240,10 @@ pub fn render_page_posts(
     username_label.set_class_name("post-like");
     post_template.append_child(&username_label).unwrap();
 
-    let username_label = document.create_element("button").unwrap();
-    username_label.set_text_content(Some("Delete"));
-    username_label.set_class_name("post-remove");
-    post_template.append_child(&username_label).unwrap();
+    let delete_button = document.create_element("button").unwrap();
+    delete_button.set_text_content(Some("Delete"));
+    delete_button.set_class_name("post-remove");
+    post_template.append_child(&delete_button).unwrap();
 
     let username_label = document.create_element("button").unwrap();
     username_label.set_text_content(Some("Collapse"));
@@ -362,9 +362,13 @@ pub fn render_page_posts(
                     }
 
                     if let Some(insert_before) = insert_before {
-                        insert_before.before_with_node_1(&new_post);
+                        insert_before
+                            .before_with_node_1(&new_post)
+                            .expect("could not insert before");
                     } else {
-                        posts_container.append_child(&new_post);
+                        posts_container
+                            .append_child(&new_post)
+                            .expect("could not append");
                     }
 
                     new_post
@@ -372,6 +376,24 @@ pub fn render_page_posts(
                         .unwrap()
                         .unwrap()
                         .set_text_content(Some(&post_id.to_string()));
+
+                    let connection5 = connection4.clone();
+
+                    let delete_button = new_post.query_selector(".post-remove").unwrap().unwrap();
+                    let delete_button_click = Closure::<dyn FnMut()>::new(move || {
+                        log("try delete");
+                        connection5.clone().borrow().send_transaction(vec![(
+                            post_id,
+                            Persisted::Post,
+                            -1,
+                        )]);
+                    });
+
+                    let delete_button_el = delete_button.dyn_ref::<HtmlElement>().unwrap();
+                    delete_button_el
+                        .set_onclick(Some(delete_button_click.as_ref().unchecked_ref()));
+
+                    delete_button_click.forget();
 
                     // new_post
                     // new_post
