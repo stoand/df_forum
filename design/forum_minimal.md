@@ -16,6 +16,7 @@ partof: REQ-purpose
 * [DONE] TODO: Prevent flickering
     Do this by sending multiple QueryResults at once -
     concat outputs then use inspect batch
+* TODO: replace unwrap and expect with error handling
 
 
 # Features
