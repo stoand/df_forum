@@ -355,6 +355,7 @@ pub fn render_page_posts(
 
                         if time >= other_time {
                             insert_before = Some(post);
+                            break;
                         }
 
                         log(&("found post -- ".to_string() + &other_time.to_string()));
