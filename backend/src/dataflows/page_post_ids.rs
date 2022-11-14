@@ -61,22 +61,24 @@ pub fn posts_post_ids_dataflow<'a>(
         .reduce(|_discarded_zero, inputs, outputs| {
             debug!("input = {:?}, output = {:?}", inputs, outputs);
 
-            let (mut added, removed): (Vec<_>, Vec<_>) =
+            let (mut added, mut removed): (Vec<_>, Vec<_>) =
                 inputs.to_vec().into_iter().partition(|(_, diff)| *diff > 0);
 
             added.sort_by_key(|((_addr, _id, time), _diff)| -(*time as isize));
+            removed.sort_by_key(|((_addr, _id, time), _diff)| -(*time as isize));
 
             let mut page_item_index: u64 = 0;
             let mut page = 0;
 
             for ((addr, id, creation_time), _diff) in added {
                 outputs.push(((*addr, *id, page, *creation_time), 1));
-                if removed
+
+                let dup_removed = removed
                     .iter()
-                    .find(|((_addr, other_id, _creation_time), _diff)| id == other_id)
-                    != None
-                {
+                    .find(|((_addr, other_id, _creation_time), _diff)| id == other_id);
+                if dup_removed != None {
                     outputs.push(((*addr, *id, page, *creation_time), -1));
+                    continue;
                 } else {
                     outputs.push(((*addr, *id, page, *creation_time), 1));
                 }
@@ -281,6 +283,59 @@ mod tests {
         assert_eq!(
             query_result_receiver.try_recv(),
             Ok((addr, vec![(QueryResult::DeletePost(6))]))
+        );
+    }
+
+    #[tokio::test]
+    pub async fn test_page_post_deletion() {
+        crate::init_logger();
+        let addr: SocketAddr = "127.0.0.1:8080".parse().unwrap();
+        let (query_result_sender, mut query_result_receiver) = broadcast::channel(16);
+        let (persisted_sender, _persisted_receiver) = broadcast::channel(16);
+
+        let mut forum_minimal = ForumMinimal::new_with_dataflows(
+            persisted_sender.clone(),
+            query_result_sender,
+            posts_post_ids_dataflow,
+        );
+
+        persisted_sender
+            .send((
+                addr,
+                vec![
+                    (55, Persisted::ViewPostsPage(0), 1),
+                    (5, Persisted::Post, 1),
+                    (6, Persisted::Post, 1),
+                    (7, Persisted::Post, 1),
+                ],
+            ))
+            .unwrap();
+
+        forum_minimal.advance_dataflow_computation_once().await;
+
+        assert_eq!(
+            query_result_receiver.try_recv(),
+            Ok((
+                addr,
+                vec![
+                    QueryResult::PagePost(5, 0, 0),
+                    QueryResult::PagePost(6, 0, 0),
+                ]
+            ))
+        );
+
+        persisted_sender
+            .send((addr, vec![(6, Persisted::Post, -1)]))
+            .unwrap();
+
+        forum_minimal.advance_dataflow_computation_once().await;
+
+        assert_eq!(
+            query_result_receiver.try_recv(),
+            Ok((
+                addr,
+                vec![QueryResult::DeletePost(6), QueryResult::PagePost(7, 0, 0)]
+            ))
         );
     }
 }
