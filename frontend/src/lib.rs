@@ -52,13 +52,9 @@ pub fn get_random_u64() -> u64 {
 pub fn bootstrap() {
     std::panic::set_hook(Box::new(console_error_panic_hook::hook));
 
-    let connection = Rc::new(RefCell::new(connection::FrontendConnection::new(
+    let connection = connection::FrontendConnection::new(
         &WEBSOCKET_URL,
-        Box::new(move |connection| {
-            let persisted_id = get_random_u64();
-            connection.send_transaction(vec![(persisted_id, Persisted::ViewPosts, 1)]);
-        }),
-    )));
+    );
 
     let local_storage = get_local_storage();
     if let Ok(Some(user_name)) = local_storage.get_item(USERNAME_LOCAL_STORAGE_KEY) {
@@ -122,6 +118,12 @@ pub fn render_page_posts(
     let connection2 = connection.clone();
     let connection3 = connection.clone();
     let connection4 = connection.clone();
+ 
+    connection.borrow_mut().onopen = Some(move |connection| {
+        let persisted_id = get_random_u64();
+        connection.send_transaction(vec![(persisted_id, Persisted::ViewPosts, 1)]);
+        log("asdf");
+    });   
 
     let view_posts_page_id = get_random_u64();
 
