@@ -54,6 +54,10 @@ pub fn bootstrap() {
 
     let connection = Rc::new(RefCell::new(connection::FrontendConnection::new(
         &WEBSOCKET_URL,
+        Box::new(move |connection| {
+            let persisted_id = get_random_u64();
+            connection.send_transaction(vec![(persisted_id, Persisted::ViewPosts, 1)]);
+        }),
     )));
 
     let local_storage = get_local_storage();
@@ -186,24 +190,6 @@ pub fn render_page_posts(
     submit_post_el.set_onclick(Some(submit_post_click.as_ref().unchecked_ref()));
 
     submit_post_click.forget();
-
-    let start_session = document.create_element("button").unwrap();
-    start_session.set_text_content(Some("Start Session"));
-    root.append_child(&start_session).unwrap();
-
-    let start_session_click = Closure::<dyn FnMut()>::new(move || {
-        let persisted_id = get_random_u64();
-        connection1
-            .borrow()
-            .send_transaction(vec![(persisted_id, Persisted::ViewPosts, 1)]);
-    });
-
-    let start_session_el = start_session.dyn_ref::<HtmlElement>().unwrap();
-    start_session_el.set_onclick(Some(start_session_click.as_ref().unchecked_ref()));
-
-    start_session_click.forget();
-
-    // on (user_id, Aggregations)
 
     let aggregates = document.create_element("div").unwrap();
     aggregates.set_inner_html(

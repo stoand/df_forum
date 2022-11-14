@@ -12,17 +12,27 @@ use crate::log;
 use crate::persisted::PersistedItems;
 use crate::query_result::QueryResult;
 
+
+#[derive(Clone)]
 pub struct FrontendConnection {
     websocket: Rc<RefCell<WebSocket>>,
     pub onmessage: Option<fn(Vec<QueryResult>) -> ()>,
 }
 
 impl FrontendConnection {
-    pub fn new(url: &str) -> Self {
+    pub fn new(url: &str, onopen: Box<dyn Fn(&FrontendConnection)>) -> Self {
         let websocket = Rc::new(RefCell::new(WebSocket::new(url).unwrap()));
         let websocket0 = websocket.clone();
 
+        let connection = FrontendConnection {
+            websocket: websocket0.clone(),
+            onmessage: None,
+        };
+
+        let connection0 = connection.clone();
+
         let onopen = Closure::<dyn FnMut(Event)>::new(move |_event: Event| {
+            onopen(&connection0);
             log(&format!("websocket opened"));
         });
 
@@ -31,7 +41,7 @@ impl FrontendConnection {
             .set_onopen(Some(onopen.as_ref().unchecked_ref()));
         onopen.forget();
         let onclose = Closure::<dyn FnMut(Event)>::new(move |_event: Event| {
-            log(&format!("websocket close"));
+            log(&format!("websocket closed"));
         });
 
         websocket0
@@ -39,10 +49,7 @@ impl FrontendConnection {
             .set_onclose(Some(onclose.as_ref().unchecked_ref()));
         onclose.forget();
 
-        FrontendConnection {
-            websocket: websocket0.clone(),
-            onmessage: None,
-        }
+        connection
     }
 
     pub fn init_on_parsed_message(
