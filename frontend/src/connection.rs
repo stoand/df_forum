@@ -13,36 +13,20 @@ use crate::persisted::PersistedItems;
 use crate::query_result::QueryResult;
 
 pub struct FrontendConnection {
-    websocket: Rc<RefCell<WebSocket>>,
+    pub websocket: Rc<RefCell<WebSocket>>,
     pub onmessage: Option<fn(Vec<QueryResult>) -> ()>,
-    pub onopen: Option<fn(&FrontendConnection) -> ()>,
 }
 
 impl FrontendConnection {
-    pub fn new(url: &str) -> Rc<RefCell<Self>> {
+    pub fn new(url: &str, onopen: Closure<dyn FnMut(Event)>) -> Self {
         let websocket = Rc::new(RefCell::new(WebSocket::new(url).unwrap()));
         let websocket0 = websocket.clone();
 
-        let connection = Rc::new(RefCell::new(FrontendConnection {
-            websocket: websocket0.clone(),
-            onmessage: None,
-            onopen: None,
-        }));
-
-        let connection0 = connection.clone();
-
-        let onopen = Closure::<dyn FnMut(Event)>::new(move |_event: Event| {
-            if let Some(onopen) = connection0.borrow().onopen {
-                log("running on opened");
-                onopen(&connection0.borrow());
-            }
-            log(&format!("websocket opened"));
-        });
-
-        websocket0
+        websocket
             .borrow()
             .set_onopen(Some(onopen.as_ref().unchecked_ref()));
         onopen.forget();
+
         let onclose = Closure::<dyn FnMut(Event)>::new(move |_event: Event| {
             log(&format!("websocket closed"));
         });
@@ -52,7 +36,10 @@ impl FrontendConnection {
             .set_onclose(Some(onclose.as_ref().unchecked_ref()));
         onclose.forget();
 
-        connection
+        FrontendConnection {
+            websocket: websocket0.clone(),
+            onmessage: None,
+        }
     }
 
     pub fn init_on_parsed_message(&self, on_parsed_message: Box<dyn Fn(Vec<QueryResult>)>) {

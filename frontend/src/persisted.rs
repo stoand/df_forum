@@ -26,7 +26,7 @@ pub enum Persisted {
     // reloads only posts
     ViewPostsPage(u64),
     
-    Session,
+    Session(String), // username
 }
 
 pub type PersistedItems = Vec<(Id, Persisted, Diff)>;

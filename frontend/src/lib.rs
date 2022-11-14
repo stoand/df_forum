@@ -27,7 +27,7 @@ use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 
 use wasm_bindgen::JsCast;
-use web_sys::{Document, Element, HtmlElement, HtmlInputElement, Storage};
+use web_sys::{Document, Element, Event, HtmlElement, HtmlInputElement, Storage};
 
 pub const USERNAME_LOCAL_STORAGE_KEY: &'static str = "df_forum_username";
 pub const WEBSOCKET_URL: &'static str = "ws://127.0.0.1:5050";
@@ -52,16 +52,24 @@ pub fn get_random_u64() -> u64 {
 pub fn bootstrap() {
     std::panic::set_hook(Box::new(console_error_panic_hook::hook));
 
-    let connection = connection::FrontendConnection::new(
-        &WEBSOCKET_URL,
-    );
+    let connection = Rc::new(RefCell::new(connection::FrontendConnection::new(
+        &WEBSOCKET_URL, onopen,
+    )));
+    let session_id = get_random_u64();
 
-    let local_storage = get_local_storage();
-    if let Ok(Some(user_name)) = local_storage.get_item(USERNAME_LOCAL_STORAGE_KEY) {
-        render_page_posts(user_name, connection);
-    } else {
-        render_page_enter_username();
-    }
+    let onopen = Closure::<dyn FnMut(Event)>::new(move |_event: Event| {
+        connection
+            .borrow()
+            .send_transaction(vec![(session_id, Persisted::ViewPosts, 1)]);
+        log(&format!("websocket opened"));
+
+        let local_storage = get_local_storage();
+        if let Ok(Some(user_name)) = local_storage.get_item(USERNAME_LOCAL_STORAGE_KEY) {
+            render_page_posts(user_name, session_id, connection);
+        } else {
+            render_page_enter_username();
+        }
+    });
 }
 
 pub fn document_and_root() -> (Document, Element) {
@@ -108,6 +116,7 @@ pub fn render_page_enter_username() {
 // #SPC-forum_minimal.page_posts
 pub fn render_page_posts(
     username: String,
+    session_id: u64,
     connection: Rc<RefCell<connection::FrontendConnection>>,
 ) {
     let (document, root) = document_and_root();
@@ -118,12 +127,6 @@ pub fn render_page_posts(
     let connection2 = connection.clone();
     let connection3 = connection.clone();
     let connection4 = connection.clone();
- 
-    connection.borrow_mut().onopen = Some(move |connection| {
-        let persisted_id = get_random_u64();
-        connection.send_transaction(vec![(persisted_id, Persisted::ViewPosts, 1)]);
-        log("asdf");
-    });   
 
     let view_posts_page_id = get_random_u64();
 
