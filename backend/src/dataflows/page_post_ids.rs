@@ -173,10 +173,37 @@ pub fn posts_post_ids_dataflow<'a>(
         )
         .as_collection();
 
+    let posts_liked_by_user = collection
+        .flat_map(|(addr, (post_id, persisted))| {
+            if let Persisted::PostLike(liked_post) = persisted {
+                vec![(liked_post, addr)]
+            } else {
+                vec![]
+            }
+        })
+        .inspect(|v| debug!("like counts -- {:?}", v));
+
+    let posts_liked_by_user_result = session_post_ids
+        .join(&posts_liked_by_user)
+        .inner
+        .map(|((post_id, (session_addr, _addr)), time, diff)| {
+            (
+                vec![(
+                    session_addr,
+                    QueryResult::PostLikedByUser(post_id, diff > 0),
+                )],
+                time,
+                diff,
+            )
+        })
+        .as_collection()
+        .inspect(|v| debug!("like counts -- {:?}", v));
+
     // Send everything at once to prevent flickering (but still split by session)
     let _batch_output = session_post_field_results
         .concat(&session_post_results)
         .concat(&post_creator_names_results)
+        .concat(&posts_liked_by_user_result)
         .consolidate()
         .inspect_batch(move |_time, query_results_aug| {
             let mut sessions: HashMap<SocketAddr, Vec<QueryResult>> = HashMap::new();
@@ -406,7 +433,6 @@ mod tests {
             ))
         );
     }
-    
     #[tokio::test]
     pub async fn test_page_post_likes() {
         crate::init_logger();
@@ -425,7 +451,6 @@ mod tests {
                 addr,
                 vec![
                     (55, Persisted::ViewPostsPage(0), 1),
-                    (55, Persisted::Session("asdf".to_string()), 1),
                     (5, Persisted::Post, 1),
                 ],
             ))
@@ -435,11 +460,39 @@ mod tests {
 
         assert_eq!(
             query_result_receiver.try_recv(),
+            Ok((addr, vec![QueryResult::PagePost(5, 0, 0),]))
+        );
+
+        persisted_sender
+            .send((addr, vec![(55, Persisted::PostLike(5), 1)]))
+            .unwrap();
+
+        forum_minimal.advance_dataflow_computation_once().await;
+
+        assert_eq!(
+            query_result_receiver.try_recv(),
             Ok((
                 addr,
                 vec![
-                    QueryResult::PagePost(5, 0, 0),
-                    QueryResult::PostCreator(5, "asdf".to_string()),
+                    // QueryResult::PostTotalLikes(5, 1),
+                    QueryResult::PostLikedByUser(5, true),
+                ]
+            ))
+        );
+
+        persisted_sender
+            .send((addr, vec![(55, Persisted::PostLike(5), -1)]))
+            .unwrap();
+
+        forum_minimal.advance_dataflow_computation_once().await;
+
+        assert_eq!(
+            query_result_receiver.try_recv(),
+            Ok((
+                addr,
+                vec![
+                    // QueryResult::PostTotalLikes(5, 1),
+                    QueryResult::PostLikedByUser(5, false),
                 ]
             ))
         );

@@ -15,7 +15,7 @@ pub enum Persisted {
     Post,
     PostTitle(String),
     PostBody(String),
-    PostLike(u64), // user id
+    PostLike(u64),
 
     // reloads only posts
     ViewPostsPage(u64),

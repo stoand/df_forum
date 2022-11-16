@@ -13,7 +13,10 @@ pub enum QueryResult {
 
     PagePost(u64, u64, u64), // id, page, page_item_index
 
-    PostTitle(u64, String),
+    PostTitle(u64, String), // post id, post title
     PostBody(u64, String),
     PostCreator(u64, String),
+
+    PostTotalLikes(u64, u64),
+    PostLikedByUser(u64, bool), // post id, whether current user has liked post, total like count
 }
