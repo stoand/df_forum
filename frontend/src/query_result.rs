@@ -15,4 +15,5 @@ pub enum QueryResult {
 
     PostTitle(u64, String),
     PostBody(u64, String),
+    PostCreator(u64, String),
 }

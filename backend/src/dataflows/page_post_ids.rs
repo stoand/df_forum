@@ -133,9 +133,6 @@ pub fn posts_post_ids_dataflow<'a>(
                     };
 
                     (query_result, time, diff)
-
-                    // if let Some(query_result) = query_result {
-                    // }
                 } else {
                     (vec![], time, diff)
                 }
@@ -144,9 +141,34 @@ pub fn posts_post_ids_dataflow<'a>(
         .as_collection()
         .inspect(|v| debug!("session post fields -- {:?}", v));
 
+    let post_creator_addrs = collection.flat_map(|(creator_addr, (post_id, persisted))| {
+        if let Persisted::Post = persisted {
+            vec![(creator_addr, post_id)]
+        } else {
+            vec![]
+        }
+    });
+
+    let session_name_addrs = collection.flat_map(|(creator_addr, (_session_id, persisted))| {
+        if let Persisted::Session(session_name) = persisted {
+            vec![(creator_addr, session_name)]
+        } else {
+            vec![]
+        }
+    });
+
+    let post_creator_names_results = post_creator_addrs
+        .join(&session_name_addrs)
+        .map(|(creator_addr, (post_id, session_name))| (post_id, (creator_addr, session_name)))
+        .join(&session_post_ids)
+        .map(|(post_id, ((_creator_addr, session_name), session_addr))| {
+            vec![(session_addr, QueryResult::PostCreator(post_id, session_name))]
+        });
+
     // Send everything at once to prevent flickering (but still split by session)
     let _batch_output = session_post_field_results
         .concat(&session_post_results)
+        .concat(&post_creator_names_results)
         .consolidate()
         .inspect_batch(move |_time, query_results_aug| {
             let mut sessions: HashMap<SocketAddr, Vec<QueryResult>> = HashMap::new();
@@ -335,6 +357,44 @@ mod tests {
             Ok((
                 addr,
                 vec![QueryResult::DeletePost(6), QueryResult::PagePost(7, 0, 0)]
+            ))
+        );
+    }
+
+    #[tokio::test]
+    pub async fn test_page_post_username() {
+        crate::init_logger();
+        let addr: SocketAddr = "127.0.0.1:8080".parse().unwrap();
+        let (query_result_sender, mut query_result_receiver) = broadcast::channel(16);
+        let (persisted_sender, _persisted_receiver) = broadcast::channel(16);
+
+        let mut forum_minimal = ForumMinimal::new_with_dataflows(
+            persisted_sender.clone(),
+            query_result_sender,
+            posts_post_ids_dataflow,
+        );
+
+        persisted_sender
+            .send((
+                addr,
+                vec![
+                    (55, Persisted::ViewPostsPage(0), 1),
+                    (55, Persisted::Session("asdf".to_string()), 1),
+                    (5, Persisted::Post, 1),
+                ],
+            ))
+            .unwrap();
+
+        forum_minimal.advance_dataflow_computation_once().await;
+
+        assert_eq!(
+            query_result_receiver.try_recv(),
+            Ok((
+                addr,
+                vec![
+                    QueryResult::PagePost(5, 0, 0),
+                    QueryResult::PostCreator(5, "asdf".to_string()),
+                ]
             ))
         );
     }

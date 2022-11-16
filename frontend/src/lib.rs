@@ -122,14 +122,14 @@ pub fn render_page_enter_username() {
 // #SPC-forum_minimal.page_posts
 pub fn render_page_posts(
     username: String,
-    session_id: u64,
+    _session_id: u64,
     connection: Rc<RefCell<connection::FrontendConnection>>,
 ) {
     let (document, root) = document_and_root();
     root.set_inner_html("");
 
     let connection0 = connection.clone();
-    let connection1 = connection.clone();
+    // let connection1 = connection.clone();
     let connection2 = connection.clone();
     let connection3 = connection.clone();
     let connection4 = connection.clone();
