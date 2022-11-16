@@ -161,9 +161,22 @@ pub fn posts_post_ids_dataflow<'a>(
         .join(&session_name_addrs)
         .map(|(creator_addr, (post_id, session_name))| (post_id, (creator_addr, session_name)))
         .join(&session_post_ids)
-        .map(|(post_id, ((_creator_addr, session_name), session_addr))| {
-            vec![(session_addr, QueryResult::PostCreator(post_id, session_name))]
-        });
+        .inner
+        .map(
+            |((post_id, ((_creator_addr, session_name), session_addr)), time, diff)| {
+                let result = if diff > 0 {
+                    vec![(
+                        session_addr,
+                        QueryResult::PostCreator(post_id, session_name),
+                    )]
+                } else {
+                    vec![]
+                };
+
+                (result, time, diff)
+            },
+        )
+        .as_collection();
 
     // Send everything at once to prevent flickering (but still split by session)
     let _batch_output = session_post_field_results
