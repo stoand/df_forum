@@ -53,23 +53,29 @@ pub fn bootstrap() {
     std::panic::set_hook(Box::new(console_error_panic_hook::hook));
 
     let connection = Rc::new(RefCell::new(connection::FrontendConnection::new(
-        &WEBSOCKET_URL, onopen,
+        &WEBSOCKET_URL,
     )));
     let session_id = get_random_u64();
 
+    let connection0 = connection.clone();
+
     let onopen = Closure::<dyn FnMut(Event)>::new(move |_event: Event| {
-        connection
-            .borrow()
-            .send_transaction(vec![(session_id, Persisted::ViewPosts, 1)]);
         log(&format!("websocket opened"));
 
         let local_storage = get_local_storage();
         if let Ok(Some(user_name)) = local_storage.get_item(USERNAME_LOCAL_STORAGE_KEY) {
-            render_page_posts(user_name, session_id, connection);
+            connection0.clone().borrow().send_transaction(vec![
+                (session_id, Persisted::Session(user_name.clone()), 1),
+                (session_id, Persisted::ViewPosts, 1),
+            ]);
+
+            render_page_posts(user_name, session_id, connection0.clone());
         } else {
             render_page_enter_username();
         }
     });
+
+    connection.borrow().set_onopen(onopen);
 }
 
 pub fn document_and_root() -> (Document, Element) {

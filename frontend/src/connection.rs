@@ -18,14 +18,9 @@ pub struct FrontendConnection {
 }
 
 impl FrontendConnection {
-    pub fn new(url: &str, onopen: Closure<dyn FnMut(Event)>) -> Self {
+    pub fn new(url: &str) -> Self {
         let websocket = Rc::new(RefCell::new(WebSocket::new(url).unwrap()));
         let websocket0 = websocket.clone();
-
-        websocket
-            .borrow()
-            .set_onopen(Some(onopen.as_ref().unchecked_ref()));
-        onopen.forget();
 
         let onclose = Closure::<dyn FnMut(Event)>::new(move |_event: Event| {
             log(&format!("websocket closed"));
@@ -40,6 +35,13 @@ impl FrontendConnection {
             websocket: websocket0.clone(),
             onmessage: None,
         }
+    }
+
+    pub fn set_onopen(&self, onopen: Closure<dyn FnMut(Event)>) {
+        self.websocket
+            .borrow()
+            .set_onopen(Some(onopen.as_ref().unchecked_ref()));
+        onopen.forget();       
     }
 
     pub fn init_on_parsed_message(&self, on_parsed_message: Box<dyn Fn(Vec<QueryResult>)>) {
