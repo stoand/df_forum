@@ -77,7 +77,7 @@ mod tests {
             .send((
                 addr,
                 vec![
-                    (55, Persisted::ViewPosts, 1),
+                    (55, Persisted::ViewPostsPage(0), 1),
                     (5, Persisted::Post, 1),
                     (6, Persisted::Post, 1),
                     (7, Persisted::Post, 1),

@@ -22,14 +22,6 @@ pub fn posts_dataflow<'a>(
         .map(|(addr, (_id, _persisted))| addr)
         .consolidate();
 
-    let view_posts = manages_sess.flat_map(|(addr, (_id, persisted))| {
-        if let Persisted::ViewPosts = persisted {
-            vec![(addr, 0)]
-        } else {
-            vec![]
-        }
-    });
-
     let view_posts_page = manages_sess.flat_map(|(addr, (_id, persisted))| {
         if let Persisted::ViewPostsPage(page) = persisted {
             vec![(addr, page)]
@@ -38,18 +30,12 @@ pub fn posts_dataflow<'a>(
         }
     });
 
-    let sessions_view_posts = view_posts
-        .join_map(&sessions.map(|v| (v, v)), |_key, &a, &b| (a, b))
-        .map(|(_v0, v1)| (v1, None::<u64>))
-        .inspect(|v| debug!("1 -- {:?}", v));
-
     let sessions_view_posts_page = view_posts_page
         .join_map(&sessions.map(|v| (v, v)), |_key, &a, &b| (a, b))
         .map(|(v0, v1)| (v1, Some(v0)))
         .inspect(|v| debug!("2 -- {:?}", v));
 
-    let sessions_current_page = sessions_view_posts
-        .concat(&sessions_view_posts_page)
+    let sessions_current_page = sessions_view_posts_page
         .reduce(|_key, inputs, outputs| {
             let mut final_page = None::<u64>;
             let mut found: bool = false;
@@ -192,7 +178,7 @@ mod tests {
             .send((
                 addr,
                 vec![
-                    (55, Persisted::ViewPosts, 1),
+                    (55, Persisted::ViewPostsPage(0), 1),
                     (5, Persisted::PostTitle("Zerg".into()), 1),
                     (5, Persisted::PostBody("Zerg Info".into()), 1),
                 ],

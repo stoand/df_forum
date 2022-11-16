@@ -28,11 +28,6 @@ pub fn posts_post_ids_dataflow<'a>(
             for ((_id, persisted), diff) in inputs {
                 if *diff > 0 {
                     match persisted {
-                        Persisted::ViewPosts => {
-                            if page == None {
-                                page = Some(0);
-                            }
-                        }
                         Persisted::ViewPostsPage(view_page) => {
                             page = Some(*view_page);
                         }
@@ -376,6 +371,44 @@ mod tests {
 
     #[tokio::test]
     pub async fn test_page_post_username() {
+        crate::init_logger();
+        let addr: SocketAddr = "127.0.0.1:8080".parse().unwrap();
+        let (query_result_sender, mut query_result_receiver) = broadcast::channel(16);
+        let (persisted_sender, _persisted_receiver) = broadcast::channel(16);
+
+        let mut forum_minimal = ForumMinimal::new_with_dataflows(
+            persisted_sender.clone(),
+            query_result_sender,
+            posts_post_ids_dataflow,
+        );
+
+        persisted_sender
+            .send((
+                addr,
+                vec![
+                    (55, Persisted::ViewPostsPage(0), 1),
+                    (55, Persisted::Session("asdf".to_string()), 1),
+                    (5, Persisted::Post, 1),
+                ],
+            ))
+            .unwrap();
+
+        forum_minimal.advance_dataflow_computation_once().await;
+
+        assert_eq!(
+            query_result_receiver.try_recv(),
+            Ok((
+                addr,
+                vec![
+                    QueryResult::PagePost(5, 0, 0),
+                    QueryResult::PostCreator(5, "asdf".to_string()),
+                ]
+            ))
+        );
+    }
+    
+    #[tokio::test]
+    pub async fn test_page_post_likes() {
         crate::init_logger();
         let addr: SocketAddr = "127.0.0.1:8080".parse().unwrap();
         let (query_result_sender, mut query_result_receiver) = broadcast::channel(16);

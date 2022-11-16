@@ -66,7 +66,7 @@ pub fn bootstrap() {
         if let Ok(Some(user_name)) = local_storage.get_item(USERNAME_LOCAL_STORAGE_KEY) {
             connection0.clone().borrow().send_transaction(vec![
                 (session_id, Persisted::Session(user_name.clone()), 1),
-                (session_id, Persisted::ViewPosts, 1),
+                (session_id, Persisted::ViewPostsPage(0), 1),
             ]);
 
             render_page_posts(user_name, session_id, connection0.clone());
@@ -191,8 +191,6 @@ pub fn render_page_posts(
                 (id, Persisted::Post, 1),
                 (id, Persisted::PostTitle(title), 1),
                 (id, Persisted::PostBody(body), 1),
-                (id, Persisted::PostLikes(0), 1),
-                (id, Persisted::PostUserId(0), 1),
             ]);
         }
     });
