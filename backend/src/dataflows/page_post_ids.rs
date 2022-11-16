@@ -8,6 +8,7 @@ use std::net::SocketAddr;
 use timely::dataflow::operators::Map;
 
 use differential_dataflow::operators::Consolidate;
+use differential_dataflow::operators::Count;
 use differential_dataflow::operators::Join;
 use differential_dataflow::operators::Reduce;
 use differential_dataflow::AsCollection;
@@ -173,15 +174,13 @@ pub fn posts_post_ids_dataflow<'a>(
         )
         .as_collection();
 
-    let posts_liked_by_user = collection
-        .flat_map(|(addr, (post_id, persisted))| {
-            if let Persisted::PostLike(liked_post) = persisted {
-                vec![(liked_post, addr)]
-            } else {
-                vec![]
-            }
-        })
-        .inspect(|v| debug!("like counts -- {:?}", v));
+    let posts_liked_by_user = collection.flat_map(|(addr, (post_id, persisted))| {
+        if let Persisted::PostLike(liked_post) = persisted {
+            vec![(liked_post, addr)]
+        } else {
+            vec![]
+        }
+    });
 
     let posts_liked_by_user_result = session_post_ids
         .join(&posts_liked_by_user)
@@ -197,6 +196,25 @@ pub fn posts_post_ids_dataflow<'a>(
             )
         })
         .as_collection()
+        .inspect(|v| debug!("likes -- {:?}", v));
+
+    let post_total_like_count_result = posts_liked_by_user
+        .count()
+        .map(|((post_id, addr), count)| (post_id, (addr, count)))
+        .join(&session_post_ids)
+        .inner
+        .map(|((post_id, ((addr, count), session_addr)), time, diff)| {
+            let result = if diff > 0 {
+                vec![(
+                    session_addr,
+                    QueryResult::PostTotalLikes(post_id, count as u64),
+                )]
+            } else {
+                vec![]
+            };
+            (result, time, diff)
+        })
+        .as_collection()
         .inspect(|v| debug!("like counts -- {:?}", v));
 
     // Send everything at once to prevent flickering (but still split by session)
@@ -204,6 +222,7 @@ pub fn posts_post_ids_dataflow<'a>(
         .concat(&session_post_results)
         .concat(&post_creator_names_results)
         .concat(&posts_liked_by_user_result)
+        .concat(&post_total_like_count_result)
         .consolidate()
         .inspect_batch(move |_time, query_results_aug| {
             let mut sessions: HashMap<SocketAddr, Vec<QueryResult>> = HashMap::new();
@@ -474,7 +493,7 @@ mod tests {
             Ok((
                 addr,
                 vec![
-                    // QueryResult::PostTotalLikes(5, 1),
+                    QueryResult::PostTotalLikes(5, 1),
                     QueryResult::PostLikedByUser(5, true),
                 ]
             ))
