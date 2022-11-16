@@ -208,7 +208,7 @@ pub fn render_page_posts(
     );
     root.append_child(&aggregates).unwrap();
 
-    // on (page_num, Post & post_user_author)
+    // on (page_num, Post & post_user_creator)
     //
     let posts_container = document.create_element("div").unwrap();
     posts_container.set_id("posts-container");
@@ -224,7 +224,7 @@ pub fn render_page_posts(
 
     let username_label = document.create_element("h6").unwrap();
     username_label.set_text_content(Some("Post Author"));
-    username_label.set_class_name("post-author");
+    username_label.set_class_name("post-creator");
     post_template.append_child(&username_label).unwrap();
 
     let username_label = document.create_element("p").unwrap();
@@ -368,12 +368,6 @@ pub fn render_page_posts(
                             .expect("could not append");
                     }
 
-                    new_post
-                        .query_selector(".post-author")
-                        .unwrap()
-                        .unwrap()
-                        .set_text_content(Some(&post_id.to_string()));
-
                     let connection5 = connection4.clone();
 
                     let delete_button = new_post.query_selector(".post-remove").unwrap().unwrap();
@@ -432,6 +426,15 @@ pub fn render_page_posts(
                         .unwrap()
                         .unwrap()
                         .set_text_content(Some(&body));
+                }
+                QueryResult::PostCreator(post_id, creator) => {
+                    document
+                        .get_element_by_id(&post_id.to_string())
+                        .expect("could not find post by id")
+                        .query_selector(".post-creator")
+                        .unwrap()
+                        .unwrap()
+                        .set_text_content(Some(&creator));
                 }
                 QueryResult::DeletePost(post_id) => {
                     document
