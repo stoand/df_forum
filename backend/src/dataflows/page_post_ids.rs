@@ -2,7 +2,7 @@ use crate::forum_minimal::{
     Persisted, QueryResult, QueryResultSender, ScopeCollection, POSTS_PER_PAGE,
 };
 use log::debug;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::net::SocketAddr;
 
 use timely::dataflow::operators::Map;
@@ -174,7 +174,7 @@ pub fn posts_post_ids_dataflow<'a>(
         )
         .as_collection();
 
-    let posts_liked_by_user = collection.flat_map(|(addr, (post_id, persisted))| {
+    let posts_liked_by_user = collection.flat_map(|(addr, (_post_id, persisted))| {
         if let Persisted::PostLike(liked_post) = persisted {
             vec![(liked_post, addr)]
         } else {
@@ -202,19 +202,68 @@ pub fn posts_post_ids_dataflow<'a>(
         .count()
         .map(|((post_id, addr), count)| (post_id, (addr, count)))
         .join(&session_post_ids)
-        .inner
-        .map(|((post_id, ((addr, count), session_addr)), time, diff)| {
-            let result = if diff > 0 {
-                vec![(
-                    session_addr,
-                    QueryResult::PostTotalLikes(post_id, count as u64),
-                )]
-            } else {
-                vec![]
-            };
-            (result, time, diff)
+        // .inner
+        // .map(|((post_id, ((_addr, count), session_addr)), time, diff)| {
+        //     let result = if diff > 0 {
+        //         vec![(
+        //             session_addr,
+        //             QueryResult::PostTotalLikes(post_id, count as u64),
+        //         )]
+        //     } else {
+        //         vec![(
+        //             session_addr,
+        //             QueryResult::PostTotalLikes(post_id, count as u64 - 1),
+        //         )]
+        //     };
+        //     (result, time, diff)
+        // })
+        // .as_collection()
+        // .inspect_batch(|_time, items| {
+        //
+        .reduce(|post_id, inputs, outputs| {
+            debug!(
+                "addr(key) = {:?}, input = {:?}, output = {:?}",
+                addr, inputs, outputs
+            );
+
+
+            
+            for (((_creator_addr, count), session_addr), diff) in inputs {
+                if *diff > 0 {
+                    let result = QueryResult::PostTotalLikes(*post_id, *count as u64);
+                    outputs.push((vec![(session_addr.clone(), result)], 1));
+                    return;
+                }
+            }
+            for (((_creator_addr, count), session_addr), diff) in inputs {
+                if *diff < 0 && *count == 1 {
+                    let result = QueryResult::PostTotalLikes(*post_id, 0);
+                    outputs.push((vec![(session_addr.clone(), result)], 1));
+                    return;
+                }
+            }
         })
-        .as_collection()
+        .map(|(_k, v)| v)
+        //     let mut has_addition = HashSet::new();
+        //     let mut results = Vec::new();
+        //     for ((post_id, (_addr, _count)), _time, diff) in items {
+        //         if *diff > 0 {
+        //             has_addition.insert(post_id);
+        //         }
+        //     }
+        //     for ((post_id, (_addr, _count)), _time, diff) in items {
+        //         if !has_addition.contains(post_id) {
+        //         }
+        //     }
+        //     // let result = if only_removal {
+        //     //     vec![(
+        //     //         removal_addr.unwrap(),
+        //     //         QueryResult::PostTotalLikes(*removal_post.unwrap(), 0),
+        //     //     )]
+        //     // } else {
+        //     //     vec![]
+        //     // };
+        // })
         .inspect(|v| debug!("like counts -- {:?}", v));
 
     // Send everything at once to prevent flickering (but still split by session)
@@ -510,8 +559,56 @@ mod tests {
             Ok((
                 addr,
                 vec![
-                    // QueryResult::PostTotalLikes(5, 1),
+                    QueryResult::PostTotalLikes(5, 0),
                     QueryResult::PostLikedByUser(5, false),
+                ]
+            ))
+        );
+
+        persisted_sender
+            .send((
+                addr,
+                vec![
+                    (55, Persisted::PostLike(6), 1),
+                    (55, Persisted::PostLike(7), 1),
+                    (56, Persisted::PostLike(7), 1),
+                    (6, Persisted::Post, 1),
+                    (7, Persisted::Post, 1),
+                ],
+            ))
+            .unwrap();
+
+        forum_minimal.advance_dataflow_computation_once().await;
+
+        assert_eq!(
+            query_result_receiver.try_recv(),
+            Ok((
+                addr,
+                vec![
+                    QueryResult::DeletePost(5),
+                    QueryResult::PagePost(6, 0, 4),
+                    QueryResult::PagePost(7, 0, 4),
+                    QueryResult::PostTotalLikes(6, 1),
+                    QueryResult::PostTotalLikes(7, 2),
+                    QueryResult::PostLikedByUser(6, true),
+                    QueryResult::PostLikedByUser(7, true),
+                ]
+            ))
+        );
+
+        persisted_sender
+            .send((addr, vec![(55, Persisted::PostLike(7), -1)]))
+            .unwrap();
+
+        forum_minimal.advance_dataflow_computation_once().await;
+
+        assert_eq!(
+            query_result_receiver.try_recv(),
+            Ok((
+                addr,
+                vec![
+                    QueryResult::PostTotalLikes(7, 1),
+                    QueryResult::PostLikedByUser(7, false)
                 ]
             ))
         );
