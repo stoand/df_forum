@@ -122,7 +122,7 @@ pub fn render_page_enter_username() {
 // #SPC-forum_minimal.page_posts
 pub fn render_page_posts(
     username: String,
-    _session_id: u64,
+    session_id: u64,
     connection: Rc<RefCell<connection::FrontendConnection>>,
 ) {
     let (document, root) = document_and_root();
@@ -405,10 +405,18 @@ pub fn render_page_posts(
 
                     let like_button = new_post.query_selector(".post-like").unwrap().unwrap();
                     let like_button_click = Closure::<dyn FnMut()>::new(move || {
-                        let diff = if new_post.get_attribute("is_liked") != Some("true".to_string()) { 1 } else { -1 };
-                        
+                        // let diff =
+                        //     if new_post.get_attribute("is_liked_") != Some("true".to_string()) {
+                        //         1
+                        //     } else {
+                        //         -1
+                        //     };
+                        let diff = 1;
+
+                        log(&("session: ".to_string() + &session_id.to_string()));
+
                         connection6.clone().borrow().send_transaction(vec![(
-                            post_id,
+                            session_id,
                             Persisted::PostLike(post_id),
                             diff,
                         )]);
@@ -462,8 +470,9 @@ pub fn render_page_posts(
                         .unwrap()
                         .unwrap()
                         .set_text_content(Some(status));
-                    
-                    post.set_attribute("is_liked", if is_liked { "true" } else { "false" }).unwrap();
+
+                    post.set_attribute("is_liked", if is_liked { "true" } else { "false" })
+                        .unwrap();
                 }
                 QueryResult::PostTotalLikes(post_id, like_count) => {
                     document

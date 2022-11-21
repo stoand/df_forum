@@ -174,7 +174,7 @@ pub fn posts_post_ids_dataflow<'a>(
         )
         .as_collection();
 
-    let posts_liked_by_user = collection.flat_map(|(addr, (_post_id, persisted))| {
+    let posts_liked_by_user = collection.flat_map(|(addr, (_session_id, persisted))| {
         if let Persisted::PostLike(liked_post) = persisted {
             vec![(liked_post, addr)]
         } else {
@@ -213,7 +213,9 @@ pub fn posts_post_ids_dataflow<'a>(
         .inspect(|v| debug!("likes -- {:?}", v));
 
     let post_total_like_count_result = posts_liked_by_user
+        .inspect(|v| debug!("liked 0 -- {:?}", v))
         .count()
+        .inspect(|v| debug!("liked 1 -- {:?}", v))
         .map(|((post_id, addr), count)| (post_id, (addr, count)))
         .join(&session_post_ids)
         .inner
@@ -582,6 +584,7 @@ mod tests {
     }
     #[tokio::test]
     pub async fn test_page_post_likes_multi_addr() {
+        crate::init_logger();
         let addr0: SocketAddr = "127.0.0.1:8080".parse().unwrap();
         let addr1: SocketAddr = "127.0.0.1:8081".parse().unwrap();
         let (query_result_sender, mut query_result_receiver) = broadcast::channel(16);
