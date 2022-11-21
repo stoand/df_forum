@@ -231,7 +231,9 @@ pub fn render_page_posts(
     post_template.append_child(&username_label).unwrap();
 
     let username_label = document.create_element("button").unwrap();
-    username_label.set_inner_html("Like <span id='post-likes'></span>");
+    username_label.set_inner_html(
+        "<span class='post-like-status'>Like</span><span class='post-likes'>0</span>",
+    );
     username_label.set_class_name("post-like");
     post_template.append_child(&username_label).unwrap();
 
@@ -399,13 +401,23 @@ pub fn render_page_posts(
                         .set_onclick(Some(delete_button_click.as_ref().unchecked_ref()));
 
                     delete_button_click.forget();
+                    let connection6 = connection4.clone();
 
-                    // new_post
-                    // new_post
-                    //     .query_selector(".post-body")
-                    //     .unwrap()
-                    //     .unwrap()
-                    //     .set_text_content(Some(&post_body));
+                    let like_button = new_post.query_selector(".post-like").unwrap().unwrap();
+                    let like_button_click = Closure::<dyn FnMut()>::new(move || {
+                        let diff = if new_post.get_attribute("is_liked") != Some("true".to_string()) { 1 } else { -1 };
+                        
+                        connection6.clone().borrow().send_transaction(vec![(
+                            post_id,
+                            Persisted::PostLike(post_id),
+                            diff,
+                        )]);
+                    });
+
+                    let like_button_el = like_button.dyn_ref::<HtmlElement>().unwrap();
+                    like_button_el.set_onclick(Some(like_button_click.as_ref().unchecked_ref()));
+
+                    like_button_click.forget();
                 }
                 QueryResult::PostTitle(post_id, title) => {
                     document
@@ -439,6 +451,28 @@ pub fn render_page_posts(
                         .get_element_by_id(&post_id.to_string())
                         .expect("could not delete post by id")
                         .remove();
+                }
+                QueryResult::PostLikedByUser(post_id, is_liked) => {
+                    let status = if is_liked { "Unlike" } else { "Like" };
+                    let post = document
+                        .get_element_by_id(&post_id.to_string())
+                        .expect("could not find post by id");
+
+                    post.query_selector(".post-like-status")
+                        .unwrap()
+                        .unwrap()
+                        .set_text_content(Some(status));
+                    
+                    post.set_attribute("is_liked", if is_liked { "true" } else { "false" }).unwrap();
+                }
+                QueryResult::PostTotalLikes(post_id, like_count) => {
+                    document
+                        .get_element_by_id(&post_id.to_string())
+                        .expect("could not find post by id")
+                        .query_selector(".post-likes")
+                        .unwrap()
+                        .unwrap()
+                        .set_text_content(Some(&like_count.to_string()));
                 }
                 QueryResult::PostAggregates(post_count, page_count) => {
                     root.set_attribute("page_count", &page_count.to_string())

@@ -62,7 +62,9 @@ async fn handle_connection(
 
                 let output_payload = serde_json::to_string(&query_results.clone()).unwrap();
 
-                tx.unbounded_send(Message::Text(output_payload)).unwrap();
+                if let Err(_) = tx.unbounded_send(Message::Text(output_payload)) {
+                    debug!("could not send to address {}", viewer_addr);
+                }
             }
         }
     });
