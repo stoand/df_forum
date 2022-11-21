@@ -185,16 +185,30 @@ pub fn posts_post_ids_dataflow<'a>(
     let posts_liked_by_user_result = session_post_ids
         .join(&posts_liked_by_user)
         .inner
-        .map(|((post_id, (session_addr, _addr)), time, diff)| {
+        .map(|((post_id, (session_addr, addr)), time, diff)| {
             (
-                vec![(
-                    session_addr,
-                    QueryResult::PostLikedByUser(post_id, diff > 0),
-                )],
+                if session_addr == addr {
+                    vec![(
+                        session_addr,
+                        QueryResult::PostLikedByUser(post_id, diff > 0),
+                    )]
+                } else {
+                    vec![]
+                },
                 time,
                 diff,
             )
         })
+        // .map(|((post_id, (session_addr, addr)), time, diff)| {
+        //     (
+        //         vec![(
+        //             session_addr,
+        //             QueryResult::PostLikedByUser(post_id, diff > 0),
+        //         )],
+        //         time,
+        //         diff,
+        //     )
+        // })
         .as_collection()
         .inspect(|v| debug!("likes -- {:?}", v));
 
@@ -210,10 +224,7 @@ pub fn posts_post_ids_dataflow<'a>(
                     QueryResult::PostTotalLikes(post_id, count as u64),
                 )]
             } else if count == 1 {
-                vec![(
-                    session_addr,
-                    QueryResult::PostTotalLikes(post_id, 0),
-                )]
+                vec![(session_addr, QueryResult::PostTotalLikes(post_id, 0))]
             } else {
                 vec![]
             };
@@ -568,5 +579,66 @@ mod tests {
                 ]
             ))
         );
+    }
+    #[tokio::test]
+    pub async fn test_page_post_likes_multi_addr() {
+        let addr0: SocketAddr = "127.0.0.1:8080".parse().unwrap();
+        let addr1: SocketAddr = "127.0.0.1:8081".parse().unwrap();
+        let (query_result_sender, mut query_result_receiver) = broadcast::channel(16);
+        let (persisted_sender, _persisted_receiver) = broadcast::channel(16);
+
+        let mut forum_minimal = ForumMinimal::new_with_dataflows(
+            persisted_sender.clone(),
+            query_result_sender,
+            posts_post_ids_dataflow,
+        );
+
+        persisted_sender
+            .send((
+                addr0,
+                vec![
+                    (55, Persisted::ViewPostsPage(0), 1),
+                    (5, Persisted::Post, 1),
+                    (6, Persisted::Post, 1),
+                    (55, Persisted::PostLike(5), 1),
+                    (55, Persisted::PostLike(6), 1),
+                ],
+            ))
+            .unwrap();
+
+        forum_minimal.advance_dataflow_computation_once().await;
+
+        persisted_sender
+            .send((
+                addr1,
+                vec![
+                    (56, Persisted::ViewPostsPage(0), 1),
+                    (56, Persisted::PostLike(5), 1),
+                ],
+            ))
+            .unwrap();
+
+        forum_minimal.advance_dataflow_computation_once().await;
+
+        assert_eq!(
+            query_result_receiver.try_recv(),
+            Ok((addr0, vec![
+                QueryResult::PagePost(5, 0, 0),
+                QueryResult::PagePost(6, 0, 0),
+                QueryResult::PostTotalLikes(5, 2),
+                QueryResult::PostTotalLikes(6, 1),
+                QueryResult::PostLikedByUser(5, true),
+                QueryResult::PostLikedByUser(6, true),
+            ]))
+        );
+
+        // assert_eq!(
+        //     query_result_receiver.try_recv(),
+        //     Ok((addr1, vec![
+        //         QueryResult::PagePost(5, 0, 0),
+        //         QueryResult::PostTotalLikes(5, 2),
+        //         QueryResult::PostLikedByUser(5, true),
+        //     ]))
+        // );
     }
 }
