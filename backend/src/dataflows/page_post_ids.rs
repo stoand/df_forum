@@ -2,7 +2,7 @@ use crate::forum_minimal::{
     Persisted, QueryResult, QueryResultSender, ScopeCollection, POSTS_PER_PAGE,
 };
 use log::debug;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::net::SocketAddr;
 
 use timely::dataflow::operators::Map;
@@ -202,68 +202,24 @@ pub fn posts_post_ids_dataflow<'a>(
         .count()
         .map(|((post_id, addr), count)| (post_id, (addr, count)))
         .join(&session_post_ids)
-        // .inner
-        // .map(|((post_id, ((_addr, count), session_addr)), time, diff)| {
-        //     let result = if diff > 0 {
-        //         vec![(
-        //             session_addr,
-        //             QueryResult::PostTotalLikes(post_id, count as u64),
-        //         )]
-        //     } else {
-        //         vec![(
-        //             session_addr,
-        //             QueryResult::PostTotalLikes(post_id, count as u64 - 1),
-        //         )]
-        //     };
-        //     (result, time, diff)
-        // })
-        // .as_collection()
-        // .inspect_batch(|_time, items| {
-        //
-        .reduce(|post_id, inputs, outputs| {
-            debug!(
-                "addr(key) = {:?}, input = {:?}, output = {:?}",
-                addr, inputs, outputs
-            );
-
-
-            
-            for (((_creator_addr, count), session_addr), diff) in inputs {
-                if *diff > 0 {
-                    let result = QueryResult::PostTotalLikes(*post_id, *count as u64);
-                    outputs.push((vec![(session_addr.clone(), result)], 1));
-                    return;
-                }
-            }
-            for (((_creator_addr, count), session_addr), diff) in inputs {
-                if *diff < 0 && *count == 1 {
-                    let result = QueryResult::PostTotalLikes(*post_id, 0);
-                    outputs.push((vec![(session_addr.clone(), result)], 1));
-                    return;
-                }
-            }
+        .inner
+        .map(|((post_id, ((_addr, count), session_addr)), time, diff)| {
+            let result = if diff > 0 {
+                vec![(
+                    session_addr,
+                    QueryResult::PostTotalLikes(post_id, count as u64),
+                )]
+            } else if count == 1 {
+                vec![(
+                    session_addr,
+                    QueryResult::PostTotalLikes(post_id, 0),
+                )]
+            } else {
+                vec![]
+            };
+            (result, time, diff)
         })
-        .map(|(_k, v)| v)
-        //     let mut has_addition = HashSet::new();
-        //     let mut results = Vec::new();
-        //     for ((post_id, (_addr, _count)), _time, diff) in items {
-        //         if *diff > 0 {
-        //             has_addition.insert(post_id);
-        //         }
-        //     }
-        //     for ((post_id, (_addr, _count)), _time, diff) in items {
-        //         if !has_addition.contains(post_id) {
-        //         }
-        //     }
-        //     // let result = if only_removal {
-        //     //     vec![(
-        //     //         removal_addr.unwrap(),
-        //     //         QueryResult::PostTotalLikes(*removal_post.unwrap(), 0),
-        //     //     )]
-        //     // } else {
-        //     //     vec![]
-        //     // };
-        // })
+        .as_collection()
         .inspect(|v| debug!("like counts -- {:?}", v));
 
     // Send everything at once to prevent flickering (but still split by session)
