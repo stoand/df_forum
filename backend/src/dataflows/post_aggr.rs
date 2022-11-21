@@ -12,7 +12,16 @@ pub fn post_aggr_dataflow<'a>(
     let manages = manages_sess.map(|(_addr, (id, persisted))| (id, persisted));
     let query_result_sender_loop = query_result_sender.clone();
 
-    let sessions_with_zero = manages_sess.map(|(addr, _)| (0, addr)).consolidate();
+    let sessions_with_zero = manages_sess
+        .filter(|(_addr, (_, persisted))| {
+            if let Persisted::Session(_) = persisted {
+                true
+            } else {
+                false
+            }
+        })
+        .map(|(addr, _)| (0, addr))
+        .consolidate();
     let _post_aggregates = manages
         .flat_map(|(_id, persisted)| {
             if let Persisted::Post = persisted {
