@@ -17,6 +17,9 @@ partof: REQ-purpose
     Do this by sending multiple QueryResults at once -
     concat outputs then use inspect batch
 * TODO: replace unwrap and expect with error handling
+* TODO: security risk
+    an attacker can just connect to another port and hijack the session running there
+    a security token is needed
 
 * Cranelift -- deleting is bugged when switching sessions
 
