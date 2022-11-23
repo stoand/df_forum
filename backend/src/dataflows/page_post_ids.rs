@@ -8,7 +8,7 @@ use std::net::SocketAddr;
 use timely::dataflow::operators::Map;
 
 use differential_dataflow::operators::Consolidate;
-use differential_dataflow::operators::Count;
+// use differential_dataflow::operators::Count;
 use differential_dataflow::operators::Join;
 use differential_dataflow::operators::Reduce;
 use differential_dataflow::AsCollection;
@@ -214,19 +214,21 @@ pub fn posts_post_ids_dataflow<'a>(
 
     let post_total_like_count_result = posts_liked_by_user
         .inspect(|v| debug!("liked 0 -- {:?}", v))
-        .count()
+        .reduce(|_post_id, inputs, outputs| {
+            outputs.push((inputs.len(), 1));
+        })
         .inspect(|v| debug!("liked 1 -- {:?}", v))
-        .map(|((post_id, addr), count)| (post_id, (addr, count)))
+        .map(|(post_id, count)| (post_id, count))
         .join(&session_post_ids)
         .inner
-        .map(|((post_id, ((_addr, count), session_addr)), time, diff)| {
+        .map(|((post_id, (count, session_addr)), time, diff)| {
             let result = if diff > 0 {
                 vec![(
                     session_addr,
                     QueryResult::PostTotalLikes(post_id, count as u64),
                 )]
-            } else if count == 1 {
-                vec![(session_addr, QueryResult::PostTotalLikes(post_id, 0))]
+            // } else if count == 1 {
+            //     vec![(session_addr, QueryResult::PostTotalLikes(post_id, 0))]
             } else {
                 vec![]
             };
@@ -625,23 +627,37 @@ mod tests {
 
         assert_eq!(
             query_result_receiver.try_recv(),
-            Ok((addr0, vec![
-                QueryResult::PagePost(5, 0, 0),
-                QueryResult::PagePost(6, 0, 0),
-                QueryResult::PostTotalLikes(5, 2),
-                QueryResult::PostTotalLikes(6, 1),
-                QueryResult::PostLikedByUser(5, true),
-                QueryResult::PostLikedByUser(6, true),
-            ]))
+            Ok((
+                addr0,
+                vec![
+                    QueryResult::PagePost(5, 0, 0),
+                    QueryResult::PagePost(6, 0, 0),
+                    QueryResult::PostTotalLikes(5, 1),
+                    QueryResult::PostTotalLikes(6, 1),
+                    QueryResult::PostLikedByUser(5, true),
+                    QueryResult::PostLikedByUser(6, true),
+                ]
+            ))
         );
+
+        assert_eq!(
+            query_result_receiver.try_recv(),
+            Ok((addr0, vec![QueryResult::PostTotalLikes(5, 2),]))
+        );
+
 
         // assert_eq!(
         //     query_result_receiver.try_recv(),
-        //     Ok((addr1, vec![
-        //         QueryResult::PagePost(5, 0, 0),
-        //         QueryResult::PostTotalLikes(5, 2),
-        //         QueryResult::PostLikedByUser(5, true),
-        //     ]))
+        //     Ok((
+        //         addr1,
+        //         vec![
+        //             QueryResult::PagePost(5, 0, 0),
+        //             QueryResult::PagePost(6, 0, 0),
+        //             QueryResult::PostTotalLikes(5, 2),
+        //             QueryResult::PostTotalLikes(6, 1),
+        //             QueryResult::PostLikedByUser(5, true),
+        //         ]
+        //     ))
         // );
     }
 }
