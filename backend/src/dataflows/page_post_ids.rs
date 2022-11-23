@@ -640,24 +640,27 @@ mod tests {
             ))
         );
 
+        // what address is sent to first is non-deterministic
+        let mut recv = Vec::new();
+
+        recv.push(query_result_receiver.try_recv().unwrap());
+        recv.push(query_result_receiver.try_recv().unwrap());
+        recv.sort_by_key(|(addr, _)| *addr);
+
+        assert_eq!(recv[0], (addr0, vec![QueryResult::PostTotalLikes(5, 2)]));
+
         assert_eq!(
-            query_result_receiver.try_recv(),
-            Ok((addr0, vec![QueryResult::PostTotalLikes(5, 2),]))
+            recv[1],
+            (
+                addr1,
+                vec![
+                    QueryResult::PagePost(5, 0, 0),
+                    QueryResult::PagePost(6, 0, 0),
+                    QueryResult::PostTotalLikes(5, 2),
+                    QueryResult::PostTotalLikes(6, 1),
+                    QueryResult::PostLikedByUser(5, true),
+                ]
+            )
         );
-
-
-        // assert_eq!(
-        //     query_result_receiver.try_recv(),
-        //     Ok((
-        //         addr1,
-        //         vec![
-        //             QueryResult::PagePost(5, 0, 0),
-        //             QueryResult::PagePost(6, 0, 0),
-        //             QueryResult::PostTotalLikes(5, 2),
-        //             QueryResult::PostTotalLikes(6, 1),
-        //             QueryResult::PostLikedByUser(5, true),
-        //         ]
-        //     ))
-        // );
     }
 }
