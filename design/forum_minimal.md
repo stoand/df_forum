@@ -20,6 +20,8 @@ partof: REQ-purpose
 * TODO: security risk
     an attacker can just connect to another port and hijack the session running there
     a security token is needed
+* TODO: bootstrapping multiple times (ie. by going to the username change page and then to posts)
+    causes duplicate post creation
 
 * Cranelift -- deleting is bugged when switching sessions
 
