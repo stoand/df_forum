@@ -405,13 +405,13 @@ pub fn render_page_posts(
 
                     let like_button = new_post.query_selector(".post-like").unwrap().unwrap();
                     let like_button_click = Closure::<dyn FnMut()>::new(move || {
-                        // let diff =
-                        //     if new_post.get_attribute("is_liked_") != Some("true".to_string()) {
-                        //         1
-                        //     } else {
-                        //         -1
-                        //     };
-                        let diff = 1;
+                        let diff =
+                            if new_post.get_attribute("is_liked") != Some("true".to_string()) {
+                                1
+                            } else {
+                                -1
+                            };
+                        // let diff = 1;
 
                         log(&("session: ".to_string() + &session_id.to_string()));
 

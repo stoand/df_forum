@@ -215,11 +215,22 @@ pub fn posts_post_ids_dataflow<'a>(
     let post_total_like_count_result = posts_liked_by_user
         .inspect(|v| debug!("liked 0 -- {:?}", v))
         .reduce(|_post_id, inputs, outputs| {
-            outputs.push((inputs.len(), 1));
+            let count = inputs
+                .into_iter()
+                .filter(|(_, diff)| *diff > 0)
+                .collect::<Vec<_>>()
+                .len();
+            outputs.push((count, 1));
         })
         .inspect(|v| debug!("liked 1 -- {:?}", v))
         .map(|(post_id, count)| (post_id, count))
         .join(&session_post_ids)
+        // .map(|v| (0, v))
+        // .reduce(|_discarded_zero, inputs, outputs| {
+        //     debug!("inputs -- {:?}", inputs);
+        //     outputs.push((vec![], 1));
+        // })
+        // .map(|(_discarded_zero, v)| v)
         .inner
         .map(|((post_id, (count, session_addr)), time, diff)| {
             let result = if diff > 0 {
@@ -235,6 +246,12 @@ pub fn posts_post_ids_dataflow<'a>(
             (result, time, diff)
         })
         .as_collection()
+        // .map(|v| (0, v))
+        // .reduce(|_discarded_zero, inputs, outputs| {
+        //     debug!("inputs -- {:?}", inputs);
+        //     outputs.push((vec![], 1));
+        // })
+        // .map(|(_discarded_zero, v)| v)
         .inspect(|v| debug!("like counts -- {:?}", v));
 
     // Send everything at once to prevent flickering (but still split by session)
@@ -647,7 +664,9 @@ mod tests {
         recv.push(query_result_receiver.try_recv().unwrap());
         recv.sort_by_key(|(addr, _)| *addr);
 
-        assert_eq!(recv[0], (addr0, vec![QueryResult::PostTotalLikes(5, 2)]));
+        assert_eq!(recv[0], (addr0, vec![
+            QueryResult::PostTotalLikes(5, 2),
+        ]));
 
         assert_eq!(
             recv[1],
@@ -661,6 +680,23 @@ mod tests {
                     QueryResult::PostLikedByUser(5, true),
                 ]
             )
+        );
+
+        persisted_sender
+            .send((addr1, vec![(55, Persisted::PostLike(6), -1)]))
+            .unwrap();
+
+        forum_minimal.advance_dataflow_computation_once().await;
+
+        assert_eq!(
+            query_result_receiver.try_recv(),
+            Ok((
+                addr1,
+                vec![
+                    QueryResult::PostTotalLikes(6, 0),
+                    QueryResult::PostLikedByUser(6, false),
+                ]
+            ))
         );
     }
 }
