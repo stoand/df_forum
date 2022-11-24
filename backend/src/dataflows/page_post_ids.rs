@@ -213,6 +213,7 @@ pub fn posts_post_ids_dataflow<'a>(
     let posts_liked_by_user2 = collection.flat_map(|(_addr, (id, persisted))| {
         if let Persisted::PostLike(liked_post) = persisted {
             vec![(liked_post, id)]
+        // add an additional count so that counting to zero is possible
         } else if Persisted::Post == persisted {
             vec![(id, 0)]
         } else {
@@ -228,6 +229,7 @@ pub fn posts_post_ids_dataflow<'a>(
                 .filter(|(_, diff)| *diff > 0)
                 .collect::<Vec<_>>()
                 .len();
+            // remove additional count that makes counting to zero possible
             outputs.push((count - 1, 1));
         })
         .inspect(|v| debug!("liked 1 -- {:?}", v))

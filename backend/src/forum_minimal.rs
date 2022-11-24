@@ -9,8 +9,6 @@ use timely::communication::allocator::thread::Thread;
 use timely::worker::Worker;
 use timely::WorkerConfig;
 
-use log::debug;
-use std::fmt::Debug;
 use std::net::SocketAddr;
 use tokio::sync::broadcast;
 use tokio::sync::broadcast::Sender;
