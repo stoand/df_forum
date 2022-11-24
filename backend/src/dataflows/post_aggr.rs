@@ -14,7 +14,7 @@ pub fn post_aggr_dataflow<'a>(
 
     let sessions_with_zero = manages_sess
         .filter(|(_addr, (_, persisted))| {
-            if let Persisted::Session(_) = persisted {
+            if let Persisted::ViewPostsPage(_) = persisted {
                 true
             } else {
                 false
@@ -70,7 +70,7 @@ mod tests {
     use tokio::sync::broadcast;
 
     #[tokio::test]
-    pub async fn test_post_aggr() {
+    pub async fn test_post_aggr_total() {
         crate::init_logger();
         let addr: SocketAddr = "127.0.0.1:8080".parse().unwrap();
         let (query_result_sender, mut query_result_receiver) = broadcast::channel(16);
@@ -117,6 +117,40 @@ mod tests {
         assert_eq!(
             query_result_receiver.try_recv(),
             Ok((addr, vec![QueryResult::PostAggregates(0, 1)]))
+        );
+    }
+    
+
+    #[tokio::test]
+    pub async fn test_post_aggr_likes() {
+        crate::init_logger();
+        let addr: SocketAddr = "127.0.0.1:8080".parse().unwrap();
+        let (query_result_sender, mut query_result_receiver) = broadcast::channel(16);
+        let (persisted_sender, _persisted_receiver) = broadcast::channel(16);
+
+        let mut forum_minimal = ForumMinimal::new_with_dataflows(
+            persisted_sender.clone(),
+            query_result_sender,
+            post_aggr_dataflow,
+        );
+
+        persisted_sender
+            .send((
+                addr,
+                vec![
+                    (55, Persisted::ViewPostsPage(0), 1),
+                    (5, Persisted::Post, 1),
+                    (6, Persisted::Post, 1),
+                    (7, Persisted::Post, 1),
+                ],
+            ))
+            .unwrap();
+
+        forum_minimal.advance_dataflow_computation_once().await;
+
+        assert_eq!(
+            query_result_receiver.try_recv(),
+            Ok((addr, vec![QueryResult::PostAggregates(3, 2)]))
         );
     }
 }
