@@ -3,6 +3,7 @@ pub use df_forum_frontend::persisted::{Persisted, PersistedItems, Post};
 pub use df_forum_frontend::query_result::QueryResult;
 
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::rc::Rc;
 use timely::communication::allocator::thread::Thread;
 use timely::worker::Worker;
@@ -12,11 +13,12 @@ use log::debug;
 use std::fmt::Debug;
 use std::net::SocketAddr;
 use tokio::sync::broadcast;
+use tokio::sync::broadcast::Sender;
 
 use differential_dataflow::input::InputSession;
 
-use crate::dataflows::post_aggr::post_aggr_dataflow;
 use crate::dataflows::page_post_ids::posts_post_ids_dataflow;
+use crate::dataflows::post_aggr::post_aggr_dataflow;
 
 pub type InputFormat = (SocketAddr, (Id, Persisted));
 
@@ -111,5 +113,37 @@ impl ForumMinimal {
         loop {
             self.advance_dataflow_computation_once().await;
         }
+    }
+}
+pub fn batch_send(
+    query_results_aug: &[(Vec<(SocketAddr, QueryResult)>, u64, isize)],
+    query_result_sender: &Sender<(SocketAddr, Vec<QueryResult>)>,
+) {
+    let mut sessions: HashMap<SocketAddr, Vec<QueryResult>> = HashMap::new();
+
+    let query_results = query_results_aug
+        .to_vec()
+        .into_iter()
+        .map(|(qr, _time, _diff)| qr)
+        .flatten()
+        .collect::<Vec<_>>();
+
+    // Break apart query_results by session
+
+    for (session_addr, query_result) in query_results {
+        if None == sessions.get(&session_addr) {
+            sessions.insert(session_addr, Vec::new());
+        }
+        sessions
+            .get_mut(&session_addr)
+            .expect("session not found")
+            .push(query_result);
+    }
+
+    for (session_addr, query_results) in sessions.iter() {
+        query_result_sender
+            .clone()
+            .send((*session_addr, query_results.clone()))
+            .unwrap();
     }
 }

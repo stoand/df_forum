@@ -1,9 +1,7 @@
 use crate::forum_minimal::{
-    Persisted, QueryResult, QueryResultSender, ScopeCollection, POSTS_PER_PAGE,
+    batch_send, Persisted, QueryResult, QueryResultSender, ScopeCollection, POSTS_PER_PAGE,
 };
 use log::debug;
-use std::collections::HashMap;
-use std::net::SocketAddr;
 
 use timely::dataflow::operators::Map;
 
@@ -257,35 +255,7 @@ pub fn posts_post_ids_dataflow<'a>(
         .concat(&posts_liked_by_user_result)
         .concat(&post_total_like_count_result)
         .consolidate()
-        .inspect_batch(move |_time, query_results_aug| {
-            let mut sessions: HashMap<SocketAddr, Vec<QueryResult>> = HashMap::new();
-
-            let query_results = query_results_aug
-                .to_vec()
-                .into_iter()
-                .map(|(qr, _time, _diff)| qr)
-                .flatten()
-                .collect::<Vec<_>>();
-
-            // Break apart query_results by session
-
-            for (session_addr, query_result) in query_results {
-                if None == sessions.get(&session_addr) {
-                    sessions.insert(session_addr, Vec::new());
-                }
-                sessions
-                    .get_mut(&session_addr)
-                    .expect("session not found")
-                    .push(query_result);
-            }
-
-            for (session_addr, query_results) in sessions.iter() {
-                query_result_sender
-                    .clone()
-                    .send((*session_addr, query_results.clone()))
-                    .unwrap();
-            }
-        });
+        .inspect_batch(move |_time, aug| batch_send(aug, &query_result_sender));
 }
 
 #[cfg(test)]
