@@ -157,7 +157,7 @@ pub fn posts_dataflow<'a>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::forum_minimal::{try_recv_contains, ForumMinimal};
+    use crate::forum_minimal::ForumMinimal;
     use std::net::SocketAddr;
     use tokio::sync::broadcast;
 
@@ -187,12 +187,13 @@ mod tests {
 
         forum_minimal.advance_dataflow_computation_once().await;
 
-        assert!(try_recv_contains(
-            &mut query_result_receiver,
-            (
+        
+        assert_eq!(
+            query_result_receiver.try_recv(),
+            Ok((
                 addr,
                 vec![QueryResult::AddPost(5, "Zerg".into(), "Zerg Info".into())]
-            )
-        ));
+            ))
+        );
     }
 }

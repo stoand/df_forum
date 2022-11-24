@@ -113,20 +113,3 @@ impl ForumMinimal {
         }
     }
 }
-
-pub fn try_recv_contains<T: PartialEq + Clone + Debug>(
-    reciever: &mut broadcast::Receiver<T>,
-    values: T,
-) -> bool {
-    let mut success = false;
-
-    while let Ok(val) = reciever.try_recv() {
-        debug!("try recv got: {:?}", val);
-        debug!("comparing\n{:?}\nto\n{:?}", val, values);
-        if val == values {
-            success = true
-        }
-    }
-
-    success
-}
