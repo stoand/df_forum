@@ -29,13 +29,11 @@ pub fn post_aggr_dataflow<'a>(
         .flat_map(|(_id, persisted)| {
             if let Persisted::Post = persisted {
                 vec![0]
-            } else {
+            } else if Persisted::PlusOneDummy == persisted {
                 // add an additional count so that counting to zero is possible
-                if let Persisted::ViewPostsPage(_) = persisted {
-                    vec![0]
-                } else {
-                    vec![]
-                }
+                vec![0]
+            } else {
+                vec![]
             }
         })
         .count()
@@ -119,6 +117,7 @@ mod tests {
             .send((
                 addr,
                 vec![
+                    (0, Persisted::PlusOneDummy, 1),
                     (55, Persisted::ViewPostsPage(0), 1),
                     (5, Persisted::Post, 1),
                     (6, Persisted::Post, 1),

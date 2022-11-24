@@ -22,6 +22,7 @@ pub enum Persisted {
     
     Session(String), // username
 
+    PlusOneDummy,
 }
 
 pub type PersistedItems = Vec<(Id, Persisted, Diff)>;
