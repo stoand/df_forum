@@ -174,13 +174,9 @@ pub fn posts_post_ids_dataflow<'a>(
         )
         .as_collection();
 
-    let posts_liked_by_user = collection.flat_map(|(addr, (session_id, persisted))| {
-        if session_id != 0 {
-            if let Persisted::PostLike(liked_post) = persisted {
-                vec![(liked_post, addr)]
-            } else {
-                vec![]
-            }
+    let posts_liked_by_user = collection.flat_map(|(addr, (_id, persisted))| {
+        if let Persisted::PostLike(liked_post) = persisted {
+            vec![(liked_post, addr)]
         } else {
             vec![]
         }
@@ -216,9 +212,11 @@ pub fn posts_post_ids_dataflow<'a>(
         .as_collection()
         .inspect(|v| debug!("likes -- {:?}", v));
 
-    let posts_liked_by_user2 = collection.flat_map(|(_addr, (session_id, persisted))| {
+    let posts_liked_by_user2 = collection.flat_map(|(_addr, (id, persisted))| {
         if let Persisted::PostLike(liked_post) = persisted {
-            vec![(liked_post, session_id)]
+            vec![(liked_post, id)]
+        } else if Persisted::Post == persisted {
+            vec![(id, 0)]
         } else {
             vec![]
         }
@@ -634,8 +632,6 @@ mod tests {
                     (55, Persisted::ViewPostsPage(0), 1),
                     (5, Persisted::Post, 1),
                     (6, Persisted::Post, 1),
-                    (0, Persisted::PostLike(5), 1),
-                    (0, Persisted::PostLike(6), 1),
                     (55, Persisted::PostLike(5), 1),
                     (55, Persisted::PostLike(6), 1),
                 ],
