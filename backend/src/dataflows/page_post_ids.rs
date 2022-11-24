@@ -174,9 +174,13 @@ pub fn posts_post_ids_dataflow<'a>(
         )
         .as_collection();
 
-    let posts_liked_by_user = collection.flat_map(|(addr, (_session_id, persisted))| {
-        if let Persisted::PostLike(liked_post) = persisted {
-            vec![(liked_post, addr)]
+    let posts_liked_by_user = collection.flat_map(|(addr, (session_id, persisted))| {
+        if session_id != 0 {
+            if let Persisted::PostLike(liked_post) = persisted {
+                vec![(liked_post, addr)]
+            } else {
+                vec![]
+            }
         } else {
             vec![]
         }
@@ -212,7 +216,15 @@ pub fn posts_post_ids_dataflow<'a>(
         .as_collection()
         .inspect(|v| debug!("likes -- {:?}", v));
 
-    let post_total_like_count_result = posts_liked_by_user
+    let posts_liked_by_user2 = collection.flat_map(|(_addr, (session_id, persisted))| {
+        if let Persisted::PostLike(liked_post) = persisted {
+            vec![(liked_post, session_id)]
+        } else {
+            vec![]
+        }
+    });
+
+    let post_total_like_count_result = posts_liked_by_user2
         .inspect(|v| debug!("liked 0 -- {:?}", v))
         .reduce(|_post_id, inputs, outputs| {
             let count = inputs
@@ -220,7 +232,7 @@ pub fn posts_post_ids_dataflow<'a>(
                 .filter(|(_, diff)| *diff > 0)
                 .collect::<Vec<_>>()
                 .len();
-            outputs.push((count, 1));
+            outputs.push((count - 1, 1));
         })
         .inspect(|v| debug!("liked 1 -- {:?}", v))
         .map(|(post_id, count)| (post_id, count))
@@ -622,6 +634,8 @@ mod tests {
                     (55, Persisted::ViewPostsPage(0), 1),
                     (5, Persisted::Post, 1),
                     (6, Persisted::Post, 1),
+                    (0, Persisted::PostLike(5), 1),
+                    (0, Persisted::PostLike(6), 1),
                     (55, Persisted::PostLike(5), 1),
                     (55, Persisted::PostLike(6), 1),
                 ],
@@ -664,9 +678,7 @@ mod tests {
         recv.push(query_result_receiver.try_recv().unwrap());
         recv.sort_by_key(|(addr, _)| *addr);
 
-        assert_eq!(recv[0], (addr0, vec![
-            QueryResult::PostTotalLikes(5, 2),
-        ]));
+        assert_eq!(recv[0], (addr0, vec![QueryResult::PostTotalLikes(5, 2),]));
 
         assert_eq!(
             recv[1],

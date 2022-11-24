@@ -191,6 +191,7 @@ pub fn render_page_posts(
                 (id, Persisted::Post, 1),
                 (id, Persisted::PostTitle(title), 1),
                 (id, Persisted::PostBody(body), 1),
+                (0, Persisted::PostLike(id), 1),
             ]);
         }
     });
