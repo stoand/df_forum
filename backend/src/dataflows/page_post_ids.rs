@@ -235,12 +235,6 @@ pub fn posts_post_ids_dataflow<'a>(
         .inspect(|v| debug!("liked 1 -- {:?}", v))
         .map(|(post_id, count)| (post_id, count))
         .join(&session_post_ids)
-        // .map(|v| (0, v))
-        // .reduce(|_discarded_zero, inputs, outputs| {
-        //     debug!("inputs -- {:?}", inputs);
-        //     outputs.push((vec![], 1));
-        // })
-        // .map(|(_discarded_zero, v)| v)
         .inner
         .map(|((post_id, (count, session_addr)), time, diff)| {
             let result = if diff > 0 {
@@ -248,20 +242,12 @@ pub fn posts_post_ids_dataflow<'a>(
                     session_addr,
                     QueryResult::PostTotalLikes(post_id, count as u64),
                 )]
-            // } else if count == 1 {
-            //     vec![(session_addr, QueryResult::PostTotalLikes(post_id, 0))]
             } else {
                 vec![]
             };
             (result, time, diff)
         })
         .as_collection()
-        // .map(|v| (0, v))
-        // .reduce(|_discarded_zero, inputs, outputs| {
-        //     debug!("inputs -- {:?}", inputs);
-        //     outputs.push((vec![], 1));
-        // })
-        // .map(|(_discarded_zero, v)| v)
         .inspect(|v| debug!("like counts -- {:?}", v));
 
     // Send everything at once to prevent flickering (but still split by session)
@@ -702,6 +688,7 @@ mod tests {
                 addr1,
                 vec![
                     QueryResult::PostTotalLikes(6, 0),
+                    // this test is flaky
                     QueryResult::PostLikedByUser(6, false),
                 ]
             ))
