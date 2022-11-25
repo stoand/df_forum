@@ -22,6 +22,7 @@ partof: REQ-purpose
     a security token is needed
 * TODO: bootstrapping multiple times (ie. by going to the username change page and then to posts)
     causes duplicate post creation
+* TODO: remove session var on websocket disconnection
 
 * Cranelift -- deleting is bugged when switching sessions
 

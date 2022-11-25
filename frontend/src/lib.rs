@@ -279,8 +279,8 @@ pub fn render_page_posts(
             root.set_attribute("page", &(page.to_string())).unwrap();
             update_page_label();
             connection2.borrow().send_transaction(vec![
-                (view_posts_page_id, Persisted::ViewPostsPage(page), 1),
-                (view_posts_page_id, Persisted::ViewPostsPage(old_page), -1),
+                (session_id, Persisted::ViewPostsPage(page), 1),
+                (session_id, Persisted::ViewPostsPage(old_page), -1),
             ]);
         }
     });
@@ -313,8 +313,8 @@ pub fn render_page_posts(
             root.set_attribute("page", &(page.to_string())).unwrap();
             update_page_label();
             connection3.borrow().send_transaction(vec![
-                (view_posts_page_id, Persisted::ViewPostsPage(page), 1),
-                (view_posts_page_id, Persisted::ViewPostsPage(old_page), -1),
+                (session_id, Persisted::ViewPostsPage(page), 1),
+                (session_id, Persisted::ViewPostsPage(old_page), -1),
             ]);
         }
     });
@@ -405,12 +405,12 @@ pub fn render_page_posts(
 
                     let like_button = new_post.query_selector(".post-like").unwrap().unwrap();
                     let like_button_click = Closure::<dyn FnMut()>::new(move || {
-                        let diff =
-                            if new_post.get_attribute("is_liked") != Some("true".to_string()) {
-                                1
-                            } else {
-                                -1
-                            };
+                        let diff = if new_post.get_attribute("is_liked") != Some("true".to_string())
+                        {
+                            1
+                        } else {
+                            -1
+                        };
                         // let diff = 1;
 
                         log(&("session: ".to_string() + &session_id.to_string()));
@@ -446,13 +446,15 @@ pub fn render_page_posts(
                         .set_text_content(Some(&body));
                 }
                 QueryResult::PostCreator(post_id, creator) => {
-                    document
-                        .get_element_by_id(&post_id.to_string())
-                        .expect("could not find post by id")
-                        .query_selector(".post-creator")
-                        .unwrap()
-                        .unwrap()
-                        .set_text_content(Some(&creator));
+                    // if let Some(el) =  {
+                    //     el
+                            document.get_element_by_id(&post_id.to_string())
+                            .expect("could not find post by id")
+                            .query_selector(".post-creator")
+                            .unwrap()
+                            .unwrap()
+                            .set_text_content(Some(&creator));
+                    // }
                 }
                 QueryResult::DeletePost(post_id) => {
                     document
