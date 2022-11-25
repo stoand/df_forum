@@ -23,6 +23,7 @@ partof: REQ-purpose
 * TODO: bootstrapping multiple times (ie. by going to the username change page and then to posts)
     causes duplicate post creation
 * TODO: remove session var on websocket disconnection
+* TODO: bug when you create two items, refresh, create a third, go to next page, delete third
 
 * Cranelift -- deleting is bugged when switching sessions
 
