@@ -4,6 +4,7 @@ use crate::forum_minimal::{
 use log::debug;
 
 use timely::dataflow::operators::Map;
+use timely::dataflow::operators::Filter;
 
 use differential_dataflow::operators::Consolidate;
 // use differential_dataflow::operators::Count;
@@ -141,7 +142,10 @@ pub fn posts_post_ids_dataflow<'a>(
         } else {
             vec![]
         }
-    });
+    })
+    .inner
+    .filter(|(_, _time, diff)| *diff > 0)
+    .as_collection();
 
     let session_name_addrs = collection.flat_map(|(creator_addr, (_session_id, persisted))| {
         if let Persisted::Session(session_name) = persisted {
@@ -504,6 +508,7 @@ mod tests {
             ))
         );
 
+        // Warning - FLAKY
         assert_eq!(
             query_result_receiver.try_recv(),
             Ok((
