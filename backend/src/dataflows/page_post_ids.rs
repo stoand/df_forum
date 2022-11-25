@@ -3,8 +3,8 @@ use crate::forum_minimal::{
 };
 use log::debug;
 
-use timely::dataflow::operators::Map;
 use timely::dataflow::operators::Filter;
+use timely::dataflow::operators::Map;
 
 use differential_dataflow::operators::Consolidate;
 // use differential_dataflow::operators::Count;
@@ -136,16 +136,17 @@ pub fn posts_post_ids_dataflow<'a>(
         .as_collection()
         .inspect(|v| debug!("session post fields -- {:?}", v));
 
-    let post_creator_addrs = collection.flat_map(|(creator_addr, (post_id, persisted))| {
-        if let Persisted::Post = persisted {
-            vec![(creator_addr, post_id)]
-        } else {
-            vec![]
-        }
-    })
-    .inner
-    .filter(|(_, _time, diff)| *diff > 0)
-    .as_collection();
+    let post_creator_addrs = collection
+        .flat_map(|(creator_addr, (post_id, persisted))| {
+            if let Persisted::Post = persisted {
+                vec![(creator_addr, post_id)]
+            } else {
+                vec![]
+            }
+        })
+        .inner
+        .filter(|(_, _time, diff)| *diff > 0)
+        .as_collection();
 
     let session_name_addrs = collection.flat_map(|(creator_addr, (_session_id, persisted))| {
         if let Persisted::Session(session_name) = persisted {
@@ -313,6 +314,7 @@ mod tests {
                     QueryResult::PagePost(7, 1, 0),
                     QueryResult::PostTitle(7, "Protoss".into()),
                     QueryResult::PostBody(7, "Protoss Info".into()),
+                    QueryResult::PostTotalLikes(7, 0),
                 ]
             ))
         );
@@ -341,6 +343,8 @@ mod tests {
                     QueryResult::PostTitle(6, "Terran".into()),
                     QueryResult::PostBody(5, "Zerg Info".into()),
                     QueryResult::PostBody(6, "Terran Info".into()),
+                    QueryResult::PostTotalLikes(5, 0),
+                    QueryResult::PostTotalLikes(6, 0),
                 ]
             ))
         );
@@ -405,6 +409,8 @@ mod tests {
                 vec![
                     QueryResult::PagePost(5, 0, 0),
                     QueryResult::PagePost(6, 0, 0),
+                    QueryResult::PostTotalLikes(5, 0),
+                    QueryResult::PostTotalLikes(6, 0),
                 ]
             ))
         );
@@ -419,7 +425,11 @@ mod tests {
             query_result_receiver.try_recv(),
             Ok((
                 addr,
-                vec![QueryResult::DeletePost(6), QueryResult::PagePost(7, 0, 0)]
+                vec![
+                    QueryResult::DeletePost(6),
+                    QueryResult::PagePost(7, 0, 0),
+                    QueryResult::PostTotalLikes(7, 0),
+                ]
             ))
         );
     }
@@ -488,35 +498,20 @@ mod tests {
         );
 
         persisted_sender
-            .send((
-                addr1,
-                vec![
-                    (5, Persisted::Post, -1),
-                ],
-            ))
+            .send((addr1, vec![(5, Persisted::Post, -1)]))
             .unwrap();
 
         forum_minimal.advance_dataflow_computation_once().await;
 
         assert_eq!(
             query_result_receiver.try_recv(),
-            Ok((
-                addr0,
-                vec![
-                    QueryResult::DeletePost(5),
-                ]
-            ))
+            Ok((addr0, vec![QueryResult::DeletePost(5),]))
         );
 
         // Warning - FLAKY
         assert_eq!(
             query_result_receiver.try_recv(),
-            Ok((
-                addr1,
-                vec![
-                    QueryResult::DeletePost(5),
-                ]
-            ))
+            Ok((addr1, vec![QueryResult::DeletePost(5),]))
         );
     }
     #[tokio::test]
@@ -546,7 +541,13 @@ mod tests {
 
         assert_eq!(
             query_result_receiver.try_recv(),
-            Ok((addr, vec![QueryResult::PagePost(5, 0, 0),]))
+            Ok((
+                addr,
+                vec![
+                    QueryResult::PagePost(5, 0, 0),
+                    QueryResult::PostTotalLikes(5, 0),
+                ]
+            ))
         );
 
         persisted_sender
