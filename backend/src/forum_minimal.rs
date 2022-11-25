@@ -80,7 +80,7 @@ impl ForumMinimal {
             Rc::new(RefCell::new(input));
         let input1 = input0.clone();
 
-        let addr: SocketAddr = "127.0.0.1:9999".parse().unwrap();
+        let addr: SocketAddr = "127.0.0.1:0".parse().unwrap();
         input1.borrow_mut().insert((addr, (0, Persisted::PlusOneDummy)));
 
         ForumMinimal {

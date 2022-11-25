@@ -423,7 +423,8 @@ mod tests {
     #[tokio::test]
     pub async fn test_page_post_username() {
         crate::init_logger();
-        let addr: SocketAddr = "127.0.0.1:8080".parse().unwrap();
+        let addr0: SocketAddr = "127.0.0.1:8080".parse().unwrap();
+        let addr1: SocketAddr = "127.0.0.1:8081".parse().unwrap();
         let (query_result_sender, mut query_result_receiver) = broadcast::channel(16);
         let (persisted_sender, _persisted_receiver) = broadcast::channel(16);
 
@@ -435,7 +436,7 @@ mod tests {
 
         persisted_sender
             .send((
-                addr,
+                addr0,
                 vec![
                     (55, Persisted::ViewPostsPage(0), 1),
                     (55, Persisted::Session("asdf".to_string()), 1),
@@ -446,13 +447,69 @@ mod tests {
 
         forum_minimal.advance_dataflow_computation_once().await;
 
+        persisted_sender
+            .send((
+                addr1,
+                vec![
+                    (56, Persisted::ViewPostsPage(0), 1),
+                    (56, Persisted::Session("asdf".to_string()), 1),
+                ],
+            ))
+            .unwrap();
+
+        forum_minimal.advance_dataflow_computation_once().await;
+
         assert_eq!(
             query_result_receiver.try_recv(),
             Ok((
-                addr,
+                addr0,
                 vec![
                     QueryResult::PagePost(5, 0, 0),
                     QueryResult::PostCreator(5, "asdf".to_string()),
+                    QueryResult::PostTotalLikes(5, 0),
+                ]
+            ))
+        );
+
+        assert_eq!(
+            query_result_receiver.try_recv(),
+            Ok((
+                addr1,
+                vec![
+                    QueryResult::PagePost(5, 0, 0),
+                    QueryResult::PostCreator(5, "asdf".to_string()),
+                    QueryResult::PostTotalLikes(5, 0),
+                ]
+            ))
+        );
+
+        persisted_sender
+            .send((
+                addr1,
+                vec![
+                    (5, Persisted::Post, -1),
+                ],
+            ))
+            .unwrap();
+
+        forum_minimal.advance_dataflow_computation_once().await;
+
+        assert_eq!(
+            query_result_receiver.try_recv(),
+            Ok((
+                addr0,
+                vec![
+                    QueryResult::DeletePost(5),
+                ]
+            ))
+        );
+
+        assert_eq!(
+            query_result_receiver.try_recv(),
+            Ok((
+                addr1,
+                vec![
+                    QueryResult::DeletePost(5),
                 ]
             ))
         );
