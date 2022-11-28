@@ -637,7 +637,7 @@ mod tests {
         crate::init_logger();
         let addr0: SocketAddr = "127.0.0.1:8080".parse().unwrap();
         let addr1: SocketAddr = "127.0.0.1:8081".parse().unwrap();
-        let addr2: SocketAddr = "127.0.0.1:8081".parse().unwrap();
+        let addr2: SocketAddr = "127.0.0.1:8082".parse().unwrap();
         let (query_result_sender, mut query_result_receiver) = broadcast::channel(16);
         let (persisted_sender, _persisted_receiver) = broadcast::channel(16);
 
@@ -724,22 +724,41 @@ mod tests {
 
         forum_minimal.advance_dataflow_computation_once().await;
 
+        // what address is sent to first is non-deterministic
+        let mut recv = Vec::new();
+
+        recv.push(query_result_receiver.try_recv().unwrap());
+        recv.push(query_result_receiver.try_recv().unwrap());
+        recv.sort_by_key(|(addr, _)| *addr);
+
         // this test is flaky
         assert_eq!(
-            query_result_receiver.try_recv(),
-            Ok((
-                addr1,
+            recv[0],
+            (
+                addr0,
                 vec![
                     QueryResult::PostTotalLikes(6, 0),
                     // this test is flaky
                     // QueryResult::PostLikedByUser(6, false),
                 ]
-            ))
+            )
+        );
+
+        assert_eq!(
+            recv[1],
+            (
+                addr1,
+                vec![
+                    QueryResult::PostTotalLikes(6, 0),
+                    // this test is flaky
+                    QueryResult::PostLikedByUser(6, false),
+                ]
+            )
         );
 
         persisted_sender
             .send((
-                addr0,
+                addr2,
                 vec![
                     (57, Persisted::ViewPostsPage(0), 1),
                     (57, Persisted::Session("asdf0".to_string()), 1),
@@ -749,16 +768,20 @@ mod tests {
 
         forum_minimal.advance_dataflow_computation_once().await;
 
-        // assert_eq!(
-        //     query_result_receiver.try_recv(),
-        //     Ok((
-        //         addr1,
-        //         vec![
-        //             QueryResult::PostTotalLikes(6, 0),
-        //             // this test is flaky
-        //             QueryResult::PostLikedByUser(6, false),
-        //         ]
-        //     ))
-        // );
+        assert_eq!(
+            query_result_receiver.try_recv(),
+            Ok((
+                addr2,
+                vec![
+                    QueryResult::PagePost(5, 0, 0),
+                    QueryResult::PagePost(6, 0, 0),
+                    QueryResult::PostCreator(5, "asdf0".to_string()),
+                    QueryResult::PostCreator(6, "asdf0".to_string()),
+                    QueryResult::PostTotalLikes(5, 2),
+                    QueryResult::PostTotalLikes(6, 0),
+                    QueryResult::PostLikedByUser(5, true),
+                ]
+            ))
+        );
     }
 }
