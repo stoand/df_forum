@@ -213,7 +213,7 @@ pub fn posts_post_ids_dataflow<'a>(
         .map(
             |((_session_name, ((post_id, addr, session_addr), session_name_addr)), time, diff)| {
                 (
-                    if session_name_addr == addr {
+                    if session_name_addr == session_addr {
                         vec![(
                             session_addr,
                             QueryResult::PostLikedByUser(post_id, diff > 0),
@@ -730,6 +730,7 @@ mod tests {
                 addr0,
                 vec![
                     QueryResult::PostTotalLikes(5, 2),
+                    QueryResult::PostLikedByUser(5, true),
                 ]
             )
         );
@@ -746,6 +747,7 @@ mod tests {
                     QueryResult::PostTotalLikes(5, 2),
                     QueryResult::PostTotalLikes(6, 1),
                     QueryResult::PostLikedByUser(5, true),
+                    QueryResult::PostLikedByUser(6, true),
                 ]
             )
         );
@@ -771,7 +773,7 @@ mod tests {
                 vec![
                     QueryResult::PostTotalLikes(6, 0),
                     // this test is flaky
-                    // QueryResult::PostLikedByUser(6, false),
+                    QueryResult::PostLikedByUser(6, false),
                 ]
             )
         );
