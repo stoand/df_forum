@@ -185,23 +185,47 @@ pub fn posts_post_ids_dataflow<'a>(
         }
     });
 
+    let session_addrs = collection.flat_map(|(addr, (_id, persisted))| {
+        if let Persisted::Session(session_name) = persisted {
+            vec![(addr, session_name)]
+        } else {
+            vec![]
+        }
+    });
+
+    let session_names = collection.flat_map(|(addr, (_id, persisted))| {
+        if let Persisted::Session(session_name) = persisted {
+            vec![(session_name, addr)]
+        } else {
+            vec![]
+        }
+    });
+
     let posts_liked_by_user_result = session_post_ids
         .join(&posts_liked_by_user)
-        .inner
-        .map(|((post_id, (session_addr, addr)), time, diff)| {
-            (
-                if session_addr == addr {
-                    vec![(
-                        session_addr,
-                        QueryResult::PostLikedByUser(post_id, diff > 0),
-                    )]
-                } else {
-                    vec![]
-                },
-                time,
-                diff,
-            )
+        .map(|(post_id, (session_addr, addr))| (session_addr, (post_id, addr)))
+        .join(&session_addrs)
+        .map(|(session_addr, ((post_id, addr), session_name))| {
+            (session_name, (post_id, addr, session_addr))
         })
+        .join(&session_names)
+        .inner
+        .map(
+            |((_session_name, ((post_id, addr, session_addr), session_name_addr)), time, diff)| {
+                (
+                    if session_name_addr == addr {
+                        vec![(
+                            session_addr,
+                            QueryResult::PostLikedByUser(post_id, diff > 0),
+                        )]
+                    } else {
+                        vec![]
+                    },
+                    time,
+                    diff,
+                )
+            },
+        )
         // .map(|((post_id, (session_addr, addr)), time, diff)| {
         //     (
         //         vec![(
@@ -700,7 +724,15 @@ mod tests {
         recv.push(query_result_receiver.try_recv().unwrap());
         recv.sort_by_key(|(addr, _)| *addr);
 
-        assert_eq!(recv[0], (addr0, vec![QueryResult::PostTotalLikes(5, 2),]));
+        assert_eq!(
+            recv[0],
+            (
+                addr0,
+                vec![
+                    QueryResult::PostTotalLikes(5, 2),
+                ]
+            )
+        );
 
         assert_eq!(
             recv[1],
