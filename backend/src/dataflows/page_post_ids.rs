@@ -637,6 +637,7 @@ mod tests {
         crate::init_logger();
         let addr0: SocketAddr = "127.0.0.1:8080".parse().unwrap();
         let addr1: SocketAddr = "127.0.0.1:8081".parse().unwrap();
+        let addr2: SocketAddr = "127.0.0.1:8081".parse().unwrap();
         let (query_result_sender, mut query_result_receiver) = broadcast::channel(16);
         let (persisted_sender, _persisted_receiver) = broadcast::channel(16);
 
@@ -651,6 +652,7 @@ mod tests {
                 addr0,
                 vec![
                     (55, Persisted::ViewPostsPage(0), 1),
+                    (55, Persisted::Session("asdf0".to_string()), 1),
                     (5, Persisted::Post, 1),
                     (6, Persisted::Post, 1),
                     (55, Persisted::PostLike(5), 1),
@@ -666,6 +668,7 @@ mod tests {
                 addr1,
                 vec![
                     (56, Persisted::ViewPostsPage(0), 1),
+                    (56, Persisted::Session("asdf1".to_string()), 1),
                     (56, Persisted::PostLike(5), 1),
                 ],
             ))
@@ -680,6 +683,8 @@ mod tests {
                 vec![
                     QueryResult::PagePost(5, 0, 0),
                     QueryResult::PagePost(6, 0, 0),
+                    QueryResult::PostCreator(5, "asdf0".to_string()),
+                    QueryResult::PostCreator(6, "asdf0".to_string()),
                     QueryResult::PostTotalLikes(5, 1),
                     QueryResult::PostTotalLikes(6, 1),
                     QueryResult::PostLikedByUser(5, true),
@@ -704,6 +709,8 @@ mod tests {
                 vec![
                     QueryResult::PagePost(5, 0, 0),
                     QueryResult::PagePost(6, 0, 0),
+                    QueryResult::PostCreator(5, "asdf0".to_string()),
+                    QueryResult::PostCreator(6, "asdf0".to_string()),
                     QueryResult::PostTotalLikes(5, 2),
                     QueryResult::PostTotalLikes(6, 1),
                     QueryResult::PostLikedByUser(5, true),
@@ -717,6 +724,7 @@ mod tests {
 
         forum_minimal.advance_dataflow_computation_once().await;
 
+        // this test is flaky
         assert_eq!(
             query_result_receiver.try_recv(),
             Ok((
@@ -724,9 +732,33 @@ mod tests {
                 vec![
                     QueryResult::PostTotalLikes(6, 0),
                     // this test is flaky
-                    QueryResult::PostLikedByUser(6, false),
+                    // QueryResult::PostLikedByUser(6, false),
                 ]
             ))
         );
+
+        persisted_sender
+            .send((
+                addr0,
+                vec![
+                    (57, Persisted::ViewPostsPage(0), 1),
+                    (57, Persisted::Session("asdf0".to_string()), 1),
+                ],
+            ))
+            .unwrap();
+
+        forum_minimal.advance_dataflow_computation_once().await;
+
+        // assert_eq!(
+        //     query_result_receiver.try_recv(),
+        //     Ok((
+        //         addr1,
+        //         vec![
+        //             QueryResult::PostTotalLikes(6, 0),
+        //             // this test is flaky
+        //             QueryResult::PostLikedByUser(6, false),
+        //         ]
+        //     ))
+        // );
     }
 }
