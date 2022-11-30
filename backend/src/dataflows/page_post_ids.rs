@@ -1,10 +1,11 @@
 use crate::forum_minimal::{
-    batch_send, Persisted, QueryResult, QueryResultSender, ScopeCollection, POSTS_PER_PAGE,
+    batch_send, Persisted, QueryResult, QueryResultSender, ScopeCollection, OutputScopeCollection, POSTS_PER_PAGE,
 };
 use log::debug;
 
 use timely::dataflow::operators::Filter;
 use timely::dataflow::operators::Map;
+use timely::dataflow::Scope;
 
 use differential_dataflow::operators::Consolidate;
 // use differential_dataflow::operators::Count;
@@ -14,8 +15,7 @@ use differential_dataflow::AsCollection;
 
 pub fn posts_post_ids_dataflow<'a>(
     collection: &ScopeCollection<'a>,
-    query_result_sender: QueryResultSender,
-) {
+) -> OutputScopeCollection<'a> {
     let session_pages = collection
         .reduce(|_addr, inputs, outputs| {
             // debug!(
@@ -281,13 +281,14 @@ pub fn posts_post_ids_dataflow<'a>(
         .inspect(|v| debug!("like counts -- {:?}", v));
 
     // Send everything at once to prevent flickering (but still split by session)
-    let _batch_output = session_post_field_results
+    session_post_field_results
         .concat(&session_post_results)
         .concat(&post_creator_names_results)
         // .concat(&posts_liked_by_user_result)
         .concat(&post_total_like_count_result)
         .consolidate()
-        .inspect_batch(move |_time, aug| batch_send(aug, &query_result_sender));
+        // .inspect_batch(move |_time, aug| batch_send(aug, &query_result_sender));
+        //
 }
 
 #[cfg(test)]

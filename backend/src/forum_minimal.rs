@@ -20,6 +20,7 @@ use crate::dataflows::post_aggr::post_aggr_dataflow;
 use crate::dataflows::post_liked_by_user::post_liked_by_user_dataflow;
 
 pub type InputFormat = (SocketAddr, (Id, Persisted));
+pub type OutputFormat = Vec<(SocketAddr, QueryResult)>;
 
 pub type PersistedInputSession = InputSession<Time, InputFormat, Diff>;
 
@@ -35,7 +36,9 @@ pub struct ForumMinimal {
 type ScopeThread = timely::communication::allocator::Thread;
 type ScopeWorker = timely::worker::Worker<ScopeThread>;
 type ScopeChild<'a> = timely::dataflow::scopes::Child<'a, ScopeWorker, u64>;
+
 pub type ScopeCollection<'a> = differential_dataflow::Collection<ScopeChild<'a>, InputFormat>;
+pub type OutputScopeCollection<'a> = differential_dataflow::Collection<ScopeChild<'a>, OutputFormat>;
 
 pub type QueryResultSender = broadcast::Sender<(SocketAddr, Vec<QueryResult>)>;
 
