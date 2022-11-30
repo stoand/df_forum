@@ -17,6 +17,7 @@ use differential_dataflow::input::InputSession;
 
 use crate::dataflows::page_post_ids::posts_post_ids_dataflow;
 use crate::dataflows::post_aggr::post_aggr_dataflow;
+use crate::dataflows::post_liked_by_user::post_liked_by_user_dataflow;
 
 pub type InputFormat = (SocketAddr, (Id, Persisted));
 
@@ -44,6 +45,7 @@ pub fn default_dataflows<'a>(
 ) {
     posts_post_ids_dataflow(collection, query_result_sender.clone());
     post_aggr_dataflow(collection, query_result_sender.clone());
+    post_liked_by_user_dataflow(collection, query_result_sender.clone());
 }
 
 impl ForumMinimal {

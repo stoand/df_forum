@@ -201,6 +201,7 @@ pub fn posts_post_ids_dataflow<'a>(
         }
     });
 
+
     let posts_liked_by_user_result = session_post_ids
         .join(&posts_liked_by_user)
         .map(|(post_id, (session_addr, addr))| (session_addr, (post_id, addr)))
@@ -283,7 +284,7 @@ pub fn posts_post_ids_dataflow<'a>(
     let _batch_output = session_post_field_results
         .concat(&session_post_results)
         .concat(&post_creator_names_results)
-        .concat(&posts_liked_by_user_result)
+        // .concat(&posts_liked_by_user_result)
         .concat(&post_total_like_count_result)
         .consolidate()
         .inspect_batch(move |_time, aug| batch_send(aug, &query_result_sender));
