@@ -202,7 +202,7 @@ pub fn posts_post_ids_dataflow<'a>(
     });
 
 
-    let posts_liked_by_user_result = session_post_ids
+    let _posts_liked_by_user_result = session_post_ids
         .join(&posts_liked_by_user)
         .map(|(post_id, (session_addr, addr))| (session_addr, (post_id, addr)))
         .join(&session_addrs)
@@ -212,7 +212,7 @@ pub fn posts_post_ids_dataflow<'a>(
         .join(&session_names)
         .inner
         .map(
-            |((_session_name, ((post_id, addr, session_addr), session_name_addr)), time, diff)| {
+            |((_session_name, ((post_id, _addr, session_addr), session_name_addr)), time, diff)| {
                 (
                     if session_name_addr == session_addr {
                         vec![(
