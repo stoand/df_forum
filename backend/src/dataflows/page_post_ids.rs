@@ -1,13 +1,12 @@
 use crate::forum_minimal::{
-    batch_send, Persisted, QueryResult, QueryResultSender, ScopeCollection, OutputScopeCollection, POSTS_PER_PAGE,
+    Persisted, QueryResult, ScopeCollection, OutputScopeCollection, POSTS_PER_PAGE,
 };
 use log::debug;
 
 use timely::dataflow::operators::Filter;
 use timely::dataflow::operators::Map;
-use timely::dataflow::Scope;
 
-use differential_dataflow::operators::Consolidate;
+// use differential_dataflow::operators::Consolidate;
 // use differential_dataflow::operators::Count;
 use differential_dataflow::operators::Join;
 use differential_dataflow::operators::Reduce;
@@ -286,9 +285,6 @@ pub fn posts_post_ids_dataflow<'a>(
         .concat(&post_creator_names_results)
         // .concat(&posts_liked_by_user_result)
         .concat(&post_total_like_count_result)
-        .consolidate()
-        // .inspect_batch(move |_time, aug| batch_send(aug, &query_result_sender));
-        //
 }
 
 #[cfg(test)]

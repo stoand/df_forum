@@ -1,5 +1,5 @@
 use crate::forum_minimal::{
-    batch_send, Persisted, QueryResult, QueryResultSender, ScopeCollection, POSTS_PER_PAGE,
+    OutputScopeCollection, Persisted, QueryResult, ScopeCollection, POSTS_PER_PAGE,
 };
 use differential_dataflow::operators::Consolidate;
 use differential_dataflow::operators::Count;
@@ -8,10 +8,7 @@ use differential_dataflow::AsCollection;
 use log::debug;
 use timely::dataflow::operators::Map;
 
-pub fn post_aggr_dataflow<'a>(
-    manages_sess: &ScopeCollection<'a>,
-    query_result_sender: QueryResultSender,
-) {
+pub fn post_aggr_dataflow<'a>(manages_sess: &ScopeCollection<'a>) -> OutputScopeCollection<'a> {
     let manages = manages_sess.map(|(_addr, (id, persisted))| (id, persisted));
 
     let sessions_with_zero = manages_sess
@@ -89,8 +86,7 @@ pub fn post_aggr_dataflow<'a>(
     //     }
     // });
 
-    let _batch_output = post_aggregates_result
-        .inspect_batch(move |_time, aug| batch_send(aug, &query_result_sender));
+    post_aggregates_result
 }
 
 #[cfg(test)]

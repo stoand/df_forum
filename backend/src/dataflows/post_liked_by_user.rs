@@ -1,13 +1,12 @@
-use crate::forum_minimal::{
-    batch_send, Persisted, QueryResult, QueryResultSender, ScopeCollection, POSTS_PER_PAGE,
-};
+use crate::forum_minimal::{OutputScopeCollection, Persisted, QueryResult, ScopeCollection};
 use differential_dataflow::operators::Join;
+use differential_dataflow::AsCollection;
 use log::debug;
+use timely::dataflow::operators::Map;
 
 pub fn post_liked_by_user_dataflow<'a>(
     collection: &ScopeCollection<'a>,
-    query_result_sender: QueryResultSender,
-) {
+) -> OutputScopeCollection<'a> {
     let session_name_to_addr = collection.flat_map(|(addr, (_id, persisted))| {
         if let Persisted::Session(session_name) = persisted {
             vec![(session_name, addr)]
@@ -29,16 +28,25 @@ pub fn post_liked_by_user_dataflow<'a>(
         .join(&session_name_to_addr)
         .inspect(|v| debug!("val: {:?}", v));
 
-    let _result = collection_with_session_name.inspect(
-        move |((_session_name, ((persisted, _addr), session_addr)), _time, diff)| {
-            if let Persisted::PostLike(post_id) = persisted {
-                let _ = query_result_sender.send((
-                    *session_addr,
-                    vec![QueryResult::PostLikedByUser(*post_id, *diff > 0)],
-                ));
-            }
-        },
-    );
+    let result = collection_with_session_name
+        .inner
+        .map(
+            move |((_session_name, ((persisted, _addr), session_addr)), time, diff)| {
+                let result = if let Persisted::PostLike(post_id) = persisted {
+                    vec![(
+                        session_addr,
+                        QueryResult::PostLikedByUser(post_id, diff > 0),
+                    )]
+                } else {
+                    vec![]
+                };
+
+                (result, time, diff)
+            },
+        )
+        .as_collection();
+
+    result
 }
 
 #[cfg(test)]
