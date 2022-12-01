@@ -35,27 +35,51 @@ pub fn post_liked_by_user_dataflow<'a>(
         }
     });
 
-    let post_pages = collection.map(|_| (1, 1));
-
-    // TODO - only send likes for visible posts
+    let post_pages = collection
+        .flat_map(|(_addr, (post_id, persisted))| {
+            if let Persisted::Post = persisted {
+                vec![post_id]
+            } else {
+                vec![]
+            }
+        })
+        .inner
+        .map(|(post_id, time, diff)| (((), (-(time as i64), post_id)), time, diff))
+        .as_collection()
+        // reduce will automatically order by time
+        .reduce(|_, inputs, outputs| {
+            for (index, ((_time, post_id), diff)) in inputs.into_iter().enumerate() {
+                if *diff > 0 {
+                    outputs.push(((*post_id, index / POSTS_PER_PAGE), 1));
+                }
+            }
+        })
+        .map(|((), val)| val)
+        .inspect(|v| debug!("post pages -- {:?}", v));
 
     let result = user_id_to_addr
         .join(&post_likes)
         .join(&user_id_to_page)
-        .map(|(_user_id, ((session_addr, post_id), visible_page))| (post_id, (session_addr, visible_page)))
-        .join(&post_pages)
-        .filter(|(_post_id, ((_session_addr, visible_page), post_page))| visible_page == post_page)
-        .inner
-        .map(|((post_id, ((session_addr, _visible_page), _post_page)), time, diff)| {
-            (
-                vec![(
-                    session_addr,
-                    QueryResult::PostLikedByUser(post_id, diff > 0),
-                )],
-                time,
-                diff,
-            )
+        .map(|(_user_id, ((session_addr, post_id), visible_page))| {
+            (post_id, (session_addr, visible_page))
         })
+        .join(&post_pages)
+        .filter(|(_post_id, ((_session_addr, visible_page), post_page))| {
+            *visible_page == *post_page as u64
+        })
+        .inner
+        .map(
+            |((post_id, ((session_addr, _visible_page), _post_page)), time, diff)| {
+                (
+                    vec![(
+                        session_addr,
+                        QueryResult::PostLikedByUser(post_id, diff > 0),
+                    )],
+                    time,
+                    diff,
+                )
+            },
+        )
         .as_collection();
 
     result
