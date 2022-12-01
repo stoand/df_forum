@@ -15,6 +15,7 @@ use differential_dataflow::AsCollection;
 pub fn posts_post_ids_dataflow<'a>(
     collection: &ScopeCollection<'a>,
 ) -> OutputScopeCollection<'a> {
+    
     let session_pages = collection
         .reduce(|_addr, inputs, outputs| {
             // debug!(

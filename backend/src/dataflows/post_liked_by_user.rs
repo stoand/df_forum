@@ -1,13 +1,25 @@
-use crate::forum_minimal::{OutputScopeCollection, Persisted, QueryResult, ScopeCollection};
+use crate::forum_minimal::{
+    OutputScopeCollection, Persisted, QueryResult, ScopeCollection, POSTS_PER_PAGE,
+};
 use differential_dataflow::operators::Join;
+use differential_dataflow::operators::Reduce;
 use differential_dataflow::AsCollection;
-// use log::debug;
 use timely::dataflow::operators::Map;
+
+use log::debug;
 
 pub fn post_liked_by_user_dataflow<'a>(
     collection: &ScopeCollection<'a>,
 ) -> OutputScopeCollection<'a> {
-    let session_user_id_to_addr = collection.flat_map(|(addr, (user_id, persisted))| {
+    let user_id_to_page = collection.flat_map(|(_addr, (user_id, persisted))| {
+        if let Persisted::ViewPostsPage(page) = persisted {
+            vec![(user_id, page)]
+        } else {
+            vec![]
+        }
+    });
+
+    let user_id_to_addr = collection.flat_map(|(addr, (user_id, persisted))| {
         if let Persisted::Session = persisted {
             vec![(user_id, addr)]
         } else {
@@ -23,12 +35,18 @@ pub fn post_liked_by_user_dataflow<'a>(
         }
     });
 
+    let post_pages = collection.map(|_| (1, 1));
+
     // TODO - only send likes for visible posts
 
-    let result = session_user_id_to_addr
+    let result = user_id_to_addr
         .join(&post_likes)
+        .join(&user_id_to_page)
+        .map(|(_user_id, ((session_addr, post_id), visible_page))| (post_id, (session_addr, visible_page)))
+        .join(&post_pages)
+        .filter(|(_post_id, ((_session_addr, visible_page), post_page))| visible_page == post_page)
         .inner
-        .map(|((_user_id, (session_addr, post_id)), time, diff)| {
+        .map(|((post_id, ((session_addr, _visible_page), _post_page)), time, diff)| {
             (
                 vec![(
                     session_addr,
@@ -95,6 +113,7 @@ mod tests {
             .unwrap();
 
         forum_minimal.advance_dataflow_computation_once().await;
+
         let mut recv = Vec::new();
 
         recv.push(query_result_receiver.try_recv().unwrap());
@@ -106,10 +125,10 @@ mod tests {
             (addr0, vec![QueryResult::PostLikedByUser(5, false)])
         );
 
-        // assert_eq!(
-        //     recv[1],
-        //     (addr1, vec![QueryResult::PostLikedByUser(5, false)])
-        // );
+        assert_eq!(
+            recv[1],
+            (addr1, vec![QueryResult::PostLikedByUser(5, false)])
+        );
 
         // persisted_sender
         //     .send((addr1, vec![(56, Persisted::PostLike(5), -1)]))
