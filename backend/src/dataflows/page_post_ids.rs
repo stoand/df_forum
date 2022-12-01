@@ -624,7 +624,8 @@ mod tests {
 
     // DISABLED
     // #[tokio::test]
-    pub async fn test_page_post_likes_multi_addr() {
+    // pub async fn test_page_post_likes_multi_addr() {
+    pub async fn _test_page_post_likes_multi_addr() {
         crate::init_logger();
         let addr0: SocketAddr = "127.0.0.1:8080".parse().unwrap();
         let addr1: SocketAddr = "127.0.0.1:8081".parse().unwrap();
