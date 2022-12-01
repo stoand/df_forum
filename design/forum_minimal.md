@@ -24,7 +24,8 @@ partof: REQ-purpose
     causes duplicate post creation
 * TODO: remove session var on websocket disconnection
 * TODO: bug - when you create two items, refresh, create a third, go to next page, delete third
-* TODO: bug - create an item, like it, refresh - wrong like text
+* [DONE] TODO: bug - create an item, like it, refresh - wrong like text
+* bug - liking an item not on the first page, refresh, "could not find post by id"
 
 * Cranelift -- deleting is bugged when switching sessions
 
