@@ -29,7 +29,7 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::{Document, Element, Event, HtmlElement, HtmlInputElement, Storage};
 
-pub const USERNAME_LOCAL_STORAGE_KEY: &'static str = "df_forum_username";
+pub const USER_ID_LOCAL_STORAGE_KEY: &'static str = "df_forum_username";
 pub const WEBSOCKET_URL: &'static str = "ws://127.0.0.1:5050";
 
 #[wasm_bindgen]
@@ -55,7 +55,6 @@ pub fn bootstrap() {
     let connection = Rc::new(RefCell::new(connection::FrontendConnection::new(
         &WEBSOCKET_URL,
     )));
-    let session_id = get_random_u64();
 
     let connection0 = connection.clone();
 
@@ -63,13 +62,14 @@ pub fn bootstrap() {
         log(&format!("websocket opened"));
 
         let local_storage = get_local_storage();
-        if let Ok(Some(user_name)) = local_storage.get_item(USERNAME_LOCAL_STORAGE_KEY) {
+        if let Ok(Some(user_id_str)) = local_storage.get_item(USER_ID_LOCAL_STORAGE_KEY) {
+            let user_id: u64 = user_id_str.parse().expect("user id str not a valid u64");
             connection0.clone().borrow().send_transaction(vec![
-                (session_id, Persisted::Session(user_name.clone()), 1),
-                (session_id, Persisted::ViewPostsPage(0), 1),
+                (user_id, Persisted::Session, 1),
+                (user_id, Persisted::ViewPostsPage(0), 1),
             ]);
 
-            render_page_posts(user_name, session_id, connection0.clone());
+            render_page_posts(user_id, connection0.clone());
         } else {
             render_page_enter_username();
         }
@@ -106,7 +106,7 @@ pub fn render_page_enter_username() {
 
         if !name.is_empty() {
             get_local_storage()
-                .set_item(USERNAME_LOCAL_STORAGE_KEY, &name)
+                .set_item(USER_ID_LOCAL_STORAGE_KEY, &name)
                 .unwrap();
 
             bootstrap();
@@ -121,8 +121,7 @@ pub fn render_page_enter_username() {
 
 // #SPC-forum_minimal.page_posts
 pub fn render_page_posts(
-    username: String,
-    session_id: u64,
+    user_id: u64,
     connection: Rc<RefCell<connection::FrontendConnection>>,
 ) {
     let (document, root) = document_and_root();
@@ -139,7 +138,7 @@ pub fn render_page_posts(
     root.set_attribute("page", &(0.to_string())).unwrap();
 
     let username_label = document.create_element("div").unwrap();
-    username_label.set_text_content(Some(&("Username: ".to_owned() + &username)));
+    username_label.set_text_content(Some(&("Username: ".to_owned() + &user_id.to_string())));
     root.append_child(&username_label).unwrap();
 
     let use_different_name = document.create_element("button").unwrap();
@@ -148,7 +147,7 @@ pub fn render_page_posts(
 
     let use_different_name_click = Closure::<dyn FnMut()>::new(move || {
         get_local_storage()
-            .remove_item(USERNAME_LOCAL_STORAGE_KEY)
+            .remove_item(USER_ID_LOCAL_STORAGE_KEY)
             .unwrap();
 
         render_page_enter_username();
@@ -279,8 +278,8 @@ pub fn render_page_posts(
             root.set_attribute("page", &(page.to_string())).unwrap();
             update_page_label();
             connection2.borrow().send_transaction(vec![
-                (session_id, Persisted::ViewPostsPage(page), 1),
-                (session_id, Persisted::ViewPostsPage(old_page), -1),
+                (user_id, Persisted::ViewPostsPage(page), 1),
+                (user_id, Persisted::ViewPostsPage(old_page), -1),
             ]);
         }
     });
@@ -313,8 +312,8 @@ pub fn render_page_posts(
             root.set_attribute("page", &(page.to_string())).unwrap();
             update_page_label();
             connection3.borrow().send_transaction(vec![
-                (session_id, Persisted::ViewPostsPage(page), 1),
-                (session_id, Persisted::ViewPostsPage(old_page), -1),
+                (user_id, Persisted::ViewPostsPage(page), 1),
+                (user_id, Persisted::ViewPostsPage(old_page), -1),
             ]);
         }
     });
@@ -413,10 +412,10 @@ pub fn render_page_posts(
                             };
                         // let diff = 1;
 
-                        log(&("session: ".to_string() + &session_id.to_string()));
+                        log(&("user id: ".to_string() + &user_id.to_string()));
 
                         connection6.clone().borrow().send_transaction(vec![(
-                            session_id,
+                            user_id,
                             Persisted::PostLike(post_id),
                             diff,
                         )]);

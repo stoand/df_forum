@@ -20,7 +20,7 @@ pub enum Persisted {
     // reloads only posts
     ViewPostsPage(u64),
     
-    Session(String), // username
+    Session, // user id
 
     PlusOneDummy,
 }
