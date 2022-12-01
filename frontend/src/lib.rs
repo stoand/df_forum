@@ -63,7 +63,12 @@ pub fn bootstrap() {
 
         let local_storage = get_local_storage();
         if let Ok(Some(user_id_str)) = local_storage.get_item(USER_ID_LOCAL_STORAGE_KEY) {
-            let user_id: u64 = user_id_str.parse().expect("user id str not a valid u64");
+            let user_id: u64 = if let Ok(user_id) = user_id_str.parse() {
+                user_id
+            } else {
+                log("invalid user id, defaulting to 1");
+                1
+            };
             connection0.clone().borrow().send_transaction(vec![
                 (user_id, Persisted::Session, 1),
                 (user_id, Persisted::ViewPostsPage(0), 1),
