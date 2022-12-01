@@ -250,7 +250,7 @@ pub fn posts_post_ids_dataflow<'a>(
         }
     });
 
-    let post_total_like_count_result = posts_liked_by_user2
+    let _post_total_like_count_result = posts_liked_by_user2
         .inspect(|v| debug!("liked 0 -- {:?}", v))
         .reduce(|_post_id, inputs, outputs| {
             let count = inputs
@@ -284,7 +284,7 @@ pub fn posts_post_ids_dataflow<'a>(
         .concat(&session_post_results)
         .concat(&post_creator_names_results)
         // .concat(&posts_liked_by_user_result)
-        .concat(&post_total_like_count_result)
+        // .concat(&post_total_like_count_result)
 }
 
 #[cfg(test)]
@@ -336,7 +336,7 @@ mod tests {
                     QueryResult::PagePost(7, 1, 0),
                     QueryResult::PostTitle(7, "Protoss".into()),
                     QueryResult::PostBody(7, "Protoss Info".into()),
-                    QueryResult::PostTotalLikes(7, 0),
+                    // QueryResult::PostTotalLikes(7, 0),
                 ]
             ))
         );
@@ -365,8 +365,8 @@ mod tests {
                     QueryResult::PostTitle(6, "Terran".into()),
                     QueryResult::PostBody(5, "Zerg Info".into()),
                     QueryResult::PostBody(6, "Terran Info".into()),
-                    QueryResult::PostTotalLikes(5, 0),
-                    QueryResult::PostTotalLikes(6, 0),
+                    // QueryResult::PostTotalLikes(5, 0),
+                    // QueryResult::PostTotalLikes(6, 0),
                 ]
             ))
         );
@@ -431,8 +431,8 @@ mod tests {
                 vec![
                     QueryResult::PagePost(5, 0, 0),
                     QueryResult::PagePost(6, 0, 0),
-                    QueryResult::PostTotalLikes(5, 0),
-                    QueryResult::PostTotalLikes(6, 0),
+                    // QueryResult::PostTotalLikes(5, 0),
+                    // QueryResult::PostTotalLikes(6, 0),
                 ]
             ))
         );
@@ -450,7 +450,7 @@ mod tests {
                 vec![
                     QueryResult::DeletePost(6),
                     QueryResult::PagePost(7, 0, 0),
-                    QueryResult::PostTotalLikes(7, 0),
+                    // QueryResult::PostTotalLikes(7, 0),
                 ]
             ))
         );
@@ -502,7 +502,7 @@ mod tests {
                 vec![
                     QueryResult::PagePost(5, 0, 0),
                     QueryResult::PostCreator(5, "asdf".to_string()),
-                    QueryResult::PostTotalLikes(5, 0),
+                    // QueryResult::PostTotalLikes(5, 0),
                 ]
             ))
         );
@@ -514,7 +514,7 @@ mod tests {
                 vec![
                     QueryResult::PagePost(5, 0, 0),
                     QueryResult::PostCreator(5, "asdf".to_string()),
-                    QueryResult::PostTotalLikes(5, 0),
+                    // QueryResult::PostTotalLikes(5, 0),
                 ]
             ))
         );
@@ -567,7 +567,7 @@ mod tests {
                 addr,
                 vec![
                     QueryResult::PagePost(5, 0, 0),
-                    QueryResult::PostTotalLikes(5, 0),
+                    // QueryResult::PostTotalLikes(5, 0),
                 ]
             ))
         );
@@ -578,33 +578,11 @@ mod tests {
 
         forum_minimal.advance_dataflow_computation_once().await;
 
-        assert_eq!(
-            query_result_receiver.try_recv(),
-            Ok((
-                addr,
-                vec![
-                    QueryResult::PostTotalLikes(5, 1),
-                    QueryResult::PostLikedByUser(5, true),
-                ]
-            ))
-        );
-
         persisted_sender
             .send((addr, vec![(55, Persisted::PostLike(5), -1)]))
             .unwrap();
 
         forum_minimal.advance_dataflow_computation_once().await;
-
-        assert_eq!(
-            query_result_receiver.try_recv(),
-            Ok((
-                addr,
-                vec![
-                    QueryResult::PostTotalLikes(5, 0),
-                    QueryResult::PostLikedByUser(5, false),
-                ]
-            ))
-        );
 
         persisted_sender
             .send((
@@ -629,10 +607,10 @@ mod tests {
                     QueryResult::DeletePost(5),
                     QueryResult::PagePost(6, 0, 4),
                     QueryResult::PagePost(7, 0, 4),
-                    QueryResult::PostTotalLikes(6, 1),
-                    QueryResult::PostTotalLikes(7, 2),
-                    QueryResult::PostLikedByUser(6, true),
-                    QueryResult::PostLikedByUser(7, true),
+                    // QueryResult::PostTotalLikes(6, 1),
+                    // QueryResult::PostTotalLikes(7, 2),
+                    // QueryResult::PostLikedByUser(6, true),
+                    // QueryResult::PostLikedByUser(7, true),
                 ]
             ))
         );
@@ -642,19 +620,10 @@ mod tests {
             .unwrap();
 
         forum_minimal.advance_dataflow_computation_once().await;
-
-        assert_eq!(
-            query_result_receiver.try_recv(),
-            Ok((
-                addr,
-                vec![
-                    QueryResult::PostTotalLikes(7, 1),
-                    QueryResult::PostLikedByUser(7, false)
-                ]
-            ))
-        );
     }
-    #[tokio::test]
+
+    // DISABLED
+    // #[tokio::test]
     pub async fn test_page_post_likes_multi_addr() {
         crate::init_logger();
         let addr0: SocketAddr = "127.0.0.1:8080".parse().unwrap();
@@ -707,10 +676,10 @@ mod tests {
                     QueryResult::PagePost(6, 0, 0),
                     QueryResult::PostCreator(5, "asdf0".to_string()),
                     QueryResult::PostCreator(6, "asdf0".to_string()),
-                    QueryResult::PostTotalLikes(5, 1),
-                    QueryResult::PostTotalLikes(6, 1),
-                    QueryResult::PostLikedByUser(5, true),
-                    QueryResult::PostLikedByUser(6, true),
+                    // QueryResult::PostTotalLikes(5, 1),
+                    // QueryResult::PostTotalLikes(6, 1),
+                    // QueryResult::PostLikedByUser(5, true),
+                    // QueryResult::PostLikedByUser(6, true),
                 ]
             ))
         );
@@ -727,8 +696,8 @@ mod tests {
             (
                 addr0,
                 vec![
-                    QueryResult::PostTotalLikes(5, 2),
-                    QueryResult::PostLikedByUser(5, true),
+                    // QueryResult::PostTotalLikes(5, 2),
+                    // QueryResult::PostLikedByUser(5, true),
                 ]
             )
         );
@@ -742,10 +711,10 @@ mod tests {
                     QueryResult::PagePost(6, 0, 0),
                     QueryResult::PostCreator(5, "asdf0".to_string()),
                     QueryResult::PostCreator(6, "asdf0".to_string()),
-                    QueryResult::PostTotalLikes(5, 2),
-                    QueryResult::PostTotalLikes(6, 1),
-                    QueryResult::PostLikedByUser(5, true),
-                    QueryResult::PostLikedByUser(6, true),
+                    // QueryResult::PostTotalLikes(5, 2),
+                    // QueryResult::PostTotalLikes(6, 1),
+                    // QueryResult::PostLikedByUser(5, true),
+                    // QueryResult::PostLikedByUser(6, true),
                 ]
             )
         );
@@ -769,9 +738,9 @@ mod tests {
             (
                 addr0,
                 vec![
-                    QueryResult::PostTotalLikes(6, 0),
+                    // QueryResult::PostTotalLikes(6, 0),
                     // this test is flaky
-                    QueryResult::PostLikedByUser(6, false),
+                    // QueryResult::PostLikedByUser(6, false),
                 ]
             )
         );
@@ -781,9 +750,9 @@ mod tests {
             (
                 addr1,
                 vec![
-                    QueryResult::PostTotalLikes(6, 0),
+                    // QueryResult::PostTotalLikes(6, 0),
                     // this test is flaky
-                    QueryResult::PostLikedByUser(6, false),
+                    // QueryResult::PostLikedByUser(6, false),
                 ]
             )
         );
@@ -809,9 +778,9 @@ mod tests {
                     QueryResult::PagePost(6, 0, 0),
                     QueryResult::PostCreator(5, "asdf0".to_string()),
                     QueryResult::PostCreator(6, "asdf0".to_string()),
-                    QueryResult::PostTotalLikes(5, 2),
-                    QueryResult::PostTotalLikes(6, 0),
-                    QueryResult::PostLikedByUser(5, true),
+                    // QueryResult::PostTotalLikes(5, 2),
+                    // QueryResult::(6, 0),
+                    // QueryResult::PostLikedByUser(5, true),
                 ]
             ))
         );
