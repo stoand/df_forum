@@ -45,13 +45,10 @@ pub type QueryResultSender = broadcast::Sender<(SocketAddr, Vec<QueryResult>)>;
 
 pub fn default_dataflows<'a>(
     collection: &ScopeCollection<'a>,
-    query_result_sender: QueryResultSender,
-) {
+) -> OutputScopeCollection<'a> {
     posts_post_ids_dataflow(collection)
         .concat(&post_aggr_dataflow(collection))
         .concat(&post_liked_by_user_dataflow(collection))
-        .consolidate()
-        .inspect_batch(move |_time, aug| batch_send(aug, &query_result_sender));
 }
 
 impl ForumMinimal {
@@ -62,7 +59,7 @@ impl ForumMinimal {
         Self::new_with_dataflows(persisted_sender, query_result_sender, default_dataflows)
     }
 
-    pub fn new_with_dataflows<F: for<'a> Fn(&ScopeCollection<'a>, QueryResultSender)>(
+    pub fn new_with_dataflows<F: for<'a> Fn(&ScopeCollection<'a>) -> OutputScopeCollection<'a>>(
         persisted_sender: broadcast::Sender<(SocketAddr, PersistedItems)>,
         query_result_sender: broadcast::Sender<(SocketAddr, Vec<QueryResult>)>,
         init_dataflows: F,
@@ -72,7 +69,9 @@ impl ForumMinimal {
                 let mut input: PersistedInputSession = InputSession::new();
                 let collection = input.to_collection(scope);
 
-                init_dataflows(&collection, query_result_sender.clone());
+                init_dataflows(&collection)
+                    .consolidate()
+                    .inspect_batch(move |_time, aug| batch_send(aug, &query_result_sender));
 
                 input
             })
