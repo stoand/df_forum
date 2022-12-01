@@ -147,25 +147,25 @@ pub fn posts_post_ids_dataflow<'a>(
         .filter(|(_, _time, diff)| *diff > 0)
         .as_collection();
 
-    let session_name_addrs = collection.flat_map(|(creator_addr, (_session_id, persisted))| {
-        if let Persisted::Session(session_name) = persisted {
-            vec![(creator_addr, session_name)]
+    let user_id_addrs = collection.flat_map(|(creator_addr, (user_id, persisted))| {
+        if let Persisted::Session = persisted {
+            vec![(creator_addr, user_id)]
         } else {
             vec![]
         }
     });
 
     let post_creator_names_results = post_creator_addrs
-        .join(&session_name_addrs)
-        .map(|(creator_addr, (post_id, session_name))| (post_id, (creator_addr, session_name)))
+        .join(&user_id_addrs)
+        .map(|(creator_addr, (post_id, user_id))| (post_id, (creator_addr, user_id)))
         .join(&session_post_ids)
         .inner
         .map(
-            |((post_id, ((_creator_addr, session_name), session_addr)), time, diff)| {
+            |((post_id, ((_creator_addr, user_id), session_addr)), time, diff)| {
                 let result = if diff > 0 {
                     vec![(
                         session_addr,
-                        QueryResult::PostCreator(post_id, session_name),
+                        QueryResult::PostCreator(post_id, user_id.to_string()),
                     )]
                 } else {
                     vec![]
@@ -184,48 +184,48 @@ pub fn posts_post_ids_dataflow<'a>(
         }
     });
 
-    let session_addrs = collection.flat_map(|(addr, (_id, persisted))| {
-        if let Persisted::Session(session_name) = persisted {
-            vec![(addr, session_name)]
-        } else {
-            vec![]
-        }
-    });
+    // let session_addrs = collection.flat_map(|(addr, (_id, persisted))| {
+    //     if let Persisted::Session(session_name) = persisted {
+    //         vec![(addr, session_name)]
+    //     } else {
+    //         vec![]
+    //     }
+    // });
 
-    let session_names = collection.flat_map(|(addr, (_id, persisted))| {
-        if let Persisted::Session(session_name) = persisted {
-            vec![(session_name, addr)]
-        } else {
-            vec![]
-        }
-    });
+    // let session_names = collection.flat_map(|(addr, (_id, persisted))| {
+    //     if let Persisted::Session(session_name) = persisted {
+    //         vec![(session_name, addr)]
+    //     } else {
+    //         vec![]
+    //     }
+    // });
 
 
-    let _posts_liked_by_user_result = session_post_ids
-        .join(&posts_liked_by_user)
-        .map(|(post_id, (session_addr, addr))| (session_addr, (post_id, addr)))
-        .join(&session_addrs)
-        .map(|(session_addr, ((post_id, addr), session_name))| {
-            (session_name, (post_id, addr, session_addr))
-        })
-        .join(&session_names)
-        .inner
-        .map(
-            |((_session_name, ((post_id, _addr, session_addr), session_name_addr)), time, diff)| {
-                (
-                    if session_name_addr == session_addr {
-                        vec![(
-                            session_addr,
-                            QueryResult::PostLikedByUser(post_id, diff > 0),
-                        )]
-                    } else {
-                        vec![]
-                    },
-                    time,
-                    diff,
-                )
-            },
-        )
+    // let _posts_liked_by_user_result = session_post_ids
+    //     .join(&posts_liked_by_user)
+    //     .map(|(post_id, (session_addr, addr))| (session_addr, (post_id, addr)))
+    //     .join(&session_addrs)
+    //     .map(|(session_addr, ((post_id, addr), session_name))| {
+    //         (session_name, (post_id, addr, session_addr))
+    //     })
+    //     .join(&session_names)
+    //     .inner
+    //     .map(
+    //         |((_session_name, ((post_id, _addr, session_addr), session_name_addr)), time, diff)| {
+    //             (
+    //                 if session_name_addr == session_addr {
+    //                     vec![(
+    //                         session_addr,
+    //                         QueryResult::PostLikedByUser(post_id, diff > 0),
+    //                     )]
+    //                 } else {
+    //                     vec![]
+    //                 },
+    //                 time,
+    //                 diff,
+    //             )
+    //         },
+    //     )
         // .map(|((post_id, (session_addr, addr)), time, diff)| {
         //     (
         //         vec![(
@@ -236,8 +236,8 @@ pub fn posts_post_ids_dataflow<'a>(
         //         diff,
         //     )
         // })
-        .as_collection()
-        .inspect(|v| debug!("likes -- {:?}", v));
+        // .as_collection()
+        // .inspect(|v| debug!("likes -- {:?}", v));
 
     let posts_liked_by_user2 = collection.flat_map(|(_addr, (id, persisted))| {
         if let Persisted::PostLike(liked_post) = persisted {
@@ -475,7 +475,7 @@ mod tests {
                 addr0,
                 vec![
                     (55, Persisted::ViewPostsPage(0), 1),
-                    (55, Persisted::Session("asdf".to_string()), 1),
+                    (55, Persisted::Session, 1),
                     (5, Persisted::Post, 1),
                 ],
             ))
@@ -488,7 +488,7 @@ mod tests {
                 addr1,
                 vec![
                     (56, Persisted::ViewPostsPage(0), 1),
-                    (56, Persisted::Session("asdf".to_string()), 1),
+                    (56, Persisted::Session, 1),
                 ],
             ))
             .unwrap();
@@ -501,7 +501,7 @@ mod tests {
                 addr0,
                 vec![
                     QueryResult::PagePost(5, 0, 0),
-                    QueryResult::PostCreator(5, "asdf".to_string()),
+                    QueryResult::PostCreator(5, "55".to_string()),
                     // QueryResult::PostTotalLikes(5, 0),
                 ]
             ))
@@ -513,7 +513,7 @@ mod tests {
                 addr1,
                 vec![
                     QueryResult::PagePost(5, 0, 0),
-                    QueryResult::PostCreator(5, "asdf".to_string()),
+                    QueryResult::PostCreator(5, "55".to_string()),
                     // QueryResult::PostTotalLikes(5, 0),
                 ]
             ))
@@ -644,7 +644,7 @@ mod tests {
                 addr0,
                 vec![
                     (55, Persisted::ViewPostsPage(0), 1),
-                    (55, Persisted::Session("asdf0".to_string()), 1),
+                    (55, Persisted::Session, 1),
                     (5, Persisted::Post, 1),
                     (6, Persisted::Post, 1),
                     (55, Persisted::PostLike(5), 1),
@@ -660,7 +660,7 @@ mod tests {
                 addr1,
                 vec![
                     (56, Persisted::ViewPostsPage(0), 1),
-                    (56, Persisted::Session("asdf1".to_string()), 1),
+                    (56, Persisted::Session, 1),
                     (56, Persisted::PostLike(5), 1),
                 ],
             ))
@@ -675,8 +675,8 @@ mod tests {
                 vec![
                     QueryResult::PagePost(5, 0, 0),
                     QueryResult::PagePost(6, 0, 0),
-                    QueryResult::PostCreator(5, "asdf0".to_string()),
-                    QueryResult::PostCreator(6, "asdf0".to_string()),
+                    QueryResult::PostCreator(5, "55".to_string()),
+                    QueryResult::PostCreator(6, "55".to_string()),
                     // QueryResult::PostTotalLikes(5, 1),
                     // QueryResult::PostTotalLikes(6, 1),
                     // QueryResult::PostLikedByUser(5, true),
@@ -763,7 +763,7 @@ mod tests {
                 addr2,
                 vec![
                     (57, Persisted::ViewPostsPage(0), 1),
-                    (57, Persisted::Session("asdf0".to_string()), 1),
+                    (57, Persisted::Session, 1),
                 ],
             ))
             .unwrap();
@@ -777,8 +777,8 @@ mod tests {
                 vec![
                     QueryResult::PagePost(5, 0, 0),
                     QueryResult::PagePost(6, 0, 0),
-                    QueryResult::PostCreator(5, "asdf0".to_string()),
-                    QueryResult::PostCreator(6, "asdf0".to_string()),
+                    QueryResult::PostCreator(5, "55".to_string()),
+                    QueryResult::PostCreator(6, "55".to_string()),
                     // QueryResult::PostTotalLikes(5, 2),
                     // QueryResult::(6, 0),
                     // QueryResult::PostLikedByUser(5, true),
