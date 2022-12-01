@@ -1,66 +1,43 @@
 use crate::forum_minimal::{OutputScopeCollection, Persisted, QueryResult, ScopeCollection};
 use differential_dataflow::operators::Join;
 use differential_dataflow::AsCollection;
-use log::debug;
+// use log::debug;
 use timely::dataflow::operators::Map;
 
 pub fn post_liked_by_user_dataflow<'a>(
     collection: &ScopeCollection<'a>,
 ) -> OutputScopeCollection<'a> {
-    // let session_name_to_addr = collection.flat_map(|(addr, (_id, persisted))| {
-    //     if let Persisted::Session(session_name) = persisted {
-    //         vec![(session_name, addr)]
-    //     } else {
-    //         vec![]
-    //     }
-    // });
-    // let session_addr_to_name = collection.flat_map(|(addr, (_id, persisted))| {
-    //     if let Persisted::Session(session_name) = persisted {
-    //         vec![(addr, session_name)]
-    //     } else {
-    //         vec![]
-    //     }
-    // });
+    let session_user_id_to_addr = collection.flat_map(|(addr, (user_id, persisted))| {
+        if let Persisted::Session = persisted {
+            vec![(user_id, addr)]
+        } else {
+            vec![]
+        }
+    });
 
-    // let collection_with_session_name = collection
-    //     .join(&session_addr_to_name)
-    //     .map(|(addr, ((_id, persisted), session_name))| (session_name, (persisted, addr)))
-    //     .join(&session_name_to_addr)
-    //     .inspect(|v| debug!("val: {:?}", v));
+    let post_likes = collection.flat_map(|(_addr, (user_id, persisted))| {
+        if let Persisted::PostLike(post_id) = persisted {
+            vec![(user_id, post_id)]
+        } else {
+            vec![]
+        }
+    });
 
-    // let result = collection_with_session_name
-    //     .inner
-    //     .map(
-    //         move |((_session_name, ((persisted, _addr), session_addr)), time, diff)| {
-    //             let result = if let Persisted::PostLike(post_id) = persisted {
-    //                 vec![(
-    //                     session_addr,
-    //                     QueryResult::PostLikedByUser(post_id, diff > 0),
-    //                 )]
-    //             } else {
-    //                 vec![]
-    //             };
+    // TODO - only send likes for visible posts
 
-    //             (result, time, diff)
-    //         },
-    //     )
-    //     .as_collection();
-    let result = collection
+    let result = session_user_id_to_addr
+        .join(&post_likes)
         .inner
-        .map(
-            move |((addr, (_id, persisted)), time, diff)| {
-                let result = if let Persisted::PostLike(post_id) = persisted {
-                    vec![(
-                        addr,
-                        QueryResult::PostLikedByUser(post_id, diff > 0),
-                    )]
-                } else {
-                    vec![]
-                };
-
-                (result, time, diff)
-            },
-        )
+        .map(|((_user_id, (session_addr, post_id)), time, diff)| {
+            (
+                vec![(
+                    session_addr,
+                    QueryResult::PostLikedByUser(post_id, diff > 0),
+                )],
+                time,
+                diff,
+            )
+        })
         .as_collection();
 
     result
@@ -110,26 +87,24 @@ mod tests {
             .send((
                 addr1,
                 vec![
-                    (56, Persisted::Session, 1),
-                    (56, Persisted::ViewPostsPage(0), 1),
-                    (56, Persisted::PostLike(5), -1),
+                    (55, Persisted::Session, 1),
+                    (55, Persisted::ViewPostsPage(0), 1),
+                    (55, Persisted::PostLike(5), -1),
                 ],
             ))
             .unwrap();
 
         forum_minimal.advance_dataflow_computation_once().await;
-        
-        // let mut recv = Vec::new();
+        let mut recv = Vec::new();
 
-        // recv.push(query_result_receiver.try_recv().unwrap());
-        // recv.push(query_result_receiver.try_recv().unwrap());
-        // recv.sort_by_key(|(addr, _)| *addr);
+        recv.push(query_result_receiver.try_recv().unwrap());
+        recv.push(query_result_receiver.try_recv().unwrap());
+        recv.sort_by_key(|(addr, _)| *addr);
 
-
-        // assert_eq!(
-        //     recv[0],
-        //     (addr0, vec![QueryResult::PostLikedByUser(5, false)])
-        // );
+        assert_eq!(
+            recv[0],
+            (addr0, vec![QueryResult::PostLikedByUser(5, false)])
+        );
 
         // assert_eq!(
         //     recv[1],

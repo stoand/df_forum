@@ -176,7 +176,7 @@ pub fn posts_post_ids_dataflow<'a>(
         )
         .as_collection();
 
-    let posts_liked_by_user = collection.flat_map(|(addr, (_id, persisted))| {
+    let _posts_liked_by_user = collection.flat_map(|(addr, (_id, persisted))| {
         if let Persisted::PostLike(liked_post) = persisted {
             vec![(liked_post, addr)]
         } else {
