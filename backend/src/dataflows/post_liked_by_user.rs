@@ -22,7 +22,8 @@ pub fn post_liked_by_user_dataflow<'a>(
         })
         .inner
         .filter(|(_, _time, diff)| *diff > 0)
-        .as_collection();
+        .as_collection()
+        .inspect(|v| debug!("current page -- {:?}", v));
 
     let user_id_to_addr = collection.flat_map(|(addr, (user_id, persisted))| {
         if let Persisted::Session = persisted {
@@ -53,10 +54,12 @@ pub fn post_liked_by_user_dataflow<'a>(
         .as_collection()
         // reduce will automatically order by time
         .reduce(|_, inputs, outputs| {
+            debug!("only inputs = {:?}", inputs);
             for (index, ((_time, post_id), diff)) in inputs.into_iter().enumerate() {
                 if *diff > 0 {
                     outputs.push(((*post_id, index / POSTS_PER_PAGE), 1));
                 }
+                // outputs.push(((*post_id, index / POSTS_PER_PAGE), 1));
             }
         })
         .map(|((), val)| val)
@@ -69,9 +72,11 @@ pub fn post_liked_by_user_dataflow<'a>(
             (post_id, (session_addr, visible_page))
         })
         .join(&post_pages)
+        .inspect(|v| debug!("id and page -- {:?}", v))
         .filter(|(_post_id, ((_session_addr, visible_page), post_page))| {
             *visible_page == *post_page as u64
         })
+        .inspect(|v| debug!("filtered id and page -- {:?}", v))
         .inner
         .map(
             |((post_id, ((session_addr, _visible_page), _post_page)), time, diff)| {
@@ -116,9 +121,11 @@ mod tests {
                 addr0,
                 vec![
                     (55, Persisted::Session, 1),
-                    (55, Persisted::ViewPostsPage(0), 1),
+                    (55, Persisted::ViewPostsPage(1), 1),
                     (5, Persisted::Post, 1),
-                    (55, Persisted::PostLike(5), 1),
+                    (6, Persisted::Post, 1),
+                    (7, Persisted::Post, 1),
+                    (55, Persisted::PostLike(7), 1),
                 ],
             ))
             .unwrap();
@@ -127,8 +134,20 @@ mod tests {
 
         assert_eq!(
             query_result_receiver.try_recv(),
-            Ok((addr0, vec![QueryResult::PostLikedByUser(5, true)]))
+            Ok((addr0, vec![QueryResult::PostLikedByUser(7, true)]))
         );
+
+        // persisted_sender
+        //     .send((
+        //         addr1,
+        //         vec![
+        //             (55, Persisted::Session, -1),
+        //             (55, Persisted::ViewPostsPage(1), -1),
+        //         ],
+        //     ))
+        //     .unwrap();
+
+        // forum_minimal.advance_dataflow_computation_once().await;
 
         persisted_sender
             .send((
@@ -136,40 +155,16 @@ mod tests {
                 vec![
                     (55, Persisted::Session, 1),
                     (55, Persisted::ViewPostsPage(0), 1),
-                    (55, Persisted::PostLike(5), -1),
+                    (55, Persisted::PostLike(7), -1),
                 ],
             ))
             .unwrap();
 
         forum_minimal.advance_dataflow_computation_once().await;
 
-        let mut recv = Vec::new();
-
-        recv.push(query_result_receiver.try_recv().unwrap());
-        // recv.push(query_result_receiver.try_recv().unwrap());
-        recv.sort_by_key(|(addr, _)| *addr);
-
         assert_eq!(
-            recv[0],
-            (addr0, vec![QueryResult::PostLikedByUser(5, false)])
+            query_result_receiver.try_recv(),
+            Err(broadcast::error::TryRecvError::Empty),
         );
-
-        // assert_eq!(
-        //     recv[1],
-        //     (addr1, vec![QueryResult::PostLikedByUser(5, false)])
-        // );
-
-        // persisted_sender
-        //     .send((addr1, vec![(56, Persisted::PostLike(5), -1)]))
-        //     .unwrap();
-
-        // forum_minimal.advance_dataflow_computation_once().await;
-
-        // assert_eq!(
-        //     query_result_receiver.try_recv(),
-        //     Ok((addr1, vec![QueryResult::PostLikedByUser(5, false)]))
-        // );
-
-        // create, like, refresh, unlike, refresh
     }
 }

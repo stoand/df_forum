@@ -434,7 +434,7 @@ pub fn render_page_posts(
                 QueryResult::PostTitle(post_id, title) => {
                     document
                         .get_element_by_id(&post_id.to_string())
-                        .expect("could not find post by id")
+                        .expect(&format!("could not find post by id - {}", post_id))
                         .query_selector(".post-title")
                         .unwrap()
                         .unwrap()
@@ -443,7 +443,7 @@ pub fn render_page_posts(
                 QueryResult::PostBody(post_id, body) => {
                     document
                         .get_element_by_id(&post_id.to_string())
-                        .expect("could not find post by id")
+                        .expect(&format!("could not find post by id - {}", post_id))
                         .query_selector(".post-body")
                         .unwrap()
                         .unwrap()
@@ -452,7 +452,7 @@ pub fn render_page_posts(
                 QueryResult::PostCreator(post_id, creator) => {
                     document
                         .get_element_by_id(&post_id.to_string())
-                        .expect("could not find post by id")
+                        .expect(&format!("could not find post by id - {}", post_id))
                         .query_selector(".post-creator")
                         .unwrap()
                         .unwrap()
@@ -461,14 +461,14 @@ pub fn render_page_posts(
                 QueryResult::DeletePost(post_id) => {
                     document
                         .get_element_by_id(&post_id.to_string())
-                        .expect("could not delete post by id")
+                        .expect(&format!("could not find post by id - {}", post_id))
                         .remove();
                 }
                 QueryResult::PostLikedByUser(post_id, is_liked) => {
                     let status = if is_liked { "Unlike" } else { "Like" };
                     let post = document
                         .get_element_by_id(&post_id.to_string())
-                        .expect("could not find post by id");
+                        .expect(&format!("could not find post by id - {}", post_id));
 
                     post.query_selector(".post-like-status")
                         .unwrap()
