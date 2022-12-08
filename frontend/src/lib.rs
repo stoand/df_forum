@@ -477,17 +477,19 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
                 QueryResult::PostLikedByUser(post_id, is_liked) => {
                     log(&format!("liked: post - {}, status - {}", post_id, is_liked));
                     let status = if is_liked { "Unlike" } else { "Like" };
-                    let post = document
-                        .get_element_by_id(&post_id.to_string())
-                        .expect(&format!("could not find post by id - {}", post_id));
+                    if let Some(post) = document.get_element_by_id(&post_id.to_string()) {
+                        // .expect(&format!("could not find post by id - {}", post_id));
 
-                    post.query_selector(".post-like-status")
-                        .unwrap()
-                        .unwrap()
-                        .set_text_content(Some(status));
+                        post.query_selector(".post-like-status")
+                            .unwrap()
+                            .unwrap()
+                            .set_text_content(Some(status));
 
-                    post.set_attribute("is_liked", if is_liked { "true" } else { "false" })
-                        .unwrap();
+                        post.set_attribute("is_liked", if is_liked { "true" } else { "false" })
+                            .unwrap();
+                    } else {
+                        log(&format!("FIX THIS --- could not find post by id - {}", post_id));
+                    }
                 }
                 QueryResult::PostTotalLikes(post_id, like_count) => {
                     document
