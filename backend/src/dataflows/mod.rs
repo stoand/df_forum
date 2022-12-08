@@ -46,7 +46,7 @@ pub fn shared_post_pages<'a>(
                 }
             }
 
-            for (index, (addr, post_id)) in visible.into_iter().enumerate() {
+            for (index, (addr, post_id)) in visible.into_iter().rev().enumerate() {
                 let page = (index / POSTS_PER_PAGE) as u64;
                 let position = (index % POSTS_PER_PAGE) as u64;
                 outputs.push(((*addr, *post_id, page, position), 1));

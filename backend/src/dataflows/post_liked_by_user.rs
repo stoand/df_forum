@@ -1,12 +1,10 @@
-use crate::forum_minimal::{
-    OutputScopeCollection, Persisted, QueryResult, ScopeCollection, POSTS_PER_PAGE,
-};
+use crate::forum_minimal::{OutputScopeCollection, Persisted, QueryResult, ScopeCollection};
 use differential_dataflow::operators::Join;
-use differential_dataflow::operators::Reduce;
 use differential_dataflow::AsCollection;
 use timely::dataflow::operators::Filter;
 use timely::dataflow::operators::Map;
 
+use crate::dataflows::shared_post_pages;
 use log::debug;
 
 pub fn post_liked_by_user_dataflow<'a>(
@@ -41,29 +39,9 @@ pub fn post_liked_by_user_dataflow<'a>(
         }
     });
 
-    let post_pages = collection
-        .flat_map(|(_addr, (post_id, persisted))| {
-            if let Persisted::Post = persisted {
-                vec![post_id]
-            } else {
-                vec![]
-            }
-        })
-        .inner
-        .map(|(post_id, time, diff)| (((), (-(time as i64), post_id)), time, diff))
-        .as_collection()
-        // reduce will automatically order by time
-        .reduce(|_, inputs, outputs| {
-            debug!("only inputs = {:?}", inputs);
-            for (index, ((_time, post_id), diff)) in inputs.into_iter().enumerate() {
-                if *diff > 0 {
-                    outputs.push(((*post_id, index / POSTS_PER_PAGE), 1));
-                }
-                // outputs.push(((*post_id, index / POSTS_PER_PAGE), 1));
-            }
-        })
-        .map(|((), val)| val)
-        .inspect(|v| debug!("post pages -- {:?}", v));
+    let post_pages = shared_post_pages(&collection)
+        .map(|(_addr, post_id, page, _position)| (post_id, page))
+        .inspect(|v| debug!("post_pages -- {:?}", v));
 
     let result = user_id_to_addr
         .join(&post_likes)
