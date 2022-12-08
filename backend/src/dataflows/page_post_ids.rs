@@ -12,6 +12,8 @@ use differential_dataflow::operators::Join;
 use differential_dataflow::operators::Reduce;
 use differential_dataflow::AsCollection;
 
+use crate::dataflows::shared_post_pages;
+
 pub fn posts_post_ids_dataflow<'a>(
     collection: &ScopeCollection<'a>,
 ) -> OutputScopeCollection<'a> {
@@ -51,8 +53,7 @@ pub fn posts_post_ids_dataflow<'a>(
             _ => vec![],
         });
 
-    // we don't care who created the posts
-    let page_posts = post_ids_with_time
+    let page_posts2 = post_ids_with_time
         .reduce(|_discarded_zero, inputs, outputs| {
             debug!("input = {:?}, output = {:?}", inputs, outputs);
 
@@ -86,6 +87,9 @@ pub fn posts_post_ids_dataflow<'a>(
         })
         .map(|(_discarded_zero, (addr, id, page, creation_time))| (page, (addr, id, creation_time)))
         .inspect(|v| debug!("page posts -- {:?}", v));
+
+    let page_posts = shared_post_pages(&collection)
+        .map(|(addr, post_id, page, position)| (page, (addr, post_id, position)));
 
     let session_posts = session_pages
         .map(|(addr, page)| (page, addr))
@@ -184,61 +188,6 @@ pub fn posts_post_ids_dataflow<'a>(
             vec![]
         }
     });
-
-    // let session_addrs = collection.flat_map(|(addr, (_id, persisted))| {
-    //     if let Persisted::Session(session_name) = persisted {
-    //         vec![(addr, session_name)]
-    //     } else {
-    //         vec![]
-    //     }
-    // });
-
-    // let session_names = collection.flat_map(|(addr, (_id, persisted))| {
-    //     if let Persisted::Session(session_name) = persisted {
-    //         vec![(session_name, addr)]
-    //     } else {
-    //         vec![]
-    //     }
-    // });
-
-
-    // let _posts_liked_by_user_result = session_post_ids
-    //     .join(&posts_liked_by_user)
-    //     .map(|(post_id, (session_addr, addr))| (session_addr, (post_id, addr)))
-    //     .join(&session_addrs)
-    //     .map(|(session_addr, ((post_id, addr), session_name))| {
-    //         (session_name, (post_id, addr, session_addr))
-    //     })
-    //     .join(&session_names)
-    //     .inner
-    //     .map(
-    //         |((_session_name, ((post_id, _addr, session_addr), session_name_addr)), time, diff)| {
-    //             (
-    //                 if session_name_addr == session_addr {
-    //                     vec![(
-    //                         session_addr,
-    //                         QueryResult::PostLikedByUser(post_id, diff > 0),
-    //                     )]
-    //                 } else {
-    //                     vec![]
-    //                 },
-    //                 time,
-    //                 diff,
-    //             )
-    //         },
-    //     )
-        // .map(|((post_id, (session_addr, addr)), time, diff)| {
-        //     (
-        //         vec![(
-        //             session_addr,
-        //             QueryResult::PostLikedByUser(post_id, diff > 0),
-        //         )],
-        //         time,
-        //         diff,
-        //     )
-        // })
-        // .as_collection()
-        // .inspect(|v| debug!("likes -- {:?}", v));
 
     let posts_liked_by_user2 = collection.flat_map(|(_addr, (id, persisted))| {
         if let Persisted::PostLike(liked_post) = persisted {

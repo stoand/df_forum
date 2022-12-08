@@ -30,7 +30,7 @@ pub fn shared_post_pages<'a>(
 
             let mut visible = Vec::new();
 
-            for ((_time, addr, add_post_id), diff) in inputs {
+            for ((time, addr, add_post_id), diff) in inputs {
                 if *diff > 0 {
                     let mut found_removal = false;
 
@@ -41,15 +41,14 @@ pub fn shared_post_pages<'a>(
                     }
 
                     if !found_removal {
-                        visible.push((addr, add_post_id));
+                        visible.push((addr, add_post_id, time));
                     }
                 }
             }
 
-            for (index, (addr, post_id)) in visible.into_iter().rev().enumerate() {
+            for (index, (addr, post_id, time)) in visible.into_iter().rev().enumerate() {
                 let page = (index / POSTS_PER_PAGE) as u64;
-                let position = (index % POSTS_PER_PAGE) as u64;
-                outputs.push(((*addr, *post_id, page, position), 1));
+                outputs.push(((*addr, *post_id, page, *time), 1));
             }
         })
         .map(|((), val)| val)
@@ -84,7 +83,7 @@ mod tests {
                     vec![
                         ((addr0, 5, 1, 0), 0, 1),
                         ((addr0, 5, 1, 0), 1, -1),
-                        ((addr0, 6, 0, 1), 0, 1),
+                        ((addr0, 6, 0, 0), 0, 1),
                         ((addr0, 7, 0, 0), 0, 1)
                     ]
                 );
