@@ -112,20 +112,9 @@ mod tests {
 
         assert_eq!(
             query_result_receiver.try_recv(),
-            Ok((addr0, vec![QueryResult::PostLikedByUser(7, true)]))
+            // liked a post that is not in view - nothing should be sent
+            Err(broadcast::error::TryRecvError::Empty),
         );
-
-        // persisted_sender
-        //     .send((
-        //         addr1,
-        //         vec![
-        //             (55, Persisted::Session, -1),
-        //             (55, Persisted::ViewPostsPage(1), -1),
-        //         ],
-        //     ))
-        //     .unwrap();
-
-        // forum_minimal.advance_dataflow_computation_once().await;
 
         persisted_sender
             .send((
@@ -133,7 +122,6 @@ mod tests {
                 vec![
                     (55, Persisted::Session, 1),
                     (55, Persisted::ViewPostsPage(0), 1),
-                    (55, Persisted::PostLike(7), -1),
                 ],
             ))
             .unwrap();
@@ -142,7 +130,7 @@ mod tests {
 
         assert_eq!(
             query_result_receiver.try_recv(),
-            Err(broadcast::error::TryRecvError::Empty),
+            Ok((addr1, vec![QueryResult::PostLikedByUser(7, true)]))
         );
     }
 }
