@@ -41,6 +41,8 @@ type ScopeChild<'a> = timely::dataflow::scopes::Child<'a, ScopeWorker, u64>;
 pub type ScopeCollection<'a> = differential_dataflow::Collection<ScopeChild<'a>, InputFormat>;
 pub type OutputScopeCollection<'a> = differential_dataflow::Collection<ScopeChild<'a>, OutputFormat>;
 
+pub type Collection<'a, D> = differential_dataflow::Collection<ScopeChild<'a>, D>;
+
 pub type QueryResultSender = broadcast::Sender<(SocketAddr, Vec<QueryResult>)>;
 
 pub fn default_dataflows<'a>(
