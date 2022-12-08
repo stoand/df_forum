@@ -41,7 +41,7 @@ pub fn post_liked_by_user_dataflow<'a>(
 
     let post_pages = shared_post_pages(&collection)
         .map(|(_addr, post_id, page, _position)| (post_id, page))
-        .inspect(|v| debug!("post_pages -- {:?}", v));
+        .inspect(|((post_id, page), _, _)| debug!("post: {:?}, page: {:?}", post_id, page));
 
     let result = user_id_to_addr
         .join(&post_likes)

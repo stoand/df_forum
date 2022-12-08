@@ -125,10 +125,7 @@ pub fn render_page_enter_username() {
 }
 
 // #SPC-forum_minimal.page_posts
-pub fn render_page_posts(
-    user_id: u64,
-    connection: Rc<RefCell<connection::FrontendConnection>>,
-) {
+pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::FrontendConnection>>) {
     let (document, root) = document_and_root();
     root.set_inner_html("");
 
@@ -196,6 +193,16 @@ pub fn render_page_posts(
                 (id, Persisted::PostTitle(title), 1),
                 (id, Persisted::PostBody(body), 1),
             ]);
+
+            let (_, root) = document_and_root();
+            let old_page: u64 = root.get_attribute("page").unwrap().parse().unwrap();
+
+            if old_page > 0 {
+                connection0.borrow().send_transaction(vec![
+                    (user_id, Persisted::ViewPostsPage(old_page), -1),
+                    (user_id, Persisted::ViewPostsPage(0), 1),
+                ]);
+            }
         }
     });
 
@@ -409,12 +416,12 @@ pub fn render_page_posts(
 
                     let like_button = new_post.query_selector(".post-like").unwrap().unwrap();
                     let like_button_click = Closure::<dyn FnMut()>::new(move || {
-                        let diff =
-                            if new_post.get_attribute("is_liked") != Some("true".to_string()) {
-                                1
-                            } else {
-                                -1
-                            };
+                        let diff = if new_post.get_attribute("is_liked") != Some("true".to_string())
+                        {
+                            1
+                        } else {
+                            -1
+                        };
                         // let diff = 1;
 
                         log(&("user id: ".to_string() + &user_id.to_string()));
