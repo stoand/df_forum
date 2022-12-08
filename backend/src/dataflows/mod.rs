@@ -1,6 +1,7 @@
 pub mod page_post_ids;
 pub mod post_aggr;
 pub mod post_liked_by_user;
+pub mod post_total_likes;
 
 use differential_dataflow::operators::Reduce;
 use differential_dataflow::AsCollection;

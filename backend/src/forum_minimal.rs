@@ -19,6 +19,7 @@ use differential_dataflow::operators::Consolidate;
 use crate::dataflows::page_post_ids::posts_post_ids_dataflow;
 use crate::dataflows::post_aggr::post_aggr_dataflow;
 use crate::dataflows::post_liked_by_user::post_liked_by_user_dataflow;
+use crate::dataflows::post_total_likes::post_total_likes_dataflow;
 
 pub type InputFormat = (SocketAddr, (Id, Persisted));
 pub type OutputFormat = Vec<(SocketAddr, QueryResult)>;
@@ -51,6 +52,7 @@ pub fn default_dataflows<'a>(
     posts_post_ids_dataflow(collection)
         .concat(&post_aggr_dataflow(collection))
         .concat(&post_liked_by_user_dataflow(collection))
+        .concat(&post_total_likes_dataflow(collection))
 }
 
 impl ForumMinimal {
