@@ -182,6 +182,18 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
     submit_post.set_text_content(Some("Create Post"));
     root.append_child(&submit_post).unwrap();
 
+    let update_page_label = || {
+        let (document, root) = document_and_root();
+        let page: u64 = root.get_attribute("page").unwrap().parse().unwrap();
+        let page_count: u64 = root
+            .get_attribute("page_count")
+            .unwrap_or("1".to_string())
+            .parse()
+            .unwrap();
+        let page_label = document.get_element_by_id("page_label").unwrap();
+        page_label.set_text_content(Some(&format!("Page {} of {}", page + 1, page_count)));
+    };
+
     let submit_post_click = Closure::<dyn FnMut()>::new(move || {
         let title = post_title.dyn_ref::<HtmlInputElement>().unwrap().value();
 
@@ -202,6 +214,9 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
                     (user_id, Persisted::ViewPostsPage(old_page), -1),
                     (user_id, Persisted::ViewPostsPage(0), 1),
                 ]);
+
+                root.set_attribute("page", &(0.to_string())).unwrap();
+                update_page_label();
             }
         }
     });
@@ -265,18 +280,6 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
 
     let page_label = document.create_element("span").unwrap();
     page_label.set_id("page_label");
-
-    let update_page_label = || {
-        let (document, root) = document_and_root();
-        let page: u64 = root.get_attribute("page").unwrap().parse().unwrap();
-        let page_count: u64 = root
-            .get_attribute("page_count")
-            .unwrap_or("1".to_string())
-            .parse()
-            .unwrap();
-        let page_label = document.get_element_by_id("page_label").unwrap();
-        page_label.set_text_content(Some(&format!("Page {} of {}", page + 1, page_count)));
-    };
 
     let prev_page = document.create_element("button").unwrap();
     prev_page.set_text_content(Some("Prev"));
@@ -472,6 +475,7 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
                         .remove();
                 }
                 QueryResult::PostLikedByUser(post_id, is_liked) => {
+                    log(&format!("liked: post - {}, status - {}", post_id, is_liked));
                     let status = if is_liked { "Unlike" } else { "Like" };
                     let post = document
                         .get_element_by_id(&post_id.to_string())
