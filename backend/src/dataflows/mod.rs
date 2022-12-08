@@ -2,14 +2,10 @@ pub mod page_post_ids;
 pub mod post_aggr;
 pub mod post_liked_by_user;
 
-use differential_dataflow::lattice::Lattice;
 use differential_dataflow::operators::Reduce;
 use differential_dataflow::AsCollection;
 use std::net::SocketAddr;
-use timely::dataflow::operators::Filter;
-// use timely::dataflow::operators::Inspect;
 use timely::dataflow::operators::Map;
-use timely::dataflow::Scope;
 
 use crate::forum_minimal::{Collection, InputFormat, Persisted, POSTS_PER_PAGE};
 use log::debug;
@@ -29,41 +25,34 @@ pub fn shared_post_pages<'a>(
         .map(|((post_id, addr), time, diff)| (((), (time, addr, post_id)), time, diff))
         .as_collection()
         // reduce will automatically order by time
-        .reduce(|_, inputs, outputs| {
-            debug!("input = {:?}, output = {:?}", inputs, outputs);
+        .reduce(|(), inputs, outputs| {
+            debug!("inputs: {:?}", inputs);
 
-            let (mut added, mut removed): (Vec<_>, Vec<_>) =
-                inputs.to_vec().into_iter().partition(|(_, diff)| *diff > 0);
+            let mut visible = Vec::new();
 
-            added.sort_by_key(|((time, _addr, _id), _diff)| -(*time as isize));
-            removed.sort_by_key(|((time, _addr, _id), _diff)| -(*time as isize));
+            for ((_time, addr, add_post_id), diff) in inputs {
+                if *diff > 0 {
+                    let mut found_removal = false;
 
-            let mut page_item_index: u64 = 0;
-            let mut page = 0;
+                    for ((_time, _, rem_post_id), diff) in inputs {
+                        if *diff < 0 && add_post_id == rem_post_id {
+                            found_removal = true;
+                        }
+                    }
 
-            for ((creation_time, addr, id), _diff) in added {
-                outputs.push(((*addr, *id, page, *creation_time), 1));
-
-                let dup_removed = removed
-                    .iter()
-                    .find(|((_creation_time, _addr, other_id), _diff)| id == other_id);
-                if dup_removed != None {
-                    outputs.push(((*addr, *id, page, *creation_time), -1));
-                    continue;
-                } else {
-                    outputs.push(((*addr, *id, page, *creation_time), 1));
+                    if !found_removal {
+                        visible.push((addr, add_post_id));
+                    }
                 }
-                page_item_index += 1;
-                if page_item_index >= POSTS_PER_PAGE as u64 {
-                    page_item_index = 0;
-                    page += 1;
-                }
+            }
+
+            for (index, (addr, post_id)) in visible.into_iter().enumerate() {
+                let page = (index / POSTS_PER_PAGE) as u64;
+                let position = (index % POSTS_PER_PAGE) as u64;
+                outputs.push(((*addr, *post_id, page, position), 1));
             }
         })
         .map(|((), val)| val)
-        // .inner
-        // .filter(|(_, _time, diff)| *diff > 0)
-        // .as_collection()
         .inspect(|v| debug!("post pages -- {:?}", v));
 
     result
@@ -89,7 +78,22 @@ mod tests {
             .to_stream(scope)
             .as_collection();
 
-            shared_post_pages(&stream).inspect(|v| debug!("got val {:?}", v));
+            shared_post_pages(&stream).inspect_batch(move |_time, v| {
+                assert_eq!(
+                    v,
+                    vec![
+                        ((addr0, 5, 0, 0), 0, 1),
+                        ((addr0, 5, 0, 0), 1, -1),
+                        ((addr0, 6, 0, 0), 1, 1),
+                        ((addr0, 6, 0, 1), 0, 1),
+                        ((addr0, 6, 0, 1), 1, -1),
+                        ((addr0, 7, 0, 1), 1, 1),
+                        ((addr0, 7, 1, 0), 0, 1),
+                        ((addr0, 7, 1, 0), 1, -1)
+                    ]
+                );
+                debug!("got val {:?}", v);
+            });
         });
     }
 }
