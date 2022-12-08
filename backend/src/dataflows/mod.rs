@@ -2,71 +2,94 @@ pub mod page_post_ids;
 pub mod post_aggr;
 pub mod post_liked_by_user;
 
-use differential_dataflow::difference::Semigroup;
 use differential_dataflow::lattice::Lattice;
 use differential_dataflow::operators::Reduce;
-use differential_dataflow::{AsCollection, Collection};
+use differential_dataflow::AsCollection;
+use std::net::SocketAddr;
 use timely::dataflow::operators::Filter;
-use timely::dataflow::operators::Inspect;
+// use timely::dataflow::operators::Inspect;
 use timely::dataflow::operators::Map;
 use timely::dataflow::Scope;
 
-use crate::forum_minimal::{InputFormat, Persisted, POSTS_PER_PAGE};
+use crate::forum_minimal::{Collection, InputFormat, Persisted, POSTS_PER_PAGE};
 use log::debug;
 
-pub fn post_pages<G: Scope>(
-    collection: &Collection<G, InputFormat>,
-) -> Collection<G, (u64, u64, u64)>
-where
-    G::Timestamp: Lattice + Ord + Copy,
-{
-    collection
-        .flat_map(|(_addr, (post_id, persisted))| {
+pub fn shared_post_pages<'a>(
+    collection: &Collection<'a, InputFormat>,
+) -> Collection<'a, (SocketAddr, u64, u64, u64)> {
+    let result = collection
+        .flat_map(|(addr, (post_id, persisted))| {
             if let Persisted::Post = persisted {
-                vec![post_id]
+                vec![(post_id, addr)]
             } else {
                 vec![]
             }
         })
         .inner
-        .map(|(post_id, time, diff)| (((), (time, post_id)), time, diff))
+        .map(|((post_id, addr), time, diff)| (((), (time, addr, post_id)), time, diff))
         .as_collection()
         // reduce will automatically order by time
         .reduce(|_, inputs, outputs| {
-            debug!("only inputs = {:?}", inputs);
-            for (index, ((_time, post_id), diff)) in inputs.into_iter().rev().enumerate() {
-                if *diff > 0 {
-                    let page = (index / POSTS_PER_PAGE) as u64;
-                    let position = (index % POSTS_PER_PAGE) as u64;
-                    outputs.push(((*post_id, page, position), 1));
+            debug!("input = {:?}, output = {:?}", inputs, outputs);
+
+            let (mut added, mut removed): (Vec<_>, Vec<_>) =
+                inputs.to_vec().into_iter().partition(|(_, diff)| *diff > 0);
+
+            added.sort_by_key(|((time, _addr, _id), _diff)| -(*time as isize));
+            removed.sort_by_key(|((time, _addr, _id), _diff)| -(*time as isize));
+
+            let mut page_item_index: u64 = 0;
+            let mut page = 0;
+
+            for ((creation_time, addr, id), _diff) in added {
+                outputs.push(((*addr, *id, page, *creation_time), 1));
+
+                let dup_removed = removed
+                    .iter()
+                    .find(|((_creation_time, _addr, other_id), _diff)| id == other_id);
+                if dup_removed != None {
+                    outputs.push(((*addr, *id, page, *creation_time), -1));
+                    continue;
+                } else {
+                    outputs.push(((*addr, *id, page, *creation_time), 1));
+                }
+                page_item_index += 1;
+                if page_item_index >= POSTS_PER_PAGE as u64 {
+                    page_item_index = 0;
+                    page += 1;
                 }
             }
         })
         .map(|((), val)| val)
-        .inspect(|v| debug!("post pages -- {:?}", v))
+        // .inner
+        // .filter(|(_, _time, diff)| *diff > 0)
+        // .as_collection()
+        .inspect(|v| debug!("post pages -- {:?}", v));
+
+    result
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::net::SocketAddr;
     use timely::dataflow::operators::ToStream;
 
     #[tokio::test]
-    pub async fn test_post_pages() {
+    pub async fn test_shared_post_pages() {
         crate::init_logger();
         let addr0: SocketAddr = "127.0.0.1:8080".parse().unwrap();
 
         timely::example(move |scope| {
             let stream = vec![
                 ((addr0, (5, Persisted::Post)), 0, 1),
-                // (6, Persisted::Post),
-                // (7, Persisted::Post),
+                ((addr0, (6, Persisted::Post)), 0, 1),
+                ((addr0, (7, Persisted::Post)), 0, 1),
+                ((addr0, (5, Persisted::Post)), 1, -1),
             ]
             .to_stream(scope)
             .as_collection();
 
-            post_pages(&stream).inspect(|v| debug!("got val {:?}", v));
+            shared_post_pages(&stream).inspect(|v| debug!("got val {:?}", v));
         });
     }
 }
