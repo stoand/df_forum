@@ -53,7 +53,7 @@ pub fn posts_post_ids_dataflow<'a>(
             _ => vec![],
         });
 
-    let page_posts2 = post_ids_with_time
+    let _page_posts2 = post_ids_with_time
         .reduce(|_discarded_zero, inputs, outputs| {
             debug!("input = {:?}, output = {:?}", inputs, outputs);
 

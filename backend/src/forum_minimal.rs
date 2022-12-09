@@ -52,7 +52,7 @@ pub fn default_dataflows<'a>(
     posts_post_ids_dataflow(collection)
         .concat(&post_aggr_dataflow(collection))
         .concat(&post_liked_by_user_dataflow(collection))
-        .concat(&post_total_likes_dataflow(collection))
+        // .concat(&post_total_likes_dataflow(collection))
 }
 
 impl ForumMinimal {

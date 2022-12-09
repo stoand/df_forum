@@ -18,9 +18,9 @@ pub fn post_liked_by_user_dataflow<'a>(
                 vec![]
             }
         })
-        .inner
-        .filter(|(_, _time, diff)| *diff > 0)
-        .as_collection()
+        // .inner
+        // .filter(|(_, _time, diff)| *diff > 0)
+        // .as_collection()
         .inspect(|v| debug!("current page -- {:?}", v));
 
     let user_id_to_addr = collection.flat_map(|(addr, (user_id, persisted))| {
@@ -98,12 +98,7 @@ mod tests {
             .send((
                 addr0,
                 vec![
-                    (55, Persisted::Session, 1),
-                    (55, Persisted::ViewPostsPage(1), 1),
-                    (5, Persisted::Post, 1),
-                    (6, Persisted::Post, 1),
-                    (7, Persisted::Post, 1),
-                    (55, Persisted::PostLike(7), 1),
+                    (55, Persisted::ViewPostsPage(0), 1),
                 ],
             ))
             .unwrap();
@@ -114,6 +109,27 @@ mod tests {
             query_result_receiver.try_recv(),
             // liked a post that is not in view - nothing should be sent
             Err(broadcast::error::TryRecvError::Empty),
+        );
+
+        persisted_sender
+            .send((
+                addr0,
+                vec![
+                    (55, Persisted::Session, 1),
+                    (55, Persisted::ViewPostsPage(1), 1),
+                    (5, Persisted::Post, 1),
+                    (6, Persisted::Post, 1),
+                    (7, Persisted::Post, 1),
+                    (55, Persisted::PostLike(5), 1),
+                ],
+            ))
+            .unwrap();
+
+        forum_minimal.advance_dataflow_computation_once().await;
+
+        assert_eq!(
+            query_result_receiver.try_recv(),
+            Ok((addr0, vec![QueryResult::PostLikedByUser(5, true)]))
         );
 
         persisted_sender
@@ -130,7 +146,7 @@ mod tests {
 
         assert_eq!(
             query_result_receiver.try_recv(),
-            Ok((addr1, vec![QueryResult::PostLikedByUser(7, true)]))
+            Err(broadcast::error::TryRecvError::Empty),
         );
     }
 }
