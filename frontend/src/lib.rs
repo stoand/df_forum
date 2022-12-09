@@ -130,7 +130,7 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
     root.set_inner_html("");
 
     let connection0 = connection.clone();
-    // let connection1 = connection.clone();
+    let connection1 = connection.clone();
     let connection2 = connection.clone();
     let connection3 = connection.clone();
     let connection4 = connection.clone();
@@ -337,6 +337,25 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
     next_page_el.set_onclick(Some(next_page_click.as_ref().unchecked_ref()));
 
     next_page_click.forget();
+
+    let reset = document.create_element("button").unwrap();
+    reset.set_text_content(Some("Clear Session"));
+    page_ops.append_child(&reset).unwrap();
+
+    let reset_click = Closure::<dyn FnMut()>::new(move || {
+        let (_, root) = document_and_root();
+        let old_page: u64 = root.get_attribute("page").unwrap().parse().unwrap();
+        
+        connection1.borrow().send_transaction(vec![
+            (user_id, Persisted::ViewPostsPage(old_page), -1),
+            (user_id, Persisted::Session, -1),
+        ]);
+    });
+
+    let reset_el = reset.dyn_ref::<HtmlElement>().unwrap();
+    reset_el.set_onclick(Some(reset_click.as_ref().unchecked_ref()));
+
+    reset_click.forget();
 
     let on_parsed_message = move |items: Vec<QueryResult>| {
         let (document, root) = document_and_root();
