@@ -11,7 +11,6 @@ use log::debug;
 pub fn post_total_likes_dataflow<'a>(
     collection: &ScopeCollection<'a>,
 ) -> OutputScopeCollection<'a> {
-
     let post_pages = shared_post_pages(&collection)
         .map(|(_creator_addr, post_id, page, _position)| (page, post_id));
 
@@ -33,24 +32,16 @@ pub fn post_total_likes_dataflow<'a>(
             if let Persisted::PostLike(post_id) = persisted {
                 vec![(post_id, ())]
             // add an additional count so that counting to zero is possible
-            } else if Persisted::Post == persisted {
-                vec![(0, ())]
             } else {
                 vec![]
             }
         })
-        .reduce(|_post_id, inputs, outputs| {
-            debug!("inputs: {:?}", inputs);
-            
-            let count = inputs
-                .into_iter()
-                .filter(|(_, diff)| *diff > 0)
-                .collect::<Vec<_>>()
-                .len();
-            // remove additional count that makes counting to zero possible
-            outputs.push((count - 1, 1));
+        .reduce(|post_id, inputs, outputs| {
+            debug!("post_id: {}, inputs: {:?}", post_id, inputs);
+            // reducing () - unlike other values, simply provides a single tuple
+            // with the count of the key as the second property
+            outputs.push((inputs[0].1, 1));
         })
-        .filter(|(post_id, _count)| *post_id != 0)
         .inspect(|v| debug!("like_counts -- {:?}", v));
 
     let result = post_pages
@@ -103,6 +94,7 @@ mod tests {
                     (6, Persisted::Post, 1),
                     (55, Persisted::PostLike(5), 1),
                     (56, Persisted::PostLike(5), 1),
+                    (57, Persisted::PostLike(5), 1),
                 ],
             ))
             .unwrap();
@@ -111,8 +103,7 @@ mod tests {
 
         assert_eq!(
             query_result_receiver.try_recv(),
-            // liked a post that is not in view - nothing should be sent
-            Err(broadcast::error::TryRecvError::Empty),
+            Ok((addr0, vec![QueryResult::PostTotalLikes(5, 3)])),
         );
     }
 }
