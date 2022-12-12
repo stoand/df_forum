@@ -4,16 +4,13 @@ partof: REQ-purpose
 
 # TODO's
 
-* TODO: split queries into fields ie. post title instead of entire posts
-* TODO: send list of post id's to ensure order
-    * suboptimal - we send the post creation time instead
-* [DONE] TODO: isolate sessions
-
+* [DONE] split queries into fields ie. post title instead of entire posts
+* [DONE] isolate sessions
 * [DONE] Make id's external instead of being inside Persisted items
-* TODO: Delete items using "remove" instead of using a delete event
+* [DONE] Delete items using "remove" instead of using a delete event
 * [DONE] Sort list items
 * [DONE] Pagination
-* [DONE] TODO: Prevent flickering
+* [DONE] Prevent flickering
     Do this by sending multiple QueryResults at once -
     concat outputs then use inspect batch
 * TODO: replace unwrap and expect with error handling
@@ -23,9 +20,11 @@ partof: REQ-purpose
 * TODO: bootstrapping multiple times (ie. by going to the username change page and then to posts)
     causes duplicate post creation
 * TODO: remove session var on websocket disconnection
-* TODO: bug - when you create two items, refresh, create a third, go to next page, delete third
-* [DONE] TODO: bug - create an item, like it, refresh - wrong like text
-* bug - liking an item not on the first page, refresh, "could not find post by id"
+* [DONE] bug - when you create two items, refresh, create a third, go to next page, delete third
+* [DONE] bug - create an item, like it, refresh - wrong like text
+* [DONE] bug - liking an item not on the first page, refresh, "could not find post by id"
+* TODO: bug - `post_liked_by_user` - liking an item and then pushing to the next page by creating additional elements
+* TODO: bug - `post_total_likes` - creating three elements, refresh, then like-unlike third element - nothing happens
 
 * Cranelift -- deleting is bugged when switching sessions
 
