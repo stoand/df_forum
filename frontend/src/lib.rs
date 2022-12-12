@@ -293,8 +293,8 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
             root.set_attribute("page", &(page.to_string())).unwrap();
             update_page_label();
             connection2.borrow().send_transaction(vec![
-                (user_id, Persisted::ViewPostsPage(page), 1),
                 (user_id, Persisted::ViewPostsPage(old_page), -1),
+                (user_id, Persisted::ViewPostsPage(page), 1),
             ]);
         }
     });
@@ -345,10 +345,10 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
     let reset_click = Closure::<dyn FnMut()>::new(move || {
         let (_, root) = document_and_root();
         let old_page: u64 = root.get_attribute("page").unwrap().parse().unwrap();
-        
+
         connection1.borrow().send_transaction(vec![
             (user_id, Persisted::ViewPostsPage(old_page), -1),
-            (user_id, Persisted::Session, -1),
+            // (user_id, Persisted::Session, -1),
         ]);
     });
 
@@ -496,19 +496,17 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
                 QueryResult::PostLikedByUser(post_id, is_liked) => {
                     log(&format!("liked: post - {}, status - {}", post_id, is_liked));
                     let status = if is_liked { "Unlike" } else { "Like" };
-                    if let Some(post) = document.get_element_by_id(&post_id.to_string()) {
-                        // .expect(&format!("could not find post by id - {}", post_id));
+                    let post = document
+                        .get_element_by_id(&post_id.to_string())
+                        .expect(&format!("could not find post by id - {}", post_id));
 
-                        post.query_selector(".post-like-status")
-                            .unwrap()
-                            .unwrap()
-                            .set_text_content(Some(status));
+                    post.query_selector(".post-like-status")
+                        .unwrap()
+                        .unwrap()
+                        .set_text_content(Some(status));
 
-                        post.set_attribute("is_liked", if is_liked { "true" } else { "false" })
-                            .unwrap();
-                    } else {
-                        log(&format!("FIX THIS --- could not find post by id - {}", post_id));
-                    }
+                    post.set_attribute("is_liked", if is_liked { "true" } else { "false" })
+                        .unwrap();
                 }
                 QueryResult::PostTotalLikes(post_id, like_count) => {
                     document
