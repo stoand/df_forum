@@ -19,7 +19,7 @@ use differential_dataflow::operators::Consolidate;
 use crate::dataflows::page_post_ids::posts_post_ids_dataflow;
 use crate::dataflows::post_aggr::post_aggr_dataflow;
 use crate::dataflows::post_liked_by_user::post_liked_by_user_dataflow;
-// use crate::dataflows::post_total_likes::post_total_likes_dataflow;
+use crate::dataflows::post_total_likes::post_total_likes_dataflow;
 
 pub type InputFormat = (SocketAddr, (Id, Persisted));
 pub type OutputFormat = Vec<(SocketAddr, QueryResult)>;
@@ -40,19 +40,18 @@ type ScopeWorker = timely::worker::Worker<ScopeThread>;
 type ScopeChild<'a> = timely::dataflow::scopes::Child<'a, ScopeWorker, u64>;
 
 pub type ScopeCollection<'a> = differential_dataflow::Collection<ScopeChild<'a>, InputFormat>;
-pub type OutputScopeCollection<'a> = differential_dataflow::Collection<ScopeChild<'a>, OutputFormat>;
+pub type OutputScopeCollection<'a> =
+    differential_dataflow::Collection<ScopeChild<'a>, OutputFormat>;
 
 pub type Collection<'a, D> = differential_dataflow::Collection<ScopeChild<'a>, D>;
 
 pub type QueryResultSender = broadcast::Sender<(SocketAddr, Vec<QueryResult>)>;
 
-pub fn default_dataflows<'a>(
-    collection: &ScopeCollection<'a>,
-) -> OutputScopeCollection<'a> {
+pub fn default_dataflows<'a>(collection: &ScopeCollection<'a>) -> OutputScopeCollection<'a> {
     posts_post_ids_dataflow(collection)
         .concat(&post_aggr_dataflow(collection))
         .concat(&post_liked_by_user_dataflow(collection))
-        // .concat(&post_total_likes_dataflow(collection))
+        .concat(&post_total_likes_dataflow(collection))
 }
 
 impl ForumMinimal {
@@ -73,6 +72,7 @@ impl ForumMinimal {
                 let mut input: PersistedInputSession = InputSession::new();
                 let collection = input.to_collection(scope);
 
+                // Send everything at once to prevent flickering (but still split by session)
                 init_dataflows(&collection)
                     .consolidate()
                     .inspect_batch(move |_time, aug| batch_send(aug, &query_result_sender));
@@ -92,7 +92,9 @@ impl ForumMinimal {
         let input1 = input0.clone();
 
         let addr: SocketAddr = "127.0.0.1:0".parse().unwrap();
-        input1.borrow_mut().insert((addr, (0, Persisted::PlusOneDummy)));
+        input1
+            .borrow_mut()
+            .insert((addr, (0, Persisted::PlusOneDummy)));
 
         ForumMinimal {
             input: input1,

@@ -1,6 +1,4 @@
-use crate::forum_minimal::{
-    Persisted, QueryResult, ScopeCollection, OutputScopeCollection, POSTS_PER_PAGE,
-};
+use crate::forum_minimal::{OutputScopeCollection, Persisted, QueryResult, ScopeCollection};
 use log::debug;
 
 use timely::dataflow::operators::Filter;
@@ -14,10 +12,7 @@ use differential_dataflow::AsCollection;
 
 use crate::dataflows::shared_post_pages;
 
-pub fn posts_post_ids_dataflow<'a>(
-    collection: &ScopeCollection<'a>,
-) -> OutputScopeCollection<'a> {
-    
+pub fn posts_post_ids_dataflow<'a>(collection: &ScopeCollection<'a>) -> OutputScopeCollection<'a> {
     let session_pages = collection
         .reduce(|_addr, inputs, outputs| {
             // debug!(
@@ -43,50 +38,6 @@ pub fn posts_post_ids_dataflow<'a>(
             }
         })
         .inspect(|v| debug!("session pages -- {:?}", v));
-
-    let post_ids_with_time = collection
-        .inner
-        .map(|((addr, (id, persisted)), time, diff)| ((time, addr, id, persisted), time, diff))
-        .as_collection()
-        .flat_map(|(time, addr, id, persisted)| match persisted {
-            Persisted::Post => vec![(0, (addr, id, time))],
-            _ => vec![],
-        });
-
-    let _page_posts2 = post_ids_with_time
-        .reduce(|_discarded_zero, inputs, outputs| {
-            debug!("input = {:?}, output = {:?}", inputs, outputs);
-
-            let (mut added, mut removed): (Vec<_>, Vec<_>) =
-                inputs.to_vec().into_iter().partition(|(_, diff)| *diff > 0);
-
-            added.sort_by_key(|((_addr, _id, time), _diff)| -(*time as isize));
-            removed.sort_by_key(|((_addr, _id, time), _diff)| -(*time as isize));
-
-            let mut page_item_index: u64 = 0;
-            let mut page = 0;
-
-            for ((addr, id, creation_time), _diff) in added {
-                outputs.push(((*addr, *id, page, *creation_time), 1));
-
-                let dup_removed = removed
-                    .iter()
-                    .find(|((_addr, other_id, _creation_time), _diff)| id == other_id);
-                if dup_removed != None {
-                    outputs.push(((*addr, *id, page, *creation_time), -1));
-                    continue;
-                } else {
-                    outputs.push(((*addr, *id, page, *creation_time), 1));
-                }
-                page_item_index += 1;
-                if page_item_index >= POSTS_PER_PAGE as u64 {
-                    page_item_index = 0;
-                    page += 1;
-                }
-            }
-        })
-        .map(|(_discarded_zero, (addr, id, page, creation_time))| (page, (addr, id, creation_time)))
-        .inspect(|v| debug!("page posts -- {:?}", v));
 
     let page_posts = shared_post_pages(&collection)
         .map(|(addr, post_id, page, position)| (page, (addr, post_id, position)));
@@ -181,60 +132,9 @@ pub fn posts_post_ids_dataflow<'a>(
         )
         .as_collection();
 
-    let _posts_liked_by_user = collection.flat_map(|(addr, (_id, persisted))| {
-        if let Persisted::PostLike(liked_post) = persisted {
-            vec![(liked_post, addr)]
-        } else {
-            vec![]
-        }
-    });
-
-    let posts_liked_by_user2 = collection.flat_map(|(_addr, (id, persisted))| {
-        if let Persisted::PostLike(liked_post) = persisted {
-            vec![(liked_post, id)]
-        // add an additional count so that counting to zero is possible
-        } else if Persisted::Post == persisted {
-            vec![(id, 0)]
-        } else {
-            vec![]
-        }
-    });
-
-    let _post_total_like_count_result = posts_liked_by_user2
-        .inspect(|v| debug!("liked 0 -- {:?}", v))
-        .reduce(|_post_id, inputs, outputs| {
-            let count = inputs
-                .into_iter()
-                .filter(|(_, diff)| *diff > 0)
-                .collect::<Vec<_>>()
-                .len();
-            // remove additional count that makes counting to zero possible
-            outputs.push((count - 1, 1));
-        })
-        .inspect(|v| debug!("liked 1 -- {:?}", v))
-        .map(|(post_id, count)| (post_id, count))
-        .join(&session_post_ids)
-        .inner
-        .map(|((post_id, (count, session_addr)), time, diff)| {
-            let result = if diff > 0 {
-                vec![(
-                    session_addr,
-                    QueryResult::PostTotalLikes(post_id, count as u64),
-                )]
-            } else {
-                vec![]
-            };
-            (result, time, diff)
-        })
-        .as_collection()
-        .inspect(|v| debug!("like counts -- {:?}", v));
-
-    // Send everything at once to prevent flickering (but still split by session)
     session_post_field_results
         .concat(&session_post_results)
         .concat(&post_creator_names_results)
-        // .concat(&posts_liked_by_user_result)
-        // .concat(&post_total_like_count_result)
 }
 
 #[cfg(test)]

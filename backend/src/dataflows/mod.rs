@@ -25,7 +25,7 @@ pub fn shared_post_pages<'a>(
         .inner
         .map(|((post_id, addr), time, diff)| (((), (time, addr, post_id)), time, diff))
         .as_collection()
-        // reduce will automatically order by time
+        // reduce will automatically order by time (left-most value in the tuple)
         .reduce(|(), inputs, outputs| {
             debug!("inputs: {:?}", inputs);
 
