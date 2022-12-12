@@ -58,12 +58,6 @@ pub fn shared_post_pages<'a>(
     result
 }
 
-pub fn shared_addr_page<'a>(
-    _collection: &Collection<'a, InputFormat>,
-) -> Collection<'a, (SocketAddr, u64, u64, u64)> {
-    panic!()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -94,23 +88,6 @@ mod tests {
                         ((addr0, 7, 0, 0), 0, 1)
                     ]
                 );
-                debug!("got val {:?}", v);
-            });
-        });
-    }
-
-    #[tokio::test]
-    pub async fn test_shared_addr_page() {
-        crate::init_logger();
-        let addr0: SocketAddr = "127.0.0.1:8080".parse().unwrap();
-
-        timely::example(move |scope| {
-            let stream = vec![((addr0, (5, Persisted::Post)), 0, 1)]
-                .to_stream(scope)
-                .as_collection();
-
-            shared_addr_page(&stream).inspect_batch(move |_time, v| {
-                assert_eq!(v, vec![((addr0, 5, 1, 0), 0, 1),]);
                 debug!("got val {:?}", v);
             });
         });

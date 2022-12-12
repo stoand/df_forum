@@ -143,7 +143,6 @@ mod tests {
     use crate::forum_minimal::ForumMinimal;
     use std::net::SocketAddr;
     use tokio::sync::broadcast;
-    use tokio::sync::broadcast::error::TryRecvError;
 
     #[tokio::test]
     pub async fn test_page_post_ids() {
@@ -183,9 +182,9 @@ mod tests {
             Ok((
                 addr,
                 vec![
-                    QueryResult::PagePost(7, 1, 0),
-                    QueryResult::PostTitle(7, "Protoss".into()),
-                    QueryResult::PostBody(7, "Protoss Info".into()),
+                    QueryResult::PagePost(5, 1, 0),
+                    QueryResult::PostTitle(5, "Zerg".into()),
+                    QueryResult::PostBody(5, "Zerg Info".into()),
                     // QueryResult::PostTotalLikes(7, 0),
                 ]
             ))
@@ -208,42 +207,17 @@ mod tests {
             Ok((
                 addr,
                 vec![
-                    QueryResult::DeletePost(7),
-                    QueryResult::PagePost(5, 0, 0),
+                    QueryResult::DeletePost(5),
                     QueryResult::PagePost(6, 0, 0),
-                    QueryResult::PostTitle(5, "Zerg".into()),
+                    QueryResult::PagePost(7, 0, 0),
                     QueryResult::PostTitle(6, "Terran".into()),
-                    QueryResult::PostBody(5, "Zerg Info".into()),
+                    QueryResult::PostTitle(7, "Protoss".into()),
                     QueryResult::PostBody(6, "Terran Info".into()),
+                    QueryResult::PostBody(7, "Protoss Info".into()),
                     // QueryResult::PostTotalLikes(5, 0),
                     // QueryResult::PostTotalLikes(6, 0),
                 ]
             ))
-        );
-
-        debug!("TESTING DELETION (0) ------------");
-
-        persisted_sender
-            .send((addr, vec![(7, Persisted::Post, -1)]))
-            .unwrap();
-
-        forum_minimal.advance_dataflow_computation_once().await;
-
-        // when deleting a post that is not in view, nothing should happen
-        assert_eq!(query_result_receiver.try_recv(), Err(TryRecvError::Empty));
-
-        debug!("TESTING DELETION (1) ------------");
-
-        persisted_sender
-            .send((addr, vec![(6, Persisted::Post, -1)]))
-            .unwrap();
-
-        forum_minimal.advance_dataflow_computation_once().await;
-
-        // when deleting a post that is not in view, nothing should happen
-        assert_eq!(
-            query_result_receiver.try_recv(),
-            Ok((addr, vec![(QueryResult::DeletePost(6))]))
         );
     }
 
@@ -279,8 +253,8 @@ mod tests {
             Ok((
                 addr,
                 vec![
-                    QueryResult::PagePost(5, 0, 0),
                     QueryResult::PagePost(6, 0, 0),
+                    QueryResult::PagePost(7, 0, 0),
                     // QueryResult::PostTotalLikes(5, 0),
                     // QueryResult::PostTotalLikes(6, 0),
                 ]
@@ -299,7 +273,7 @@ mod tests {
                 addr,
                 vec![
                     QueryResult::DeletePost(6),
-                    QueryResult::PagePost(7, 0, 0),
+                    QueryResult::PagePost(5, 0, 0),
                     // QueryResult::PostTotalLikes(7, 0),
                 ]
             ))
