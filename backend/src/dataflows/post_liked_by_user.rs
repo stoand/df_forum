@@ -1,9 +1,8 @@
 use crate::forum_minimal::{OutputScopeCollection, Persisted, QueryResult, ScopeCollection};
-use differential_dataflow::operators::{Reduce,Join};
+use differential_dataflow::operators::Join;
 use differential_dataflow::AsCollection;
 use timely::dataflow::operators::Filter;
 use timely::dataflow::operators::Map;
-// use crate::operators::only_latest::OnlyLatest;
 
 use crate::dataflows::shared_post_pages;
 use log::debug;
@@ -19,20 +18,10 @@ pub fn post_liked_by_user_dataflow<'a>(
                 vec![]
             }
         })
-        // .only_latest()
         .inner
         .filter(|(_, _time, diff)| *diff > 0)
         .as_collection()
         .inspect(|v| debug!("current page -- {:?}", v));
-
-    // let user_id_to_addr = collection
-    //     .flat_map(|(addr, (user_id, persisted))| {
-    //         if let Persisted::Session = persisted {
-    //             vec![(user_id, addr)]
-    //         } else {
-    //             vec![]
-    //         }
-    //     });
 
     let post_likes = collection.flat_map(|(_addr, (user_id, persisted))| {
         if let Persisted::PostLike(post_id) = persisted {
@@ -41,7 +30,7 @@ pub fn post_liked_by_user_dataflow<'a>(
             vec![]
         }
     });
-    
+
     let post_pages = shared_post_pages(&collection)
         .map(|(_addr, post_id, page, _position)| (post_id, page))
         .inspect(|((post_id, page), _, _)| debug!("post: {:?}, page: {:?}", post_id, page));
@@ -133,7 +122,6 @@ mod tests {
             .send((
                 addr1,
                 vec![
-                    (55, Persisted::ViewPostsPage(1), -1),
                     (55, Persisted::Session, 1),
                     (55, Persisted::ViewPostsPage(0), 1),
                 ],
@@ -141,17 +129,10 @@ mod tests {
             .unwrap();
 
         forum_minimal.advance_dataflow_computation_once().await;
-        
-        assert_eq!(
-            query_result_receiver.try_recv(),
-            Err(broadcast::error::TryRecvError::Empty),
-            // Ok((addr1, vec![QueryResult::PostLikedByUser(5, false)]))
-        );
 
         assert_eq!(
             query_result_receiver.try_recv(),
-            // Err(broadcast::error::TryRecvError::Empty),
-            Ok((addr0, vec![QueryResult::PostLikedByUser(9999999, false)]))
+            Err(broadcast::error::TryRecvError::Empty),
         );
     }
 }
