@@ -134,5 +134,21 @@ mod tests {
             query_result_receiver.try_recv(),
             Err(broadcast::error::TryRecvError::Empty),
         );
+
+        persisted_sender
+            .send((
+                addr1,
+                vec![
+                    (5, Persisted::Post, -1),
+                ],
+            ))
+            .unwrap();
+
+        forum_minimal.advance_dataflow_computation_once().await;
+
+        assert_eq!(
+            query_result_receiver.try_recv(),
+            Err(broadcast::error::TryRecvError::Empty),
+        );
     }
 }
