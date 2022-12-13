@@ -438,12 +438,7 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
 
                     let like_button = new_post.query_selector(".post-like").unwrap().unwrap();
                     let like_button_click = Closure::<dyn FnMut()>::new(move || {
-                        let val = if new_post.get_attribute("is_liked") != Some("true".to_string())
-                        {
-                            true
-                        } else {
-                            false
-                        };
+                        let val = new_post.get_attribute("is_liked") != Some("true".to_string());
 
                         log(&("user id: ".to_string() + &user_id.to_string()));
 
