@@ -24,8 +24,8 @@ pub fn post_liked_by_user_dataflow<'a>(
         .inspect(|v| debug!("current page -- {:?}", v));
 
     let post_likes = collection.flat_map(|(_addr, (user_id, persisted))| {
-        if let Persisted::PostLike(post_id) = persisted {
-            vec![(user_id, post_id)]
+        if let Persisted::PostLike(post_id, like) = persisted {
+            vec![(user_id, (post_id, like))]
         } else {
             vec![]
         }
@@ -37,26 +37,29 @@ pub fn post_liked_by_user_dataflow<'a>(
 
     let result = user_id_to_page_addr
         .join(&post_likes)
-        .map(|(_user_id, ((visible_page, session_addr), post_id))| {
-            (post_id, (session_addr, visible_page))
-        })
+        .map(
+            |(_user_id, ((visible_page, session_addr), (post_id, like)))| {
+                (post_id, (session_addr, visible_page, like))
+            },
+        )
         .join(&post_pages)
         .inspect(|v| debug!("id and page -- {:?}", v))
-        .filter(|(_post_id, ((_session_addr, visible_page), post_page))| {
-            *visible_page == *post_page as u64
-        })
+        .filter(
+            |(_post_id, ((_session_addr, visible_page, _like), post_page))| {
+                *visible_page == *post_page as u64
+            },
+        )
         .inspect(|v| debug!("filtered id and page -- {:?}", v))
         .inner
         .map(
-            |((post_id, ((session_addr, _visible_page), _post_page)), time, diff)| {
-                (
-                    vec![(
-                        session_addr,
-                        QueryResult::PostLikedByUser(post_id, diff > 0),
-                    )],
-                    time,
-                    diff,
-                )
+            |((post_id, ((session_addr, _visible_page, like), _post_page)), time, diff)| {
+                let result = if diff > 0 {
+                    vec![(session_addr, QueryResult::PostLikedByUser(post_id, like))]
+                } else {
+                    vec![]
+                };
+
+                (result, time, diff)
             },
         )
         .as_collection();
@@ -106,7 +109,7 @@ mod tests {
                     (5, Persisted::Post, 1),
                     (6, Persisted::Post, 1),
                     (7, Persisted::Post, 1),
-                    (55, Persisted::PostLike(5), 1),
+                    (55, Persisted::PostLike(5, true), 1),
                 ],
             ))
             .unwrap();
@@ -136,12 +139,7 @@ mod tests {
         );
 
         persisted_sender
-            .send((
-                addr1,
-                vec![
-                    (5, Persisted::Post, -1),
-                ],
-            ))
+            .send((addr1, vec![(5, Persisted::Post, -1)]))
             .unwrap();
 
         forum_minimal.advance_dataflow_computation_once().await;

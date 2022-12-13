@@ -29,7 +29,8 @@ pub fn post_total_likes_dataflow<'a>(
 
     let post_like_counts = collection
         .flat_map(|(_addr, (_user_id, persisted))| {
-            if let Persisted::PostLike(post_id) = persisted {
+            // TODO
+            if let Persisted::PostLike(post_id, like) = persisted {
                 vec![(post_id, ())]
             // add an additional count so that counting to zero is possible
             } else {
@@ -92,9 +93,9 @@ mod tests {
                     (55, Persisted::ViewPostsPage(0), 1),
                     (5, Persisted::Post, 1),
                     (6, Persisted::Post, 1),
-                    (55, Persisted::PostLike(5), 1),
-                    (56, Persisted::PostLike(5), 1),
-                    (57, Persisted::PostLike(5), 1),
+                    (55, Persisted::PostLike(5, true), 1),
+                    (56, Persisted::PostLike(5, true), 1),
+                    (57, Persisted::PostLike(5, true), 1),
                 ],
             ))
             .unwrap();
