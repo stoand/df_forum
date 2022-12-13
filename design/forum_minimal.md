@@ -24,6 +24,7 @@ partof: REQ-purpose
 * [DONE] bug - create an item, like it, refresh - wrong like text
 * [DONE] bug - liking an item not on the first page, refresh, "could not find post by id"
 * TODO: bug - `post_liked_by_user` - liking an item and then pushing to the next page by creating additional elements
+* TODO: bug - `post_liked_by_user` - liking an item, then deleting it attempts to set the liked status of the deleted element
 * TODO: bug - `post_total_likes` - creating three elements, refresh, then like-unlike third element - nothing happens
 
 * Cranelift -- deleting is bugged when switching sessions
