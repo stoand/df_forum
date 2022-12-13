@@ -28,13 +28,12 @@ pub fn post_total_likes_dataflow<'a>(
         .inspect(|v| debug!("current page -- {:?}", v));
 
     let post_like_counts = collection
-        .flat_map(|(_addr, (_user_id, persisted))| {
-            // TODO
-            if let Persisted::PostLike(post_id, liked) = persisted {
-                vec![(post_id, liked)]
+        .flat_map(|(_addr, (user_or_post_id, persisted))| {
+            if let Persisted::PostLike(post_id, true) = persisted {
+                vec![(post_id, ())]
             // add an additional count so that counting to zero is possible
-            // } else if Persisted::PlusOneDummy == persisted {
-            //     vec![(0, ())]
+            } else if Persisted::Post == persisted {
+                vec![(user_or_post_id, ())]
             } else {
                 vec![]
             }
@@ -42,16 +41,8 @@ pub fn post_total_likes_dataflow<'a>(
         .reduce(|post_id, inputs, outputs| {
             debug!("post_id: {}, inputs: {:?}", post_id, inputs);
 
-            let result = if inputs.len() == 1 {
-                inputs[0].1
-            } else {
-                // [(false, n), (true, m)
-                inputs[1].1 - inputs[0].1
-            };
-            // outputs.push((inputs[0].1 - 1, 1));
-            outputs.push((result, 1));
+            outputs.push((inputs[0].1 - 1, 1));
         })
-        // .filter(|(post_id, _count)| *post_id != 0)
         .inspect(|v| debug!("like_counts -- {:?}", v));
 
     let result = post_pages
@@ -113,7 +104,10 @@ mod tests {
 
         assert_eq!(
             query_result_receiver.try_recv(),
-            Ok((addr0, vec![QueryResult::PostTotalLikes(5, 3)])),
+            Ok((addr0, vec![
+                QueryResult::PostTotalLikes(5, 3),
+                QueryResult::PostTotalLikes(6, 0),
+            ])),
         );
     }
 }

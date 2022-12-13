@@ -447,12 +447,10 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
 
                         log(&("user id: ".to_string() + &user_id.to_string()));
 
-                        let mut transaction = vec![];
-
-                        // transaction.push((user_id, Persisted::PostLike(post_id, !val), -1));
-                        transaction.push((user_id, Persisted::PostLike(post_id, val), 1));
-
-                        connection6.clone().borrow().send_transaction(transaction);
+                        connection6.clone().borrow().send_transaction(vec![
+                            (user_id, Persisted::PostLike(post_id, !val), -1),
+                            (user_id, Persisted::PostLike(post_id, val), 1),
+                        ]);
                     });
 
                     let like_button_el = like_button.dyn_ref::<HtmlElement>().unwrap();
