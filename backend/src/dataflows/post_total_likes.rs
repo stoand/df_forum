@@ -30,19 +30,28 @@ pub fn post_total_likes_dataflow<'a>(
     let post_like_counts = collection
         .flat_map(|(_addr, (_user_id, persisted))| {
             // TODO
-            if let Persisted::PostLike(post_id, like) = persisted {
-                vec![(post_id, ())]
+            if let Persisted::PostLike(post_id, liked) = persisted {
+                vec![(post_id, liked)]
             // add an additional count so that counting to zero is possible
+            // } else if Persisted::PlusOneDummy == persisted {
+            //     vec![(0, ())]
             } else {
                 vec![]
             }
         })
         .reduce(|post_id, inputs, outputs| {
             debug!("post_id: {}, inputs: {:?}", post_id, inputs);
-            // reducing () - unlike other values, simply provides a single tuple
-            // with the count of the key as the second property
-            outputs.push((inputs[0].1, 1));
+
+            let result = if inputs.len() == 1 {
+                inputs[0].1
+            } else {
+                // [(false, n), (true, m)
+                inputs[1].1 - inputs[0].1
+            };
+            // outputs.push((inputs[0].1 - 1, 1));
+            outputs.push((result, 1));
         })
+        // .filter(|(post_id, _count)| *post_id != 0)
         .inspect(|v| debug!("like_counts -- {:?}", v));
 
     let result = post_pages
