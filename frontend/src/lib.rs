@@ -3,11 +3,9 @@ extern crate abomonation;
 #[macro_use]
 extern crate abomonation_derive;
 extern crate console_error_panic_hook;
-// extern crate differential_dataflow;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
-// extern crate timely;
 extern crate getrandom;
 extern crate wasm_bindgen_test;
 use wasm_bindgen_test::*;
@@ -228,7 +226,7 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
 
     let aggregates = document.create_element("div").unwrap();
     aggregates.set_inner_html(
-        "My Likes: ? -- My Posts: ? -- Posts Total: <span id='posts-total'>???</span>",
+        "My Likes: ? -- My Posts: <span id='user-post-count'>???</span> -- Posts Total: <span id='posts-total'>???</span>",
     );
     root.append_child(&aggregates).unwrap();
 
@@ -520,7 +518,13 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
                         .unwrap()
                         .set_text_content(Some(&post_count.to_string()));
                 }
-
+                QueryResult::UserPostCount(user_post_count) => {
+                    document
+                        .query_selector("#user-post-count")
+                        .unwrap()
+                        .unwrap()
+                        .set_text_content(Some(&user_post_count.to_string()));
+                }
                 _ => {}
             }
         }
