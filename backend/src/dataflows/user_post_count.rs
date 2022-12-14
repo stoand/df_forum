@@ -1,20 +1,12 @@
-use crate::forum_minimal::{
-    OutputScopeCollection, Persisted, QueryResult, ScopeCollection,
-};
-// use differential_dataflow::operators::Consolidate;
-// use differential_dataflow::operators::Count;
+use crate::forum_minimal::{OutputScopeCollection, Persisted, QueryResult, ScopeCollection};
+use differential_dataflow::operators::Count;
 use differential_dataflow::operators::Join;
-// use differential_dataflow::AsCollection;
-// use log::debug;
-// use timely::dataflow::operators::Map;
+use differential_dataflow::operators::Reduce;
+use differential_dataflow::AsCollection;
+use log::debug;
+use timely::dataflow::operators::Map;
 
 pub fn user_post_count_dataflow<'a>(collection: &ScopeCollection<'a>) -> OutputScopeCollection<'a> {
-
-    // get posts
-    // map post addr to user_id
-    // get session addr from user_ids
-
-
     let posts = collection.flat_map(|(addr, (post_id, persisted))| {
         if Persisted::Post == persisted {
             vec![(addr, post_id)]
@@ -23,7 +15,7 @@ pub fn user_post_count_dataflow<'a>(collection: &ScopeCollection<'a>) -> OutputS
         }
     });
 
-    let sessions = collection.flat_map(|(addr, (user_id, persisted))| {
+    let session_addr_to_user = collection.flat_map(|(addr, (user_id, persisted))| {
         if Persisted::Session == persisted {
             vec![(addr, user_id)]
         } else {
@@ -31,12 +23,32 @@ pub fn user_post_count_dataflow<'a>(collection: &ScopeCollection<'a>) -> OutputS
         }
     });
 
+    let session_user_to_addr = session_addr_to_user.map(|(addr, user_id)| (user_id, addr));
+
     let results = posts
-        .join(&sessions);
+        .join(&session_addr_to_user)
+        .map(|(addr, (post_id, user_id))| (user_id, post_id))
+        .reduce(|user_id, inputs, outputs| {
+            debug!("user id: {}, inputs: {:?}", user_id, inputs);
 
-    panic!()
+            outputs.push((inputs.len(), 1));
+        })
+        .join(&session_user_to_addr)
+        .inspect(|v| debug!("v : {:?}", v))
+        .inner
+        .map(|((user_id, (count, addr)), time, diff)| {
+            let result = if diff > 0 {
+                vec![(addr, QueryResult::UserPostCount(count as u64))]
+            } else {
+                vec![]
+            };
+
+            (result, time, diff)
+        })
+        .as_collection();
+
+    results
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -74,9 +86,7 @@ mod tests {
 
         assert_eq!(
             query_result_receiver.try_recv(),
-            Ok((addr0, vec![
-                QueryResult::UserPostCount(2),
-            ])),
+            Ok((addr0, vec![QueryResult::UserPostCount(2),])),
         );
     }
 }
