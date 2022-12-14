@@ -21,6 +21,7 @@ use crate::dataflows::post_aggr::post_aggr_dataflow;
 use crate::dataflows::post_liked_by_user::post_liked_by_user_dataflow;
 use crate::dataflows::post_total_likes::post_total_likes_dataflow;
 use crate::dataflows::user_post_count::user_post_count_dataflow;
+use crate::dataflows::user_like_count::user_like_count_dataflow;
 
 pub type InputFormat = (SocketAddr, (Id, Persisted));
 pub type OutputFormat = Vec<(SocketAddr, QueryResult)>;
@@ -54,6 +55,7 @@ pub fn default_dataflows<'a>(collection: &ScopeCollection<'a>) -> OutputScopeCol
         .concat(&post_liked_by_user_dataflow(collection))
         .concat(&post_total_likes_dataflow(collection))
         .concat(&user_post_count_dataflow(collection))
+        .concat(&user_like_count_dataflow(collection))
 }
 
 impl ForumMinimal {

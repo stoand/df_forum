@@ -226,7 +226,7 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
 
     let aggregates = document.create_element("div").unwrap();
     aggregates.set_inner_html(
-        "My Likes: ? -- My Posts: <span id='user-post-count'>???</span> -- Posts Total: <span id='posts-total'>???</span>",
+        "My Likes: <span id='user-like-count'>???</span> -- My Posts: <span id='user-post-count'>???</span> -- Posts Total: <span id='posts-total'>???</span>",
     );
     root.append_child(&aggregates).unwrap();
 
@@ -524,6 +524,13 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
                         .unwrap()
                         .unwrap()
                         .set_text_content(Some(&user_post_count.to_string()));
+                }
+                QueryResult::UserLikeCount(user_like_count) => {
+                    document
+                        .query_selector("#user-like-count")
+                        .unwrap()
+                        .unwrap()
+                        .set_text_content(Some(&user_like_count.to_string()));
                 }
                 _ => {}
             }
