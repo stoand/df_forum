@@ -21,4 +21,5 @@ pub enum QueryResult {
     PostLikedByUser(u64, bool), // post id, whether current user has liked post, total like count
 
     UserPostCount(u64),
+    UserLikeCount(u64),
 }
