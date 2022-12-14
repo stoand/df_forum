@@ -26,6 +26,8 @@ partof: REQ-purpose
 * [DONE] bug - `post_liked_by_user` - liking an item and then pushing to the next page by creating additional elements
 * [DONE] bug - `post_liked_by_user` - liking an item, then deleting it attempts to set the liked status of the deleted element
 * TODO: bug - `post_total_likes` - creating three elements, refresh, then like-unlike third element - nothing happens
+* TODO: bug - `user_post_count` - open two sessions, create some elements in both, delete all elements in one session
+    * what happends - the counter goes up instead of down
 
 * Cranelift -- deleting is bugged when switching sessions
 
