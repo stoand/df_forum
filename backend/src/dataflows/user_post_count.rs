@@ -40,7 +40,7 @@ pub fn user_post_count_dataflow<'a>(collection: &ScopeCollection<'a>) -> OutputS
         }
     });
 
-    let posts_and_creator_user_ids = posts
+    let posts_and_creator_user_ids = posts_plus_one
         .join(&session_addr_to_user)
         .map(|(addr, (post_id, user_id))| (post_id, (user_id, addr)))
         .reduce(|post_id, inputs, output| {
@@ -68,18 +68,15 @@ pub fn user_post_count_dataflow<'a>(collection: &ScopeCollection<'a>) -> OutputS
                 }
             }
         })
-        .inspect(|v| debug!("v : {:?}", v));
+        .map(|(post_id, user_id)| {
+            (user_id, post_id)
+        });
 
-    let results = posts_plus_one
-        .join(&session_addr_to_user)
-        .map(|(_addr, (post_id, user_id))| (user_id, post_id))
-        .reduce(|user_id, inputs, outputs| {
-            // debug!("user id: {}, inputs: {:?}", user_id, inputs);
-
+    let user_post_counts = posts_and_creator_user_ids
+        .reduce(|_user_id, inputs, outputs| {
             outputs.push((inputs.len() - 1, 1));
         })
         .join(&session_user_to_addr)
-        // .inspect(|v| debug!("v : {:?}", v))
         .inner
         .map(|((_user_id, (count, addr)), time, diff)| {
             let result = if diff > 0 {
@@ -91,8 +88,31 @@ pub fn user_post_count_dataflow<'a>(collection: &ScopeCollection<'a>) -> OutputS
             (result, time, diff)
         })
         .as_collection();
+        // .inspect(|v| debug!("v : {:?}", v));
 
-    results
+    // let results = posts_plus_one
+    //     .join(&session_addr_to_user)
+    //     .map(|(_addr, (post_id, user_id))| (user_id, post_id))
+    //     .reduce(|user_id, inputs, outputs| {
+    //         // debug!("user id: {}, inputs: {:?}", user_id, inputs);
+
+    //         outputs.push((inputs.len() - 1, 1));
+    //     })
+    //     .join(&session_user_to_addr)
+    //     // .inspect(|v| debug!("v : {:?}", v))
+    //     .inner
+    //     .map(|((_user_id, (count, addr)), time, diff)| {
+    //         let result = if diff > 0 {
+    //             vec![(addr, QueryResult::UserPostCount(count as u64))]
+    //         } else {
+    //             vec![]
+    //         };
+
+    //         (result, time, diff)
+    //     })
+    //     .as_collection();
+
+    user_post_counts
 }
 
 #[cfg(test)]
@@ -152,7 +172,6 @@ mod tests {
                 vec![
                     (56, Persisted::Session, 1),
                     (5, Persisted::Post, -1),
-                    // (6, Persisted::Post, -1),
                 ],
             ))
             .unwrap();
