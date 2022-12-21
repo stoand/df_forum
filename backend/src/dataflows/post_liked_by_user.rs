@@ -22,14 +22,25 @@ pub fn post_liked_by_user_dataflow<'a>(
         .filter(|(_, _time, diff)| *diff > 0)
         .as_collection()
         .inspect(|v| debug!("current page -- {:?}", v));
+   
+    let posts = collection.flat_map(|(_addr, (post_id, persisted))| {
+        if Persisted::Post == persisted {
+            vec![(post_id, ())]
+        } else {
+            vec![]
+        }
+    });    
 
     let post_likes = collection.flat_map(|(_addr, (user_id, persisted))| {
         if let Persisted::PostLike(post_id, like) = persisted {
             vec![(user_id, (post_id, like))]
+            // vec![(post_id, (user_id, like))]
         } else {
             vec![]
         }
     });
+    // .join(&posts)
+    // .map(|(post_id, ((user_id, like), ()))| (user_id, (post_id, like)));
 
     let post_pages = shared_post_pages(&collection)
         .map(|(_addr, post_id, page, _position)| (post_id, page))
@@ -50,6 +61,8 @@ pub fn post_liked_by_user_dataflow<'a>(
             },
         )
         .inspect(|v| debug!("filtered id and page -- {:?}", v))
+        // .join(&posts)
+        // .map(|(post_id, (vals, ()))| (post_id, vals))
         .inner
         .map(
             |((post_id, ((session_addr, _visible_page, like), _post_page)), time, diff)| {
