@@ -104,10 +104,24 @@ mod tests {
 
         assert_eq!(
             query_result_receiver.try_recv(),
-            Ok((addr0, vec![
-                QueryResult::PostTotalLikes(5, 3),
-                QueryResult::PostTotalLikes(6, 0),
-            ])),
+            Ok((
+                addr0,
+                vec![
+                    QueryResult::PostTotalLikes(5, 3),
+                    QueryResult::PostTotalLikes(6, 0),
+                ]
+            )),
+        );
+
+        persisted_sender
+            .send((addr0, vec![(5, Persisted::Post, -1)]))
+            .unwrap();
+
+        forum_minimal.advance_dataflow_computation_once().await;
+
+        assert_eq!(
+            query_result_receiver.try_recv(),
+            Err(broadcast::error::TryRecvError::Empty),
         );
     }
 }
