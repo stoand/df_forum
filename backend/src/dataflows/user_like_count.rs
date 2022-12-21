@@ -6,15 +6,25 @@ use log::debug;
 use timely::dataflow::operators::Map;
 
 pub fn user_like_count_dataflow<'a>(collection: &ScopeCollection<'a>) -> OutputScopeCollection<'a> {
-    let posts_plus_one = collection.flat_map(|(_addr, (user_id, persisted))| {
+    let likes_plus_one = collection.flat_map(|(_addr, (user_id, persisted))| {
         if let Persisted::PostLike(post_id, true) = persisted {
-            vec![(user_id, post_id)]
+            vec![(post_id, user_id)]
         } else if Persisted::Session == persisted {
-            vec![(user_id, 0)]
+            vec![(0, user_id)]
         } else {
             vec![]
         }
     });
+
+    let posts = collection.flat_map(|(_addr, (post_id, persisted))| {
+        if Persisted::Post == persisted {
+            vec![(post_id, ())]
+        } else if Persisted::Session == persisted {
+            vec![(0, ())]
+        } else {
+            vec![]
+        }
+    });    
 
     let session_addr_to_user = collection.flat_map(|(addr, (user_id, persisted))| {
         if Persisted::Session == persisted {
@@ -26,7 +36,9 @@ pub fn user_like_count_dataflow<'a>(collection: &ScopeCollection<'a>) -> OutputS
 
     let session_user_to_addr = session_addr_to_user.map(|(addr, user_id)| (user_id, addr));
 
-    let results = posts_plus_one
+    let results = likes_plus_one
+        .join(&posts)
+        .map(|(post_id, (user_id, ()))| (user_id, post_id))
         .reduce(|user_id, inputs, outputs| {
             debug!("user id: {}, inputs: {:?}", user_id, inputs);
 
@@ -85,7 +97,23 @@ mod tests {
 
         assert_eq!(
             query_result_receiver.try_recv(),
-            Ok((addr0, vec![QueryResult::UserLikeCount(1),])),
+            Ok((addr0, vec![QueryResult::UserLikeCount(1)])),
+        );
+
+        persisted_sender
+            .send((
+                addr0,
+                vec![
+                    (5, Persisted::Post, -1),
+                ],
+            ))
+            .unwrap();
+
+        forum_minimal.advance_dataflow_computation_once().await;
+
+        assert_eq!(
+            query_result_receiver.try_recv(),
+            Ok((addr0, vec![QueryResult::UserLikeCount(0)])),
         );
     }
 }
