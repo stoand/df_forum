@@ -27,6 +27,14 @@ pub fn post_total_likes_dataflow<'a>(
         .as_collection()
         .inspect(|v| debug!("current page -- {:?}", v));
 
+    let posts = collection.flat_map(|(_addr, (post_id, persisted))| {
+        if Persisted::Post == persisted {
+            vec![(post_id, ())]
+        } else {
+            vec![]
+        }
+    });    
+
     let post_like_counts = collection
         .flat_map(|(_addr, (user_or_post_id, persisted))| {
             if let Persisted::PostLike(post_id, true) = persisted {
@@ -38,10 +46,15 @@ pub fn post_total_likes_dataflow<'a>(
                 vec![]
             }
         })
+        .join(&posts)
         .reduce(|post_id, inputs, outputs| {
             debug!("post_id: {}, inputs: {:?}", post_id, inputs);
 
-            outputs.push((inputs[0].1 - 1, 1));
+            // let found_removal = inputs.into_iter().find(|((), diff)| *diff < 0) != None;
+
+            // if !found_removal {
+                outputs.push((inputs[0].1 - 1, 1));
+            // }
         })
         .inspect(|v| debug!("like_counts -- {:?}", v));
 
@@ -112,6 +125,8 @@ mod tests {
                 ]
             )),
         );
+
+        debug!("REMOVING -----\n\n");
 
         persisted_sender
             .send((addr0, vec![(5, Persisted::Post, -1)]))
