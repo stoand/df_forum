@@ -2,9 +2,8 @@ use crate::forum_minimal::{OutputScopeCollection, Persisted, QueryResult, ScopeC
 use differential_dataflow::operators::Join;
 use differential_dataflow::operators::Reduce;
 use differential_dataflow::AsCollection;
-use log::debug;
-use timely::dataflow::operators::Filter;
 use timely::dataflow::operators::Map;
+use log::debug;
 
 pub fn user_post_count_dataflow<'a>(collection: &ScopeCollection<'a>) -> OutputScopeCollection<'a> {
     // get addrs with same user id as current session addr
@@ -18,9 +17,6 @@ pub fn user_post_count_dataflow<'a>(collection: &ScopeCollection<'a>) -> OutputS
             vec![]
         }
     });
-    // .inner
-    // .filter(|(_, _time, diff)| *diff > 0)
-    // .as_collection();
 
     let session_addr_to_user = collection.flat_map(|(addr, (user_id, persisted))| {
         if Persisted::Session == persisted {
@@ -31,14 +27,6 @@ pub fn user_post_count_dataflow<'a>(collection: &ScopeCollection<'a>) -> OutputS
     });
 
     let session_user_to_addr = session_addr_to_user.map(|(addr, user_id)| (user_id, addr));
-
-    let posts = collection.flat_map(|(addr, (post_id, persisted))| {
-        if Persisted::Post == persisted {
-            vec![(addr, post_id)]
-        } else {
-            vec![]
-        }
-    });
 
     let posts_and_creator_user_ids = posts_plus_one
         .join(&session_addr_to_user)
@@ -51,7 +39,7 @@ pub fn user_post_count_dataflow<'a>(collection: &ScopeCollection<'a>) -> OutputS
             'outer: for ((_rm_user_id, _rm_addr), rm_diff) in inputs {
                 if *rm_diff < 0 {
                     found_removal = true;
-                    for ((add_user_id, add_addr), add_diff) in inputs {
+                    for ((add_user_id, _add_addr), add_diff) in inputs {
                         if *add_diff > 0 {
                             output.push(((*add_user_id), -1));
                             continue 'outer;
@@ -61,20 +49,25 @@ pub fn user_post_count_dataflow<'a>(collection: &ScopeCollection<'a>) -> OutputS
             }
 
             if !found_removal {
-                for ((add_user_id, add_addr), add_diff) in inputs {
+                for ((add_user_id, _add_addr), add_diff) in inputs {
                     if *add_diff > 0 {
                         output.push(((*add_user_id), 1));
                     }
                 }
             }
         })
-        .map(|(post_id, user_id)| {
-            (user_id, post_id)
-        });
+        .map(|(post_id, user_id)| (user_id, post_id))
+        .inspect(|v| debug!("inspect : {:?}", v));
 
     let user_post_counts = posts_and_creator_user_ids
-        .reduce(|_user_id, inputs, outputs| {
-            outputs.push((inputs.len() - 1, 1));
+        .reduce(|user_id, inputs, outputs| {
+            debug!("user id: {}, inputs : {:?}", user_id, inputs);
+            let add_inputs = inputs
+                .into_iter()
+                .filter(|(_post_id, diff)| *diff > 0)
+                .collect::<Vec<_>>();
+
+            outputs.push((add_inputs.len() - 1, 1));
         })
         .join(&session_user_to_addr)
         .inner
@@ -88,29 +81,6 @@ pub fn user_post_count_dataflow<'a>(collection: &ScopeCollection<'a>) -> OutputS
             (result, time, diff)
         })
         .as_collection();
-        // .inspect(|v| debug!("v : {:?}", v));
-
-    // let results = posts_plus_one
-    //     .join(&session_addr_to_user)
-    //     .map(|(_addr, (post_id, user_id))| (user_id, post_id))
-    //     .reduce(|user_id, inputs, outputs| {
-    //         // debug!("user id: {}, inputs: {:?}", user_id, inputs);
-
-    //         outputs.push((inputs.len() - 1, 1));
-    //     })
-    //     .join(&session_user_to_addr)
-    //     // .inspect(|v| debug!("v : {:?}", v))
-    //     .inner
-    //     .map(|((_user_id, (count, addr)), time, diff)| {
-    //         let result = if diff > 0 {
-    //             vec![(addr, QueryResult::UserPostCount(count as u64))]
-    //         } else {
-    //             vec![]
-    //         };
-
-    //         (result, time, diff)
-    //     })
-    //     .as_collection();
 
     user_post_counts
 }
@@ -169,10 +139,7 @@ mod tests {
         persisted_sender
             .send((
                 addr1,
-                vec![
-                    (56, Persisted::Session, 1),
-                    (5, Persisted::Post, -1),
-                ],
+                vec![(56, Persisted::Session, 1)],
             ))
             .unwrap();
 
@@ -182,5 +149,20 @@ mod tests {
             query_result_receiver.try_recv(),
             Ok((addr1, vec![QueryResult::UserPostCount(0)])),
         );
+
+        persisted_sender
+            .send((
+                addr1,
+                vec![(5, Persisted::Post, -1)],
+            ))
+            .unwrap();
+
+        forum_minimal.advance_dataflow_computation_once().await;
+
+        assert_eq!(
+            query_result_receiver.try_recv(),
+            Ok((addr0, vec![QueryResult::UserPostCount(1)])),
+        );
+
     }
 }
