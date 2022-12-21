@@ -30,6 +30,8 @@ partof: REQ-purpose
     * what happens - the counter goes up instead of down
 * [DONE] bug - `user_like_count` create an element, like it, delete it
     * what happens - the counter does not go down
+* TODO: bug - `post_total_likes` tries to set value after deletion
+* TODO: bug - `post_liked_by_user` tries to set value after deletion
 
 * Cranelift -- deleting is bugged when switching sessions
 
