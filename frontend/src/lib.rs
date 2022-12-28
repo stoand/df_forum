@@ -403,7 +403,9 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
 
                     let delete_button = new_post.query_selector(".post-remove").unwrap().unwrap();
                     let delete_button_click = Closure::<dyn FnMut()>::new(move || {
-                        let mut persisted = vec![(post_id, Persisted::Post, -1)];
+                        let mut persisted = vec![
+                            (post_id, Persisted::Post, -1)
+                        ];
 
                         // the current post, the post template
                         if posts.length() == 2 && page > 0 {
@@ -441,7 +443,7 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
                         log(&("user id: ".to_string() + &user_id.to_string()));
 
                         connection6.clone().borrow().send_transaction(vec![
-                            (user_id, Persisted::PostLike(post_id, !val), -1),
+                            // (user_id, Persisted::PostLike(post_id, !val), -1),
                             (user_id, Persisted::PostLike(post_id, val), 1),
                         ]);
                     });

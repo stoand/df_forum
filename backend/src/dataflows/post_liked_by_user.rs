@@ -22,14 +22,6 @@ pub fn post_liked_by_user_dataflow<'a>(
         .filter(|(_, _time, diff)| *diff > 0)
         .as_collection()
         .inspect(|v| debug!("current page -- {:?}", v));
-   
-    let posts = collection.flat_map(|(_addr, (post_id, persisted))| {
-        if Persisted::Post == persisted {
-            vec![(post_id, ())]
-        } else {
-            vec![]
-        }
-    });    
 
     let post_likes = collection.flat_map(|(_addr, (user_id, persisted))| {
         if let Persisted::PostLike(post_id, like) = persisted {
@@ -39,6 +31,7 @@ pub fn post_liked_by_user_dataflow<'a>(
             vec![]
         }
     });
+    
     // .join(&posts)
     // .map(|(post_id, ((user_id, like), ()))| (user_id, (post_id, like)));
 
@@ -53,6 +46,7 @@ pub fn post_liked_by_user_dataflow<'a>(
                 (post_id, (session_addr, visible_page, like))
             },
         )
+        .inspect(|v| debug!("map -- {:?}", v))
         .join(&post_pages)
         .inspect(|v| debug!("id and page -- {:?}", v))
         .filter(
@@ -118,10 +112,8 @@ mod tests {
                 addr0,
                 vec![
                     (55, Persisted::Session, 1),
-                    (55, Persisted::ViewPostsPage(1), 1),
+                    (55, Persisted::ViewPostsPage(0), 1),
                     (5, Persisted::Post, 1),
-                    (6, Persisted::Post, 1),
-                    (7, Persisted::Post, 1),
                     (55, Persisted::PostLike(5, true), 1),
                 ],
             ))
@@ -148,7 +140,7 @@ mod tests {
 
         assert_eq!(
             query_result_receiver.try_recv(),
-            Err(broadcast::error::TryRecvError::Empty),
+            Ok((addr1, vec![QueryResult::PostLikedByUser(5, true)])),
         );
 
         persisted_sender

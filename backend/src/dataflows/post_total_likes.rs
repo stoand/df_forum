@@ -33,15 +33,15 @@ pub fn post_total_likes_dataflow<'a>(
         } else {
             vec![]
         }
-    });    
+    });
 
     let post_like_counts = collection
         .flat_map(|(_addr, (user_or_post_id, persisted))| {
-            if let Persisted::PostLike(post_id, true) = persisted {
-                vec![(post_id, ())]
+            if let Persisted::PostLike(post_id, val) = persisted {
+                vec![(post_id, val)]
             // add an additional count so that counting to zero is possible
             } else if Persisted::Post == persisted {
-                vec![(user_or_post_id, ())]
+                vec![(user_or_post_id, true)]
             } else {
                 vec![]
             }
@@ -50,11 +50,11 @@ pub fn post_total_likes_dataflow<'a>(
         .reduce(|post_id, inputs, outputs| {
             debug!("post_id: {}, inputs: {:?}", post_id, inputs);
 
-            // let found_removal = inputs.into_iter().find(|((), diff)| *diff < 0) != None;
-
-            // if !found_removal {
+            if inputs.len() == 1 {
                 outputs.push((inputs[0].1 - 1, 1));
-            // }
+            } else {
+                outputs.push((inputs[1].1 - inputs[0].1 - 1, 1));
+            }
         })
         .inspect(|v| debug!("like_counts -- {:?}", v));
 
