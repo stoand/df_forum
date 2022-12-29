@@ -14,6 +14,13 @@ use crate::dataflows::shared_post_pages;
 
 pub fn posts_post_ids_dataflow<'a>(collection: &ScopeCollection<'a>) -> OutputScopeCollection<'a> {
     let session_pages = collection
+        .flat_map(|(addr, (_id, persisted))| {
+            if let Persisted::ViewPostsPage(view_page) = persisted {
+                vec![(addr, view_page)]
+            } else {
+                vec![]
+            }
+        })
         .reduce(|_addr, inputs, outputs| {
             // debug!(
             //     "addr(key) = {:?}, input = {:?}, output = {:?}",
@@ -22,14 +29,9 @@ pub fn posts_post_ids_dataflow<'a>(collection: &ScopeCollection<'a>) -> OutputSc
 
             let mut page = None;
 
-            for ((_id, persisted), diff) in inputs {
+            for (view_page, diff) in inputs {
                 if *diff > 0 {
-                    match persisted {
-                        Persisted::ViewPostsPage(view_page) => {
-                            page = Some(*view_page);
-                        }
-                        _ => {}
-                    }
+                    page = Some(**view_page);
                 }
             }
 

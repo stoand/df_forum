@@ -64,6 +64,7 @@ impl FrontendConnection {
 
     pub fn send_transaction(&self, persisted_items: PersistedItems) {
         let msg = serde_json::to_string(&persisted_items).unwrap();
+        log(&("sending: ".to_string() + &msg));
 
         self.websocket.clone().borrow().send_with_str(&msg).unwrap();
     }
