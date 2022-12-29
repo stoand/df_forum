@@ -14,5 +14,73 @@
         });
     </script>
     <div id="df_forum_root"></div>
+
+  <div class="global-root">
+      <div class="top-bar">
+          <span class="top-bar-item">
+              Welcome,
+              <b id="user-id"></b>
+          </span>
+          
+          <span class="top-bar-item">
+              My Total Likes:
+              <b id="user-like-count"></b>
+          </span>
+          
+          <span class="top-bar-item">
+              My Total Posts:
+              <b id="user-post-count"></b>
+          </span>
+          
+          <span class="top-bar-item">
+              Total Posts:
+              <b id="posts-total"></b>
+          </span>
+
+          <span class="top-bar-right-link">
+              <button id="switch-user-id">Change Username</button>
+          </span>
+      </div>
+
+      <form class="create-post-form">
+          <div class="create-post-title-container">
+              <input class="create-post-title" placeholder="Enter Post Title ..."/>
+              <div class="create-post-title-spacer"></div>
+          </div>
+          <div class="create-post-body-container">
+              <textarea class="create-post-body" placeholder="Enter Post Contents ..."></textarea>
+          </div>
+              
+          <div class="create-post-button"><a href="">Create Post</a></div>
+      </form>
+
+      <div class="post-container">
+          <div class="post-title">Post Title 1</div>
+          <div class="post-info-actions">
+              <div class="post-action"><a href="">Like (33)</a></div>
+              <div class="post-action"><a href="">Delete</a></div>
+              <div class="post-action"><a href="">Collapse</a></div>
+              <div class="post-info-bold">Username123</div>
+          </div>
+
+          <div class="post-body">
+              Post contents go here.
+              Post contents go here.
+              Post contents go here.
+              Post contents go here.
+              Post contents go here.
+          </div>
+      </div>
+      <div class="global-root-spacer"></div>
+      
+      <div class="pagination-container">
+          <div class="pagination-action"><a href="">Prev</a></div>
+          <div class="pagination-page-num">
+              <b>Page 5</b> of 10
+          </div>
+          <div class="pagination-action"><a href="">Next</a></div>
+      </div>
+  </div>
+    
   </body>
 </html>

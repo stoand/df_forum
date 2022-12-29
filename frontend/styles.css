@@ -1,13 +1,150 @@
 body {
+    color: #3c3c3c;
+    font-family: "Ubuntu";
+    font-size: 18px;
+    padding: 0;
+    margin: 0;
+    background: #EEC95B;
+}
+
+.global-root {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.global-root-spacer {
+    flex-grow: 2;
+}
+
+.top-bar {
+    padding: 30px;
+    display: flex;
+    background: #BEE3F8;
+}
+
+.top-bar-item {
+    margin-right: 30px;
+}
+
+.top-bar-right-link {
+    flex-grow: 2;
+    text-align: right;
+}
+
+a {
+    color: inherit;
+}
+
+button {
+    cursor: pointer;
+    font-size: inherit;
+    color: inherit;
+    border: none;
+    text-decoration: underline;
+    background: none;
+}
+
+.create-post-form {
+    padding: 30px;
+    background: #FFF;
+    margin: 30px;
+}
+
+.create-post-title,.create-post-body {
+    font-size: inherit;
+    display: block;
+    margin-bottom: 25px;
+    padding: 20px;
+    border: none;
+    background: #EDF2F7;
+    color: #3c3c3c;
+}
+
+::placeholder {
+    color: #3c3c3c;
+}
+
+.create-post-title-container,.create-post-body-container {
+    display: flex;
+}
+.create-post-title {
+    flex-grow: 1;
+}
+.create-post-title-spacer {
+    flex-grow: 2;
+}
+.create-post-body {
+    flex-grow: 1;
+    height: 100px;
+    font-size: inherit;
+    font-family: inherit;
+}
+
+.create-post-button a {
+    padding: 20px 0;
+    font-size: 22px;
+}
+
+.post-container {
+    padding: 30px;
+    background: #fff;
+    margin: 0 30px 30px 30px;
+}
+.post-title {
+    font-size: 22px;
+    padding-bottom: 20px;
+}
+
+.post-info-actions {
+    display: flex;
+    margin-bottom: 30px;
+}
+.post-action {
+    margin-right: 20px;
+}
+.post-info-bold {
+    font-weight: bold;
+}
+
+.pagination-container {
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+    font-size: 22px;
+    background: #222222;
+    color: #FFF;
+}
+.pagination-action,.pagination-page-num {
+    margin: 30px 0;
+    padding: 0 30px;
+}
+
+.username-selection {
+    margin: 300px auto;
+    background: #FFF;
     padding: 30px;
     text-align: center;
 }
 
-span,div,input,button {
-    font-size: 25px;
-    padding: 10px;
+.username-selection-welcome {
+    font-size: 22px;
+    text-align: center;
+    margin-bottom: 30px;
 }
 
-#post-template {
-    display: none;
+.username-selection-input {
+    font-size: inherit;
+    display: inline-block;
+    margin-bottom: 25px;
+    padding: 20px;
+    border: none;
+    background: #EDF2F7;
+    color: #3c3c3c;
+    width: 80%;
+}
+
+.username-selection-chose {
+    font-size: 22px;
+    display: inline-block;
 }

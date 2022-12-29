@@ -137,14 +137,11 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
 
     root.set_attribute("page", &(0.to_string())).unwrap();
 
-    let username_label = document.create_element("div").unwrap();
-    username_label.set_text_content(Some(&("Username: ".to_owned() + &user_id.to_string())));
-    root.append_child(&username_label).unwrap();
 
-    let use_different_name = document.create_element("button").unwrap();
-    use_different_name.set_text_content(Some("Use different name"));
-    root.append_child(&use_different_name).unwrap();
+    let user_id_label = document.get_element_by_id("user-id").unwrap();
+    user_id_label.set_text_content(Some(&user_id.to_string()));
 
+    let use_different_name = document.get_element_by_id("switch-user-id").unwrap();
     let use_different_name_click = Closure::<dyn FnMut()>::new(move || {
         get_local_storage()
             .remove_item(USER_ID_LOCAL_STORAGE_KEY)
@@ -224,11 +221,11 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
 
     submit_post_click.forget();
 
-    let aggregates = document.create_element("div").unwrap();
-    aggregates.set_inner_html(
-        "My Likes: <span id='user-like-count'>???</span> -- My Posts: <span id='user-post-count'>???</span> -- Posts Total: <span id='posts-total'>???</span>",
-    );
-    root.append_child(&aggregates).unwrap();
+    // let aggregates = document.create_element("div").unwrap();
+    // aggregates.set_inner_html(
+    //     "My Likes: <span id='user-like-count'>???</span> -- My Posts: <span id='user-post-count'>???</span> -- Posts Total: <span id='posts-total'>???</span>",
+    // );
+    // root.append_child(&aggregates).unwrap();
 
     // on (page_num, Post & post_user_creator)
     //
