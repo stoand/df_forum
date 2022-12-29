@@ -25,7 +25,7 @@ use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 
 use wasm_bindgen::JsCast;
-use web_sys::{Document, Element, Event, HtmlElement, HtmlInputElement, Storage};
+use web_sys::{Document, Element, Event, HtmlElement, HtmlInputElement, HtmlTextAreaElement, Storage};
 
 pub const USER_ID_LOCAL_STORAGE_KEY: &'static str = "df_forum_username";
 pub const WEBSOCKET_URL: &'static str = "ws://127.0.0.1:5050";
@@ -128,7 +128,6 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
     root.set_inner_html("");
 
     let connection0 = connection.clone();
-    let connection1 = connection.clone();
     let connection2 = connection.clone();
     let connection3 = connection.clone();
     let connection4 = connection.clone();
@@ -159,23 +158,11 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
     username_label.set_text_content(Some("Posts"));
     root.append_child(&username_label).unwrap();
 
-    let post_title = document.create_element("input").unwrap();
-    root.append_child(&post_title).unwrap();
-    post_title
-        .dyn_ref::<HtmlInputElement>()
-        .unwrap()
-        .set_placeholder("Post Title");
+    let post_title = document.get_element_by_id("create-post-title").unwrap();
 
-    let post_body = document.create_element("input").unwrap();
-    root.append_child(&post_body).unwrap();
-    post_body
-        .dyn_ref::<HtmlInputElement>()
-        .unwrap()
-        .set_placeholder("Post Body");
+    let post_body = document.get_element_by_id("create-post-body").unwrap();
 
-    let submit_post = document.create_element("button").unwrap();
-    submit_post.set_text_content(Some("Create Post"));
-    root.append_child(&submit_post).unwrap();
+    let submit_post = document.get_element_by_id("submit-post").unwrap();
 
     let update_page_label = || {
         let (document, root) = document_and_root();
@@ -191,8 +178,10 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
 
     let submit_post_click = Closure::<dyn FnMut()>::new(move || {
         let title = post_title.dyn_ref::<HtmlInputElement>().unwrap().value();
+        log("title:");
+        log(&title);
 
-        let body = post_body.dyn_ref::<HtmlInputElement>().unwrap().value();
+        let body = post_body.dyn_ref::<HtmlTextAreaElement>().unwrap().value();
         if !title.is_empty() && !body.is_empty() {
             let id = get_random_u64();
             connection0.borrow().send_transaction(vec![
@@ -221,14 +210,6 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
 
     submit_post_click.forget();
 
-    // let aggregates = document.create_element("div").unwrap();
-    // aggregates.set_inner_html(
-    //     "My Likes: <span id='user-like-count'>???</span> -- My Posts: <span id='user-post-count'>???</span> -- Posts Total: <span id='posts-total'>???</span>",
-    // );
-    // root.append_child(&aggregates).unwrap();
-
-    // on (page_num, Post & post_user_creator)
-    //
     let posts_container = document.create_element("div").unwrap();
     posts_container.set_id("posts-container");
     root.append_child(&posts_container).unwrap();

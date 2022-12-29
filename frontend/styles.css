@@ -51,7 +51,7 @@ button {
     margin: 30px;
 }
 
-.create-post-title,.create-post-body {
+#create-post-title,#create-post-body {
     font-size: inherit;
     display: block;
     margin-bottom: 25px;
@@ -68,13 +68,13 @@ button {
 .create-post-title-container,.create-post-body-container {
     display: flex;
 }
-.create-post-title {
+#create-post-title {
     flex-grow: 1;
 }
 .create-post-title-spacer {
     flex-grow: 2;
 }
-.create-post-body {
+#create-post-body {
     flex-grow: 1;
     height: 100px;
     font-size: inherit;
