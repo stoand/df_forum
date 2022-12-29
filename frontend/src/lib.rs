@@ -266,10 +266,6 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
     delete_button.set_class_name("post-remove");
     post_template.append_child(&delete_button).unwrap();
 
-    let username_label = document.create_element("button").unwrap();
-    username_label.set_text_content(Some("Collapse"));
-    post_template.append_child(&username_label).unwrap();
-
     let page_ops = document.create_element("div").unwrap();
     root.append_child(&page_ops).unwrap();
 
@@ -335,25 +331,6 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
     next_page_el.set_onclick(Some(next_page_click.as_ref().unchecked_ref()));
 
     next_page_click.forget();
-
-    let reset = document.create_element("button").unwrap();
-    reset.set_text_content(Some("Clear Session"));
-    page_ops.append_child(&reset).unwrap();
-
-    let reset_click = Closure::<dyn FnMut()>::new(move || {
-        let (_, root) = document_and_root();
-        let old_page: u64 = root.get_attribute("page").unwrap().parse().unwrap();
-
-        connection1.borrow().send_transaction(vec![
-            (user_id, Persisted::ViewPostsPage(old_page), -1),
-            // (user_id, Persisted::Session, -1),
-        ]);
-    });
-
-    let reset_el = reset.dyn_ref::<HtmlElement>().unwrap();
-    reset_el.set_onclick(Some(reset_click.as_ref().unchecked_ref()));
-
-    reset_click.forget();
 
     let on_parsed_message = move |items: Vec<QueryResult>| {
         let (document, root) = document_and_root();
