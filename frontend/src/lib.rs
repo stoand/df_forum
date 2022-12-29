@@ -154,10 +154,6 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
 
     use_different_name_click.forget();
 
-    let username_label = document.create_element("h2").unwrap();
-    username_label.set_text_content(Some("Posts"));
-    root.append_child(&username_label).unwrap();
-
     let post_title = document.get_element_by_id("create-post-title").unwrap();
 
     let post_body = document.get_element_by_id("create-post-body").unwrap();
@@ -209,40 +205,6 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
     submit_post_el.set_onclick(Some(submit_post_click.as_ref().unchecked_ref()));
 
     submit_post_click.forget();
-
-    let posts_container = document.create_element("div").unwrap();
-    posts_container.set_id("posts-container");
-    root.append_child(&posts_container).unwrap();
-
-    let post_template = document.create_element("div").unwrap();
-    post_template.set_id("post-template");
-    posts_container.append_child(&post_template).unwrap();
-    let username_label = document.create_element("h3").unwrap();
-    username_label.set_text_content(Some("Post Title"));
-    username_label.set_class_name("post-title");
-    post_template.append_child(&username_label).unwrap();
-
-    let username_label = document.create_element("h6").unwrap();
-    username_label.set_text_content(Some("Post Author"));
-    username_label.set_class_name("post-creator");
-    post_template.append_child(&username_label).unwrap();
-
-    let username_label = document.create_element("p").unwrap();
-    username_label.set_text_content(Some("Post Body"));
-    username_label.set_class_name("post-body");
-    post_template.append_child(&username_label).unwrap();
-
-    let username_label = document.create_element("button").unwrap();
-    username_label.set_inner_html(
-        "<span class='post-like-status'>Like</span><span class='post-likes'>0</span>",
-    );
-    username_label.set_class_name("post-like");
-    post_template.append_child(&username_label).unwrap();
-
-    let delete_button = document.create_element("button").unwrap();
-    delete_button.set_text_content(Some("Delete"));
-    delete_button.set_class_name("post-remove");
-    post_template.append_child(&delete_button).unwrap();
 
     let page_ops = document.create_element("div").unwrap();
     root.append_child(&page_ops).unwrap();
@@ -316,7 +278,7 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
             match item {
                 QueryResult::PagePost(post_id, page, time) => {
                     let posts_container = document
-                        .query_selector("#posts-container")
+                        .query_selector("#post-container")
                         .unwrap()
                         .unwrap();
 
@@ -356,7 +318,9 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
 
                     let connection5 = connection4.clone();
 
-                    let delete_button = new_post.query_selector(".post-remove").unwrap().unwrap();
+                    // log(&format(!new_post.inner_html());
+
+                    let delete_button = new_post.query_selector(".post-delete").unwrap().unwrap();
                     let delete_button_click = Closure::<dyn FnMut()>::new(move || {
                         let mut persisted = vec![
                             (post_id, Persisted::Post, -1)

@@ -54,21 +54,26 @@
           <div class="create-post-button"><button id="submit-post">Create Post</button></div>
       </form>
 
-      <div class="post-container">
-          <div class="post-title">Post Title 1</div>
-          <div class="post-info-actions">
-              <div class="post-action"><a href="">Like (33)</a></div>
-              <div class="post-action"><a href="">Delete</a></div>
-              <div class="post-action"><a href="">Collapse</a></div>
-              <div class="post-info-bold">Username123</div>
-          </div>
+      <div id="post-container">
+          <div id="post-template">
+              <div class="post-title">Post Title 1</div>
+              
+              <div class="post-info-actions">
+                  <div class="post-action"><button class="post-like">
+                      <span class="post-like-status"></span>
+                      <span class="post-likes"></span>
+                  </button></div>
+                  <div class="post-action"><button class="post-delete">Delete</button></div>
+                  <div class="post-info-bold post-creator">todO username</div>
+              </div>
 
-          <div class="post-body">
-              Post contents go here.
-              Post contents go here.
-              Post contents go here.
-              Post contents go here.
-              Post contents go here.
+              <div class="post-body">
+                  Post contents go here.
+                  Post contents go here.
+                  Post contents go here.
+                  Post contents go here.
+                  Post contents go here.
+              </div>
           </div>
       </div>
       <div class="global-root-spacer"></div>

@@ -7,6 +7,10 @@ body {
     background: #EEC95B;
 }
 
+#post-template {
+    display: none;
+}
+
 .global-root {
     display: flex;
     flex-direction: column;
@@ -86,19 +90,20 @@ button {
     font-size: 22px;
 }
 
-.post-container {
-    padding: 30px;
+#post-container {
+    padding: 0 30px 30px 30px;
     background: #fff;
     margin: 0 30px 30px 30px;
 }
 .post-title {
     font-size: 22px;
     padding-bottom: 20px;
+    margin-top: 30px;
 }
 
 .post-info-actions {
     display: flex;
-    margin-bottom: 30px;
+    margin-bottom: 15px;
 }
 .post-action {
     margin-right: 20px;
