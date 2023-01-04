@@ -270,6 +270,10 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
 
     let on_parsed_message = move |items: Vec<QueryResult>| {
         let (document, root) = document_and_root();
+
+        document.get_element_by_id("global-root").unwrap().set_attribute("style", "display: flex").unwrap();
+        document.get_element_by_id("loading-page").unwrap().set_attribute("style", "display: none").unwrap();
+        
         for item in items {
             match item {
                 QueryResult::PagePost(post_id, page, time) => {

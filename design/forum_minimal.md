@@ -32,9 +32,9 @@ partof: REQ-purpose
     * what happens - the counter does not go down
 * [DONE] bug - `post_total_likes` tries to set value after deletion
 * [DONE] bug - `post_liked_by_user` tries to set value after deletion
-* [DOnE] bug - create 3 elements, delete last, create another, try to go to next page - page count is wrong
-* TODO - loading screen
-* TODO - create inputs after post creation
+* [DONE] bug - create 3 elements, delete last, create another, try to go to next page - page count is wrong
+* [DONE] - loading screen
+* TODO - reset inputs after post creation
 
 * Cranelift -- deleting is bugged when switching sessions
 
