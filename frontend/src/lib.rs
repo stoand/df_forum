@@ -168,14 +168,16 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
             .unwrap_or("1".to_string())
             .parse()
             .unwrap();
-        let page_label = document.get_element_by_id("page_label").unwrap();
-        page_label.set_text_content(Some(&format!("Page {} of {}", page + 1, page_count)));
+
+        let current_page_label = document.get_element_by_id("current-page").unwrap();
+        current_page_label.set_text_content(Some(&(page + 1).to_string()));
+        
+        let total_pages_label = document.get_element_by_id("total-pages").unwrap();
+        total_pages_label.set_text_content(Some(&page_count.to_string()));
     };
 
     let submit_post_click = Closure::<dyn FnMut()>::new(move || {
         let title = post_title.dyn_ref::<HtmlInputElement>().unwrap().value();
-        log("title:");
-        log(&title);
 
         let body = post_body.dyn_ref::<HtmlTextAreaElement>().unwrap().value();
         if !title.is_empty() && !body.is_empty() {
@@ -206,18 +208,8 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
 
     submit_post_click.forget();
 
-    let page_ops = document.create_element("div").unwrap();
-    root.append_child(&page_ops).unwrap();
-
-    let username_label = document.create_element("br").unwrap();
-    page_ops.append_child(&username_label).unwrap();
-
-    let page_label = document.create_element("span").unwrap();
-    page_label.set_id("page_label");
-
-    let prev_page = document.create_element("button").unwrap();
+    let prev_page = document.get_element_by_id("prev-page").unwrap();
     prev_page.set_text_content(Some("Prev"));
-    page_ops.append_child(&prev_page).unwrap();
 
     let prev_page_click = Closure::<dyn FnMut()>::new(move || {
         let (_, root) = document_and_root();
@@ -238,14 +230,8 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
 
     prev_page_click.forget();
 
-    // on (page_num)
-
-    page_ops.append_child(&page_label).unwrap();
-    // on (page_num) - activate or deactive
-
-    let next_page = document.create_element("button").unwrap();
+    let next_page = document.get_element_by_id("next-page").unwrap();
     next_page.set_text_content(Some("Next"));
-    page_ops.append_child(&next_page).unwrap();
 
     let next_page_click = Closure::<dyn FnMut()>::new(move || {
         let (_, root) = document_and_root();
