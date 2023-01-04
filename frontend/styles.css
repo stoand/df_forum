@@ -151,6 +151,7 @@ button {
 
 #create-post-title,#create-post-body {
     font-size: inherit;
+    font-family: inherit;
     display: block;
     margin-bottom: 25px;
     padding: 20px;
