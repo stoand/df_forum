@@ -176,7 +176,11 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
         total_pages_label.set_text_content(Some(&page_count.to_string()));
     };
 
+    let create_post_error = document.get_element_by_id("create-post-error").unwrap();
+
     let submit_post_click = Closure::<dyn FnMut()>::new(move || {
+        create_post_error.set_attribute("style", "display: none").unwrap();
+        
         let title = post_title.dyn_ref::<HtmlInputElement>().unwrap().value();
 
         let body = post_body.dyn_ref::<HtmlTextAreaElement>().unwrap().value();
@@ -200,6 +204,12 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
                 root.set_attribute("page", &(0.to_string())).unwrap();
                 update_page_label();
             }
+        } else {
+            let create_post_error_el = create_post_error.dyn_ref::<HtmlElement>().unwrap();
+            // trigger reflow to restart the animation
+            create_post_error_el.offset_height();
+            
+            create_post_error.set_attribute("style", "display: block").unwrap();
         }
     });
 

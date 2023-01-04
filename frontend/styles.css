@@ -85,10 +85,21 @@ button {
     font-family: inherit;
 }
 
-.create-post-button a {
-    padding: 20px 0;
-    font-size: 22px;
+@keyframes horizontal-shaking {
+ 0% { transform: translateX(0) }
+ 25% { transform: translateX(5px) }
+ 50% { transform: translateX(-5px) }
+ 75% { transform: translateX(5px) }
+ 100% { transform: translateX(0) }
 }
+
+#create-post-error {
+    display: none;
+    padding-top: 30px;
+    color: red;
+    animation: horizontal-shaking 0.5s 2;
+}
+
 
 #post-container {
     background: #fff;
