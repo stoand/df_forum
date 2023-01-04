@@ -25,10 +25,12 @@ use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 
 use wasm_bindgen::JsCast;
-use web_sys::{Document, Element, Event, HtmlElement, HtmlInputElement, HtmlTextAreaElement, Storage};
+use web_sys::{
+    Document, Element, Event, HtmlElement, HtmlInputElement, HtmlTextAreaElement, Storage,
+};
 
 pub const USER_ID_LOCAL_STORAGE_KEY: &'static str = "df_forum_username";
-pub const WEBSOCKET_URL: &'static str = "ws://127.0.0.1:5050";
+pub const WEBSOCKET_PORT: usize = 5050;
 
 #[wasm_bindgen]
 extern "C" {
@@ -50,8 +52,11 @@ pub fn get_random_u64() -> u64 {
 pub fn bootstrap() {
     std::panic::set_hook(Box::new(console_error_panic_hook::hook));
 
+    let hostname = web_sys::window().unwrap().location().hostname().unwrap();
+    let websocket_url = format!("ws://{}:{}", hostname, WEBSOCKET_PORT);
+
     let connection = Rc::new(RefCell::new(connection::FrontendConnection::new(
-        &WEBSOCKET_URL,
+        &websocket_url,
     )));
 
     let connection0 = connection.clone();
@@ -136,7 +141,6 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
 
     root.set_attribute("page", &(0.to_string())).unwrap();
 
-
     let user_id_label = document.get_element_by_id("user-id").unwrap();
     user_id_label.set_text_content(Some(&user_id.to_string()));
 
@@ -171,7 +175,6 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
 
         let current_page_label = document.get_element_by_id("current-page").unwrap();
         current_page_label.set_text_content(Some(&(page + 1).to_string()));
-        
         let total_pages_label = document.get_element_by_id("total-pages").unwrap();
         total_pages_label.set_text_content(Some(&page_count.to_string()));
     };
@@ -179,7 +182,9 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
     let create_post_error = document.get_element_by_id("create-post-error").unwrap();
 
     let submit_post_click = Closure::<dyn FnMut()>::new(move || {
-        create_post_error.set_attribute("style", "display: none").unwrap();
+        create_post_error
+            .set_attribute("style", "display: none")
+            .unwrap();
 
         let title_el = post_title.dyn_ref::<HtmlInputElement>().unwrap();
         let title = title_el.value();
@@ -213,8 +218,10 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
             let create_post_error_el = create_post_error.dyn_ref::<HtmlElement>().unwrap();
             // trigger reflow to restart the animation
             create_post_error_el.offset_height();
-            
-            create_post_error.set_attribute("style", "display: block").unwrap();
+
+            create_post_error
+                .set_attribute("style", "display: block")
+                .unwrap();
         }
     });
 
@@ -276,16 +283,21 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
     let on_parsed_message = move |items: Vec<QueryResult>| {
         let (document, root) = document_and_root();
 
-        document.get_element_by_id("global-root").unwrap().set_attribute("style", "display: flex").unwrap();
-        document.get_element_by_id("loading-page").unwrap().set_attribute("style", "display: none").unwrap();
-        
+        document
+            .get_element_by_id("global-root")
+            .unwrap()
+            .set_attribute("style", "display: flex")
+            .unwrap();
+        document
+            .get_element_by_id("loading-page")
+            .unwrap()
+            .set_attribute("style", "display: none")
+            .unwrap();
         for item in items {
             match item {
                 QueryResult::PagePost(post_id, page, time) => {
-                    let posts_container = document
-                        .query_selector("#post-container")
-                        .unwrap()
-                        .unwrap();
+                    let posts_container =
+                        document.query_selector("#post-container").unwrap().unwrap();
 
                     let post_template = document.query_selector("#post-template").unwrap().unwrap();
                     let new_post = document.create_element("div").unwrap();
@@ -327,9 +339,7 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
 
                     let delete_button = new_post.query_selector(".post-delete").unwrap().unwrap();
                     let delete_button_click = Closure::<dyn FnMut()>::new(move || {
-                        let mut persisted = vec![
-                            (post_id, Persisted::Post, -1)
-                        ];
+                        let mut persisted = vec![(post_id, Persisted::Post, -1)];
 
                         // the current post, the post template
                         if posts.length() == 2 && page > 0 {

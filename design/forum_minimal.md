@@ -35,6 +35,8 @@ partof: REQ-purpose
 * [DONE] bug - create 3 elements, delete last, create another, try to go to next page - page count is wrong
 * [DONE] - loading screen
 * [DONE] - reset inputs after post creation
+* [DONE] fix hardcoded localhost websocket path
+* TODO: fix styling extra space on bottom
 
 * Cranelift -- deleting is bugged when switching sessions
 
