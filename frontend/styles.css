@@ -91,10 +91,14 @@ button {
 }
 
 #post-container {
-    padding: 0 30px 30px 30px;
     background: #fff;
     margin: 0 30px 30px 30px;
 }
+
+#post-container > div {
+    padding: 0 30px 30px 30px;   
+}
+
 .post-title {
     font-size: 22px;
     padding-bottom: 20px;
