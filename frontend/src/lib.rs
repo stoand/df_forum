@@ -180,10 +180,12 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
 
     let submit_post_click = Closure::<dyn FnMut()>::new(move || {
         create_post_error.set_attribute("style", "display: none").unwrap();
-        
-        let title = post_title.dyn_ref::<HtmlInputElement>().unwrap().value();
 
-        let body = post_body.dyn_ref::<HtmlTextAreaElement>().unwrap().value();
+        let title_el = post_title.dyn_ref::<HtmlInputElement>().unwrap();
+        let title = title_el.value();
+
+        let body_el = post_body.dyn_ref::<HtmlTextAreaElement>().unwrap();
+        let body = body_el.value();
         if !title.is_empty() && !body.is_empty() {
             let id = get_random_u64();
             connection0.borrow().send_transaction(vec![
@@ -204,6 +206,9 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
                 root.set_attribute("page", &(0.to_string())).unwrap();
                 update_page_label();
             }
+
+            title_el.set_value("");
+            body_el.set_value("");
         } else {
             let create_post_error_el = create_post_error.dyn_ref::<HtmlElement>().unwrap();
             // trigger reflow to restart the animation

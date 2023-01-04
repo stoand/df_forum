@@ -34,7 +34,7 @@ partof: REQ-purpose
 * [DONE] bug - `post_liked_by_user` tries to set value after deletion
 * [DONE] bug - create 3 elements, delete last, create another, try to go to next page - page count is wrong
 * [DONE] - loading screen
-* TODO - reset inputs after post creation
+* [DONE] - reset inputs after post creation
 
 * Cranelift -- deleting is bugged when switching sessions
 
