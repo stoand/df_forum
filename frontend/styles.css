@@ -222,8 +222,14 @@ button {
 .post-action {
     margin-right: 20px;
 }
+.post-info-container {
+    margin-top: 6px;
+}
 .post-info-bold {
     font-weight: bold;
+}
+.post-like {
+    padding: 0;
 }
 
 .pagination-container {
