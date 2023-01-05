@@ -110,10 +110,6 @@ body {
     min-height: 100vh;
 }
 
-.global-root-spacer {
-    flex-grow: 2;
-}
-
 .top-bar {
     padding: 30px;
     display: flex;
@@ -146,6 +142,7 @@ button {
     padding: 30px;
     background: #FFF;
     margin: 30px;
+    width: 900px;
 }
 
 #create-post-title,#create-post-body {
@@ -187,6 +184,12 @@ button {
  100% { transform: translateX(0) }
 }
 
+.center-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
 #create-post-error {
     display: none;
     padding-top: 30px;
@@ -203,6 +206,7 @@ button {
     padding: 1px 30px 30px 30px;
     background: #fff;
     margin-bottom: 30px;
+    width: 900px;
 }
 
 .post-title {
