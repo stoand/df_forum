@@ -65,22 +65,29 @@ pub fn bootstrap() {
         log(&format!("websocket opened"));
 
         let local_storage = get_local_storage();
-        if let Ok(Some(user_id_str)) = local_storage.get_item(USER_ID_LOCAL_STORAGE_KEY) {
-            let user_id: u64 = if let Ok(user_id) = user_id_str.parse() {
+        let user_id = if let Ok(Some(user_id_str)) = local_storage.get_item(USER_ID_LOCAL_STORAGE_KEY) {
+            if let Ok(user_id) = user_id_str.parse() {
                 user_id
             } else {
                 log("invalid user id, defaulting to 1");
                 1
-            };
-            connection0.clone().borrow().send_transaction(vec![
-                (user_id, Persisted::Session, 1),
-                (user_id, Persisted::ViewPostsPage(0), 1),
-            ]);
-
-            render_page_posts(user_id, connection0.clone());
+            }
         } else {
-            render_page_enter_username();
-        }
+            let user_id = get_random_u64();
+
+            get_local_storage()
+                .set_item(USER_ID_LOCAL_STORAGE_KEY, &user_id.to_string())
+                .unwrap();
+
+            user_id
+        };
+            
+        connection0.clone().borrow().send_transaction(vec![
+            (user_id, Persisted::Session, 1),
+            (user_id, Persisted::ViewPostsPage(0), 1),
+        ]);
+
+        render_page_posts(user_id, connection0.clone());
     });
 
     connection.borrow().set_onopen(onopen);
@@ -95,37 +102,37 @@ pub fn document_and_root() -> (Document, Element) {
 }
 
 // #SPC-forum_minimal.page_enter_username
-pub fn render_page_enter_username() {
-    let (document, root) = document_and_root();
-    root.set_inner_html("");
+// pub fn render_page_enter_username() {
+//     let (document, root) = document_and_root();
+//     root.set_inner_html("");
 
-    let enter_chat_name = document.create_element("input").unwrap();
-    root.append_child(&enter_chat_name).unwrap();
+//     let enter_chat_name = document.create_element("input").unwrap();
+//     root.append_child(&enter_chat_name).unwrap();
 
-    let use_chat_name = document.create_element("button").unwrap();
-    use_chat_name.set_text_content(Some("Chat with this name"));
-    root.append_child(&use_chat_name).unwrap();
+//     let use_chat_name = document.create_element("button").unwrap();
+//     use_chat_name.set_text_content(Some("Chat with this name"));
+//     root.append_child(&use_chat_name).unwrap();
 
-    let use_chat_name_click = Closure::<dyn FnMut()>::new(move || {
-        let name = enter_chat_name
-            .dyn_ref::<HtmlInputElement>()
-            .unwrap()
-            .value();
+//     let use_chat_name_click = Closure::<dyn FnMut()>::new(move || {
+//         let name = enter_chat_name
+//             .dyn_ref::<HtmlInputElement>()
+//             .unwrap()
+//             .value();
 
-        if !name.is_empty() {
-            get_local_storage()
-                .set_item(USER_ID_LOCAL_STORAGE_KEY, &name)
-                .unwrap();
+//         if !name.is_empty() {
+//             get_local_storage()
+//                 .set_item(USER_ID_LOCAL_STORAGE_KEY, &name)
+//                 .unwrap();
 
-            bootstrap();
-        }
-    });
+//             bootstrap();
+//         }
+//     });
 
-    let use_chat_name_el = use_chat_name.dyn_ref::<HtmlElement>().unwrap();
-    use_chat_name_el.set_onclick(Some(use_chat_name_click.as_ref().unchecked_ref()));
+//     let use_chat_name_el = use_chat_name.dyn_ref::<HtmlElement>().unwrap();
+//     use_chat_name_el.set_onclick(Some(use_chat_name_click.as_ref().unchecked_ref()));
 
-    use_chat_name_click.forget();
-}
+//     use_chat_name_click.forget();
+// }
 
 // #SPC-forum_minimal.page_posts
 pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::FrontendConnection>>) {
@@ -146,11 +153,14 @@ pub fn render_page_posts(user_id: u64, connection: Rc<RefCell<connection::Fronte
 
     let use_different_name = document.get_element_by_id("switch-user-id").unwrap();
     let use_different_name_click = Closure::<dyn FnMut()>::new(move || {
+
+        let user_id = get_random_u64();
+
         get_local_storage()
-            .remove_item(USER_ID_LOCAL_STORAGE_KEY)
+            .set_item(USER_ID_LOCAL_STORAGE_KEY, &user_id.to_string())
             .unwrap();
 
-        render_page_enter_username();
+        web_sys::window().unwrap().location().reload().unwrap();
     });
 
     let use_different_name_el = use_different_name.dyn_ref::<HtmlElement>().unwrap();
