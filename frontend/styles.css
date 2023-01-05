@@ -276,3 +276,97 @@ button {
     font-size: 22px;
     display: inline-block;
 }
+
+/* touch screen devices */
+
+@media (pointer: none), (pointer: coarse) {
+
+    #loading-page {
+        display: flex;
+        align-items: center;
+        flex-direction: column;
+    }
+    
+    .loading-text {
+        font-size: 140px;
+        width: auto;
+        padding-top: 300px;
+    }
+
+    .loading-dots {
+        margin-top: 170px;
+    }
+/**
+ * ==============================================
+ * Dot Pulse
+ * ==============================================
+ */
+.dot-pulse {
+  position: relative;
+  left: -9999px;
+  width: 60px;
+  height: 60px;
+  border-radius: 30px;
+  background-color: #3c3c3c;
+  color: #3c3c3c;
+  box-shadow: 9999px 0 0 -5px;
+  animation: dot-pulse 1.5s infinite linear;
+  animation-delay: 0.25s;
+}
+.dot-pulse::before, .dot-pulse::after {
+  content: "";
+  display: inline-block;
+  position: absolute;
+  top: 0;
+  width: 60px;
+  height: 60px;
+  border-radius: 30px;
+  background-color: #3c3c3c;
+  color: #3c3c3c;
+}
+.dot-pulse::before {
+  box-shadow: 9909px 0 0 -5px;
+  animation: dot-pulse-before 1.5s infinite linear;
+  animation-delay: 0s;
+}
+.dot-pulse::after {
+  box-shadow: 10089px 0 0 -5px;
+  animation: dot-pulse-after 1.5s infinite linear;
+  animation-delay: 0.5s;
+}
+
+@keyframes dot-pulse-before {
+  0% {
+    box-shadow: 9909px 0 0 -5px;
+  }
+  30% {
+    box-shadow: 9909px 0 0 2px;
+  }
+  60%, 100% {
+    box-shadow: 9909px 0 0 -5px;
+  }
+}
+@keyframes dot-pulse {
+  0% {
+    box-shadow: 9999px 0 0 -5px;
+  }
+  30% {
+    box-shadow: 9999px 0 0 2px;
+  }
+  60%, 100% {
+    box-shadow: 9999px 0 0 -5px;
+  }
+}
+@keyframes dot-pulse-after {
+  0% {
+    box-shadow: 10089px 0 0 -5px;
+  }
+  30% {
+    box-shadow: 10089px 0 0 2px;
+  }
+  60%, 100% {
+    box-shadow: 10089px 0 0 -5px;
+  }
+}
+    
+}
