@@ -113,18 +113,19 @@ body {
 }
 
 .top-bar {
-    padding: 30px;
+    padding: 1.5em;
     display: flex;
     background: #BEE3F8;
 }
 
 .top-bar-item {
-    margin-right: 30px;
+    margin-right: 1.5em;
 }
 
 .top-bar-right-link {
     flex-grow: 2;
     text-align: right;
+    margin-top: -5px;
 }
 
 a {
@@ -141,9 +142,9 @@ button {
 }
 
 .create-post-form {
-    padding: 30px;
+    padding: 1.5em;
     background: #FFF;
-    margin: 30px;
+    margin: 1.5em;
     width: 900px;
 }
 
@@ -151,8 +152,8 @@ button {
     font-size: inherit;
     font-family: inherit;
     display: block;
-    margin-bottom: 25px;
-    padding: 20px;
+    margin-bottom: 1.5em;
+    padding: 1.1em;
     border: none;
     background: #EDF2F7;
     color: #3c3c3c;
@@ -194,27 +195,27 @@ button {
 
 #create-post-error {
     display: none;
-    padding-top: 30px;
+    padding-top: 1.5em;
     color: red;
     animation: horizontal-shaking 0.5s 2;
 }
 
 
 #post-container {
-    margin: 0 30px 90px 30px;
+    margin: 0 30px 2.5em 30px;
 }
 
 #post-container > div {
-    padding: 1px 30px 30px 30px;
+    padding: 1px 1.5em 1.5em 1.5em;
     background: #fff;
-    margin-bottom: 30px;
+    margin-bottom: 1.5em;
     width: 900px;
 }
 
 .post-title {
     font-size: 1.2em;
-    padding-bottom: 20px;
-    margin-top: 30px;
+    padding-bottom: 1em;
+    margin-top: 1.5em;
 }
 
 .post-info-actions {
@@ -246,8 +247,8 @@ button {
     width: 100%;
 }
 .pagination-action,.pagination-page-num {
-    margin: 30px 0;
-    padding: 0 30px;
+    margin: 0.5em 0;
+    padding: 0 0.5em;
 }
 
 .pagination-page-num {
@@ -355,13 +356,14 @@ button {
     }
     
     .top-bar-item {
-        margin-bottom: 0.5em;
+        margin-bottom: 1.5em;
     }
 
     .top-bar-right-link {
         flex-grow: 1;
         text-align: unset;
         margin-bottom: 0;
+        margin-top: 0;
     }
 
     button {
@@ -374,12 +376,20 @@ button {
         box-sizing: border-box;
     }
 
+    #create-post-title {
+        width: 100%;
+    }
+
+    #create-post-body {
+        height: 4em;
+    }
+
     .post-info-actions {
         flex-direction: column;
     }
 
-    .post-action {
-        margin-top: 1em;
+    .post-action:first-child {
+        margin-bottom: 1em;
     }
 
     .post-info-container {
@@ -387,7 +397,7 @@ button {
     }
 
     #post-container {
-        margin-bottom: 140px;
+        margin-bottom: 2em;
         width: 100%;
     }
     
