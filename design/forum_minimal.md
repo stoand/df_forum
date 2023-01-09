@@ -36,8 +36,8 @@ partof: REQ-purpose
 * [DONE] - loading screen
 * [DONE] - reset inputs after post creation
 * [DONE] fix hardcoded localhost websocket path
-* TODO: fix styling extra space on bottom
-* TODO: fix mobile styling, font
+* [DONE] fix styling extra space on bottom
+* [DONE] fix mobile styling, font
 
 * Cranelift -- deleting is bugged when switching sessions
 
