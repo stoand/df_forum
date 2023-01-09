@@ -393,6 +393,11 @@ button {
         padding: 0;
     }
 
+    .create-post-form {
+        width: 100%;
+        box-sizing: border-box;
+    }
+
     .post-info-actions {
         flex-direction: column;
     }
@@ -403,5 +408,15 @@ button {
 
     .post-info-container {
         margin: 1em 0;
+    }
+
+    #post-container {
+        margin-bottom: 140px;
+        width: 100%;
+    }
+    
+    #post-container > div {
+        width: 100%;
+        box-sizing: border-box;
     }
 }
