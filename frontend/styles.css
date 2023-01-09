@@ -4,14 +4,15 @@ body {
     font-size: 18px;
     padding: 0;
     margin: 0;
-    background: #EEC95B;
+    background: #222222;
 }
 
 #loading-page {
     display: flex;
-    align-items: end;
+    align-items: center;
     justify-content: center;
-    height: 200px;
+    background: #EEC95B;
+    height: 100vh;
 }
 
 .loading-text {
@@ -98,6 +99,7 @@ body {
     display: none;
     flex-direction: column;
     min-height: 100vh;
+    background: #EEC95B;
 }
 
 #post-template {
@@ -294,7 +296,6 @@ button {
     .loading-text {
         font-size: 140px;
         width: auto;
-        padding-top: 300px;
     }
 
     .loading-dots {
