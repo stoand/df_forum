@@ -7,4 +7,4 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-      - run: RUST_LOG=debug cargo test || cargo test || cargo test
+      - run: cargo test
