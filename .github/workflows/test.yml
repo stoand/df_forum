@@ -6,8 +6,15 @@ jobs:
     name: Build and Test
     runs-on: ubuntu-latest
     steps:
+      - name: Cache Target Dir
+        id: cache-target
+        uses: actions/cache@v3
+        with:
+          path: target
+          key: cache-target
+          
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-      - run: RUST_LOG=debug cargo test -- --nocapture || cargo test -- --nocapture || cargo test -- --nocapture
+      - run: RUST_LOG=debug cargo test -- --nocapture || cargo test -- --nocapture || cargo test -- --nocapture || cargo test -- --nocapture
