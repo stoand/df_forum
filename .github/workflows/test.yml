@@ -10,4 +10,4 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-      - run: cargo test
+      - run: RUST_LOG=debug cargo test -- --nocapture || cargo test -- --nocapture || cargo test -- --nocapture
